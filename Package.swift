@@ -9,10 +9,12 @@ let package = Package(
         .executable(name: "Momo", targets: ["MomoApp"]),
         .library(name: "MomoFace", targets: ["MomoFace"]),
         .library(name: "MomoKit", targets: ["MomoKit"]),
+        .library(name: "MomoBrain", targets: ["MomoBrain"]),
     ],
     targets: [
         .target(name: "MomoFace"),
         .target(name: "MomoKit"),
+        .target(name: "MomoBrain", dependencies: ["MomoKit"]),
         .executableTarget(
             name: "MomoApp",
             dependencies: ["MomoFace"],
