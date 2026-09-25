@@ -17,19 +17,23 @@ PRODUCTS="$DERIVED_DATA/Build/Products/$CONFIGURATION"
 APP="$ROOT/dist/Momo.app"
 LOCALIZATIONS=(en tr)
 
-echo "==> Building Momo ($CONFIGURATION)"
-xcodebuild \
-    -scheme Momo \
-    -configuration "$CONFIGURATION" \
-    -destination 'generic/platform=macOS' \
-    -derivedDataPath "$DERIVED_DATA" \
-    -quiet \
-    build
+for scheme in Momo momo-mcp; do
+    echo "==> Building $scheme ($CONFIGURATION)"
+    xcodebuild \
+        -scheme "$scheme" \
+        -configuration "$CONFIGURATION" \
+        -destination 'generic/platform=macOS' \
+        -derivedDataPath "$DERIVED_DATA" \
+        -quiet \
+        build
+done
 
 echo "==> Assembling $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$PRODUCTS/Momo" "$APP/Contents/MacOS/Momo"
+# The MCP server lives next to the app so agents can launch it by path.
+cp "$PRODUCTS/momo-mcp" "$APP/Contents/MacOS/momo-mcp"
 cp "$ROOT/Scripts/Info.plist" "$APP/Contents/Info.plist"
 for bundle in "$PRODUCTS"/*.bundle; do
     cp -R "$bundle" "$APP/Contents/Resources/"
