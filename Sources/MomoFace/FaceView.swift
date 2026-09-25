@@ -7,6 +7,7 @@ import SwiftUI
 public struct FaceView: View {
     private let engine: FaceEngine
     private let layout: FaceLayout
+    private let appearance: CharacterAppearance
     private let input: @MainActor () -> FaceEngine.Input
     private let onTap: (@MainActor () -> Void)?
 
@@ -16,12 +17,13 @@ public struct FaceView: View {
     ///   - input: Called once per frame to read the cursor position and idle time.
     ///   - onTap: Called after the body is clicked (and poked).
     public init(
-        engine: FaceEngine, layout: FaceLayout,
+        engine: FaceEngine, layout: FaceLayout, appearance: CharacterAppearance = .classic,
         input: @escaping @MainActor () -> FaceEngine.Input = { FaceEngine.Input() },
         onTap: (@MainActor () -> Void)? = nil
     ) {
         self.engine = engine
         self.layout = layout
+        self.appearance = appearance
         self.input = input
         self.onTap = onTap
     }
@@ -31,7 +33,7 @@ public struct FaceView: View {
             Canvas { context, _ in
                 let state = engine.advance(
                     to: timeline.date.timeIntervalSinceReferenceDate, input: input())
-                FaceRenderer.draw(state, in: &context, layout: layout)
+                FaceRenderer.draw(state, in: &context, layout: layout, appearance: appearance)
             }
         }
         .frame(width: layout.canvasSize.width, height: layout.canvasSize.height)

@@ -1,5 +1,6 @@
 import AppKit
 import Carbon.HIToolbox
+import MomoFace
 import MomoKit
 import Observation
 
@@ -84,6 +85,20 @@ final class AppModel {
     /// Pushes settings that live outside the settings object into the running app.
     func applyPreferences() {
         character.setSleepDelay(minutes: settings.preferences.sleepDelayMinutes)
+        character.appearance =
+            availableCharacters.first { $0.id == settings.preferences.characterID } ?? .classic
+    }
+
+    /// `~/Library/Application Support/Momo/Characters`, for custom character packs.
+    static var charactersFolder: URL {
+        AppSettings.supportDirectory.appendingPathComponent("Characters", isDirectory: true)
+    }
+
+    /// Built-in characters followed by the user's own packs.
+    var availableCharacters: [CharacterAppearance] {
+        let custom = CharacterAppearance.load(from: Self.charactersFolder)
+            .filter { pack in !CharacterAppearance.builtIns.contains { $0.id == pack.id } }
+        return CharacterAppearance.builtIns + custom
     }
 
     func openChat(tab: PanelTab? = nil) {

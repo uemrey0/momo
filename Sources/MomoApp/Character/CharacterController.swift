@@ -35,10 +35,19 @@ final class CharacterController {
         didSet { updateVisibility() }
     }
 
+    /// How the character looks.
+    var appearance: CharacterAppearance = .classic {
+        didSet {
+            guard appearance != oldValue, let geometry else { return }
+            hostingView?.rootView = makeFace(layout: geometry.layout)
+        }
+    }
+
     @ObservationIgnored let engine = FaceEngine()
     /// Called when the user clicks the character.
     @ObservationIgnored var onClick: (() -> Void)?
     @ObservationIgnored private var panel: NotchPanel?
+    @ObservationIgnored private var hostingView: ClickThroughHostingView<AnyView>?
     @ObservationIgnored private(set) var geometry: NotchGeometry?
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
     @ObservationIgnored private var brainReset: Task<Void, Never>?
@@ -181,19 +190,23 @@ final class CharacterController {
 
         let layout = geometry.layout
         let panel = self.panel ?? NotchPanel()
-        let face = FaceView(
-            engine: engine, layout: layout,
-            input: { [weak self] in self?.makeInput(layout: layout) ?? FaceEngine.Input() },
-            onTap: { [weak self] in self?.onClick?() }
-        )
-        .accessibilityLabel(Text("Momo", bundle: .module))
-
-        let hostingView = ClickThroughHostingView(rootView: face)
+        let hostingView = ClickThroughHostingView(rootView: makeFace(layout: layout))
         hostingView.sizingOptions = []
         panel.contentView = hostingView
+        self.hostingView = hostingView
         panel.setFrame(geometry.panelFrame(for: layout), display: true)
         self.panel = panel
         updateVisibility()
+    }
+
+    private func makeFace(layout: FaceLayout) -> AnyView {
+        AnyView(
+            FaceView(
+                engine: engine, layout: layout, appearance: appearance,
+                input: { [weak self] in self?.makeInput(layout: layout) ?? FaceEngine.Input() },
+                onTap: { [weak self] in self?.onClick?() }
+            )
+            .accessibilityLabel(Text("Momo", bundle: .module)))
     }
 
     private func updateVisibility() {
