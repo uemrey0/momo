@@ -22,5 +22,6 @@ let package = Package(
         ),
         .testTarget(name: "MomoFaceTests", dependencies: ["MomoFace"]),
         .testTarget(name: "MomoKitTests", dependencies: ["MomoKit"]),
+        .testTarget(name: "MomoBrainTests", dependencies: ["MomoBrain", "MomoKit"]),
     ]
 )
