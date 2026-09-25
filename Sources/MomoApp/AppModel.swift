@@ -14,6 +14,10 @@ final class AppModel {
     let today: TodayModel
     let notes: NotesModel
     let panelState = PanelState()
+    let calendar = CalendarService()
+    let focus: FocusController
+    let connections: MCPConnections
+    @ObservationIgnored private var context: ContextMonitor?
     @ObservationIgnored private(set) var chatPanel: ChatPanelController?
     @ObservationIgnored private(set) var voice: VoiceController?
     @ObservationIgnored private var hotKeys: [GlobalHotKey] = []
@@ -26,6 +30,8 @@ final class AppModel {
         assistant = AssistantController(store: store, settings: settings)
         today = TodayModel(store: store)
         notes = NotesModel(store: store)
+        focus = FocusController(character: character)
+        connections = MCPConnections(settings: settings)
     }
 
     func start() {
@@ -33,6 +39,9 @@ final class AppModel {
         applyPreferences()
         assistant.character = character
         today.onTaskCompleted = { [weak character] in character?.celebrate() }
+        let systemTools = SystemTools.all(calendar: calendar, focus: focus)
+        assistant.systemTools = { [weak connections] in systemTools + (connections?.tools ?? []) }
+        Task { await connections.refresh() }
 
         let voice = VoiceController(settings: settings, assistant: assistant, character: character)
         self.voice = voice
@@ -56,6 +65,16 @@ final class AppModel {
             },
         ].compactMap { $0 }
         voice.startWakeWordIfEnabled()
+
+        let context = ContextMonitor(
+            settings: settings, store: store, calendar: calendar, character: character)
+        context.openChat = { [weak self] message in
+            self?.openChat(tab: .chat)
+            if let message { self?.assistant.send(message) }
+        }
+        context.start()
+        self.context = context
+        focus.onFinish = { [weak self] _ in self?.character.simulate(.taskCompleted) }
 
         if !settings.preferences.hasCompletedOnboarding {
             showOnboarding()

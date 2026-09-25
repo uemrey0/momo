@@ -45,6 +45,7 @@ struct Preferences: Codable, Equatable {
     var reactsToLateNight = true
     var wakeWordEnabled = false
     var voiceIdentifier = ""
+    var mcpServers: [MCPServerConfiguration] = []
 
     init() {}
 
@@ -66,6 +67,7 @@ struct Preferences: Codable, Equatable {
         reactsToLateNight = value(.reactsToLateNight, defaults.reactsToLateNight)
         wakeWordEnabled = value(.wakeWordEnabled, defaults.wakeWordEnabled)
         voiceIdentifier = value(.voiceIdentifier, defaults.voiceIdentifier)
+        mcpServers = value(.mcpServers, defaults.mcpServers)
     }
 }
 

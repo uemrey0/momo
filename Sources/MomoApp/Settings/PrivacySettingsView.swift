@@ -60,12 +60,6 @@ struct PrivacySettingsView: View {
             }
 
             Section {
-                MCPSetupView()
-            } header: {
-                Text(verbatim: L("Use Momo from Claude, Codex and other agents"))
-            }
-
-            Section {
                 Button(L("Erase all of Momo's data…"), role: .destructive) {
                     confirmingErase = true
                 }
