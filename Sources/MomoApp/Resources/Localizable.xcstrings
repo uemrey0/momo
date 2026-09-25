@@ -193,6 +193,16 @@
         }
       }
     },
+    "Automatic (best voice for each language)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otomatik (her dil için en iyi ses)"
+          }
+        }
+      }
+    },
     "Back" : {
       "localizations" : {
         "tr" : {
@@ -638,6 +648,16 @@
         }
       }
     },
+    "Hi! I'm Momo. This is how I sound." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selam! Ben Momo. Sesim böyle."
+          }
+        }
+      }
+    },
     "Hi! What can I do for you?" : {
       "localizations" : {
         "tr" : {
@@ -807,6 +827,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apache Lisansı 2.0 ile lisanslanmıştır."
+          }
+        }
+      }
+    },
+    "Listen for “Hey Momo”" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Hey Momo” dendiğini dinle"
           }
         }
       }
@@ -1324,12 +1354,12 @@
         }
       }
     },
-    "Read replies aloud" : {
+    "Read every reply aloud" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cevapları sesli oku"
+            "value" : "Her cevabı sesli oku"
           }
         }
       }
@@ -1400,6 +1430,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saat 15'te su içmemi hatırlat"
+          }
+        }
+      }
+    },
+    "Replies to spoken messages are always read aloud. Download better voices in System Settings → Accessibility → Spoken Content." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesli mesajlara verilen cevaplar her zaman sesli okunur. Daha iyi sesleri Sistem Ayarları → Erişilebilirlik → Sesli İçerik bölümünden indirebilirsin."
           }
         }
       }
@@ -1660,6 +1700,26 @@
         }
       }
     },
+    "Speak" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuş"
+          }
+        }
+      }
+    },
+    "Speak (⌥⇧Space)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuş (⌥⇧Boşluk)"
+          }
+        }
+      }
+    },
     "Speaking" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -1667,6 +1727,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Konuşuyor"
+          }
+        }
+      }
+    },
+    "Speaking to Momo" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo ile konuşmak"
+          }
+        }
+      }
+    },
+    "Speech is recognised on this Mac. With “Hey Momo” on, the microphone stays on while Momo listens for its name, and macOS shows the microphone indicator." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuşman bu Mac'te tanınır. “Hey Momo” açıkken Momo adını beklerken mikrofon açık kalır ve macOS mikrofon göstergesini gösterir."
           }
         }
       }
@@ -1711,6 +1791,16 @@
         }
       }
     },
+    "Stop listening" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinlemeyi durdur"
+          }
+        }
+      }
+    },
     "Surprised" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -1749,6 +1839,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Görevler"
+          }
+        }
+      }
+    },
+    "Test voice" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesi dene"
           }
         }
       }
@@ -1941,6 +2041,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sürüm %@"
+          }
+        }
+      }
+    },
+    "Voice" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses"
           }
         }
       }
