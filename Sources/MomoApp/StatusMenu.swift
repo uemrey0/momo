@@ -3,67 +3,55 @@ import SwiftUI
 
 /// The menu shown from Momo's menu bar icon.
 struct StatusMenu: View {
+    var model: AppModel
+
+    var body: some View {
+        Button(L("Talk to Momo")) { model.openChat(tab: .chat) }
+            .keyboardShortcut(" ", modifiers: .option)
+        Button(L("Today")) { model.openChat(tab: .today) }
+        Button(L("Notes")) { model.openChat(tab: .notes) }
+
+        Divider()
+
+        CharacterMenu(controller: model.character)
+
+        Divider()
+
+        Button(L("Settings…")) { model.openSettings() }
+            .keyboardShortcut(",")
+        Button(L("About Momo")) {
+            NSApp.activate()
+            NSApp.orderFrontStandardAboutPanel(nil)
+        }
+        Button(L("Quit Momo")) { NSApp.terminate(nil) }
+            .keyboardShortcut("q")
+    }
+}
+
+/// Controls for the character itself.
+private struct CharacterMenu: View {
     @Bindable var controller: CharacterController
 
     var body: some View {
-        Toggle(isOn: $controller.isVisible) {
-            Text(
-                "Show Momo", bundle: .module,
-                comment: "Menu toggle that shows or hides the character")
-        }
-        Toggle(isOn: $controller.isLifeEnabled) {
-            Text(
-                "Live on Its Own", bundle: .module,
-                comment: "Menu toggle for idle behaviours such as yawning and falling asleep")
-        }
-
-        Divider()
-
-        Picker(selection: $controller.mood) {
-            ForEach(Mood.allCases) { mood in
-                Text(verbatim: mood.displayName).tag(mood)
-            }
-        } label: {
-            Text("Mood", bundle: .module, comment: "Menu title for choosing the character's mood")
-        }
-
-        Menu {
-            ForEach(FaceEvent.allCases) { event in
-                Button {
-                    controller.simulate(event)
-                } label: {
-                    Text(verbatim: event.displayName)
+        Menu(L("Character")) {
+            Toggle(L("Show Momo"), isOn: $controller.isVisible)
+            Toggle(L("Live on Its Own"), isOn: $controller.isLifeEnabled)
+            Divider()
+            Picker(L("Mood"), selection: $controller.mood) {
+                ForEach(Mood.allCases) { mood in
+                    Text(verbatim: mood.displayName).tag(mood)
                 }
             }
-        } label: {
-            Text(
-                "Try a Reaction", bundle: .module,
-                comment: "Menu title for simulating events the character reacts to")
-        }
-
-        Picker(selection: $controller.brain) {
-            ForEach(BrainSource.allCases) { brain in
-                Text(verbatim: brain.displayName).tag(brain)
+            Menu(L("Try a Reaction")) {
+                ForEach(FaceEvent.allCases) { event in
+                    Button(event.displayName) { controller.simulate(event) }
+                }
             }
-        } label: {
-            Text(
-                "Brain", bundle: .module,
-                comment: "Menu title for choosing which AI source the eye colour shows")
+            Picker(L("Brain"), selection: $controller.brain) {
+                ForEach(BrainSource.allCases) { brain in
+                    Text(verbatim: brain.displayName).tag(brain)
+                }
+            }
         }
-
-        Divider()
-
-        Button {
-            NSApp.activate()
-            NSApp.orderFrontStandardAboutPanel(nil)
-        } label: {
-            Text("About Momo", bundle: .module, comment: "Menu item that opens the About panel")
-        }
-        Button {
-            NSApp.terminate(nil)
-        } label: {
-            Text("Quit Momo", bundle: .module, comment: "Menu item that quits the app")
-        }
-        .keyboardShortcut("q")
     }
 }

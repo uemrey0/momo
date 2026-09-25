@@ -1,5 +1,6 @@
 import AppKit
 import MomoFace
+import MomoKit
 import Observation
 import SwiftUI
 
@@ -29,9 +30,12 @@ final class CharacterController {
     }
 
     @ObservationIgnored let engine = FaceEngine()
+    /// Called when the user clicks the character.
+    @ObservationIgnored var onClick: (() -> Void)?
     @ObservationIgnored private var panel: NotchPanel?
-    @ObservationIgnored private var geometry: NotchGeometry?
+    @ObservationIgnored private(set) var geometry: NotchGeometry?
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
+    @ObservationIgnored private var brainReset: Task<Void, Never>?
 
     init() {
         engine.reducesMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -60,9 +64,88 @@ final class CharacterController {
             })
     }
 
-    /// Plays Momo's reaction to an event, for trying reactions out from the menu.
+    /// Plays Momo's reaction to an event.
     func simulate(_ event: FaceEvent) {
         engine.handle(event)
+    }
+
+    /// Seconds of inactivity before Momo dozes off.
+    func setSleepDelay(minutes: Double) {
+        engine.sleepDelay = max(30, minutes * 60)
+    }
+
+    /// Where the bottom of the character is, in screen coordinates, for placing the chat.
+    var characterBottom: CGFloat? {
+        guard let panel, let geometry else { return nil }
+        return panel.frame.maxY - geometry.layout.anchor.y - FaceGeometry.bodyHeight
+    }
+
+    // MARK: - Conversation states
+
+    /// Momo is thinking about a request.
+    func showWorking() {
+        engine.setMood(.thinking)
+    }
+
+    /// Momo is answering.
+    func showSpeaking() {
+        engine.setMood(.speaking)
+    }
+
+    /// Momo is listening to the user.
+    func showListening() {
+        engine.setMood(.listening)
+    }
+
+    /// Momo is waiting for the user to decide something.
+    func showCurious() {
+        engine.setMood(.listening)
+        engine.flashMood(.surprised, for: 0.6)
+    }
+
+    /// Momo finished answering.
+    func showDone() {
+        engine.setMood(mood)
+        engine.flashMood(.happy, for: 1.4)
+        resetBrainSoon()
+    }
+
+    /// Momo went back to its normal self without answering.
+    func showIdle() {
+        engine.setMood(mood)
+        resetBrainSoon()
+    }
+
+    /// Something went wrong.
+    func showTrouble() {
+        engine.setMood(mood)
+        engine.flashMood(.sad, for: 2.2)
+        resetBrainSoon()
+    }
+
+    /// A small celebration, for example when a task was added or completed.
+    func celebrate() {
+        engine.handle(.taskCompleted)
+    }
+
+    /// Tints the eyes with the colour of the brain that is thinking.
+    func showBrain(_ kind: BrainKind) {
+        brainReset?.cancel()
+        engine.brain =
+            switch kind {
+            case .local: .local
+            case .subscription: .subscription
+            case .apiKey: .apiKey
+            }
+    }
+
+    private func resetBrainSoon() {
+        brainReset?.cancel()
+        brainReset = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2.5))
+            guard !Task.isCancelled, let self else { return }
+            self.engine.brain = self.brain
+        }
     }
 
     // MARK: - Panel
@@ -75,9 +158,11 @@ final class CharacterController {
 
         let layout = geometry.layout
         let panel = self.panel ?? NotchPanel()
-        let face = FaceView(engine: engine, layout: layout) { [weak self] in
-            self?.makeInput(layout: layout) ?? FaceEngine.Input()
-        }
+        let face = FaceView(
+            engine: engine, layout: layout,
+            input: { [weak self] in self?.makeInput(layout: layout) ?? FaceEngine.Input() },
+            onTap: { [weak self] in self?.onClick?() }
+        )
         .accessibilityLabel(Text("Momo", bundle: .module))
 
         let hostingView = ClickThroughHostingView(rootView: face)

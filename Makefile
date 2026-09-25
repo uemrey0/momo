@@ -1,7 +1,7 @@
 SWIFT ?= swift
 SWIFT_SOURCES = Sources Tests Package.swift
 
-.PHONY: build test run app open lint format clean
+.PHONY: build test run app open lint format l10n clean help
 
 build: ## Build all targets
 	$(SWIFT) build
@@ -20,6 +20,9 @@ open: app ## Build and open dist/Momo.app
 
 lint: ## Check formatting
 	$(SWIFT) format lint --strict --recursive $(SWIFT_SOURCES)
+
+l10n: ## Check that every user-facing string is translated
+	./Scripts/check-localizations.py
 
 format: ## Format the code in place
 	$(SWIFT) format --in-place --recursive $(SWIFT_SOURCES)

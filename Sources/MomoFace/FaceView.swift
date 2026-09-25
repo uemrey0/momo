@@ -8,18 +8,22 @@ public struct FaceView: View {
     private let engine: FaceEngine
     private let layout: FaceLayout
     private let input: @MainActor () -> FaceEngine.Input
+    private let onTap: (@MainActor () -> Void)?
 
     /// - Parameters:
     ///   - engine: The engine to run and draw.
     ///   - layout: Where to place the character.
     ///   - input: Called once per frame to read the cursor position and idle time.
+    ///   - onTap: Called after the body is clicked (and poked).
     public init(
         engine: FaceEngine, layout: FaceLayout,
-        input: @escaping @MainActor () -> FaceEngine.Input = { FaceEngine.Input() }
+        input: @escaping @MainActor () -> FaceEngine.Input = { FaceEngine.Input() },
+        onTap: (@MainActor () -> Void)? = nil
     ) {
         self.engine = engine
         self.layout = layout
         self.input = input
+        self.onTap = onTap
     }
 
     public var body: some View {
@@ -36,6 +40,7 @@ public struct FaceView: View {
             let point = layout.designPoint(from: location)
             if engine.hitTest(point) {
                 engine.poke(atX: point.x)
+                onTap?()
             }
         }
     }

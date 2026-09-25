@@ -17,7 +17,7 @@ let package = Package(
         .target(name: "MomoBrain", dependencies: ["MomoKit"]),
         .executableTarget(
             name: "MomoApp",
-            dependencies: ["MomoFace"],
+            dependencies: ["MomoFace", "MomoKit", "MomoBrain"],
             resources: [.process("Resources")]
         ),
         .testTarget(name: "MomoFaceTests", dependencies: ["MomoFace"]),

@@ -29,6 +29,9 @@ jobs:
       - name: Check formatting
         run: make lint
 
+      - name: Check translations
+        run: make l10n
+
       - name: Build
         run: swift build
 
