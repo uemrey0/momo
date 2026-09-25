@@ -151,6 +151,20 @@ public actor MomoStore {
         return data.notes[index]
     }
 
+    /// Replaces a note's title and body, or adds it when no note has its ID.
+    @discardableResult
+    public func saveNote(_ note: Note) throws -> Note {
+        reloadIfNeeded()
+        var saved = note
+        saved.updatedAt = Date()
+        if let index = data.notes.firstIndex(where: { $0.id == note.id }) {
+            try mutate { $0.notes[index] = saved }
+        } else {
+            try mutate { $0.notes.append(saved) }
+        }
+        return saved
+    }
+
     @discardableResult
     public func deleteNote(_ reference: String) throws -> Note {
         let index = try noteIndex(for: reference)

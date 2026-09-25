@@ -42,6 +42,18 @@ struct MomoStoreTests {
         #expect(body?.contains("scarf") == true)
     }
 
+    @Test("saves edits to a note in place")
+    func saveNote() async throws {
+        let store = temporaryStore()
+        var note = try await store.addNote(title: "Draft", body: "one")
+        note.body = "two"
+        try await store.saveNote(note)
+        let notes = await store.notes()
+        #expect(notes.count == 1)
+        #expect(notes.first?.id == note.id)
+        #expect(notes.first?.body == "two")
+    }
+
     @Test("tracks habit streaks")
     func habits() async throws {
         let store = temporaryStore()
