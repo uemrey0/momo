@@ -28,6 +28,21 @@ struct PrivacySettingsView: View {
             }
 
             Section {
+                LabeledContent(L("Screen reading")) {
+                    if ScreenReader.hasPermission {
+                        Text(verbatim: L("Allowed")).foregroundStyle(.secondary)
+                    } else {
+                        Button(L("Allow…")) { ScreenReader.requestPermission() }
+                    }
+                }
+            } footer: {
+                Text(
+                    verbatim: L(
+                        "Momo only looks at your screen when you ask it to, and always asks first. The text is read on your Mac."
+                    ))
+            }
+
+            Section {
                 if model.assistant.outboundLog.isEmpty {
                     Text(verbatim: L("Nothing has left this Mac yet."))
                         .foregroundStyle(.secondary)
