@@ -11,7 +11,13 @@ import SwiftUI
 final class CharacterController {
     /// The mood chosen in the menu.
     var mood: Mood = .idle {
-        didSet { engine.setMood(mood) }
+        didSet { applyRestingMood() }
+    }
+
+    /// A mood that comes from what is happening, such as music playing or a focus session.
+    /// Shown whenever the user has not picked a mood and no conversation is running.
+    var ambientMood: Mood? {
+        didSet { applyRestingMood() }
     }
 
     /// The brain whose colour the eyes show.
@@ -36,6 +42,17 @@ final class CharacterController {
     @ObservationIgnored private(set) var geometry: NotchGeometry?
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
     @ObservationIgnored private var brainReset: Task<Void, Never>?
+    @ObservationIgnored private var isInConversation = false
+
+    /// The mood Momo returns to between conversations.
+    private var restingMood: Mood {
+        mood == .idle ? (ambientMood ?? .idle) : mood
+    }
+
+    private func applyRestingMood() {
+        guard !isInConversation else { return }
+        engine.setMood(restingMood)
+    }
 
     init() {
         engine.reducesMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -84,16 +101,19 @@ final class CharacterController {
 
     /// Momo is thinking about a request.
     func showWorking() {
+        isInConversation = true
         engine.setMood(.thinking)
     }
 
     /// Momo is answering.
     func showSpeaking() {
+        isInConversation = true
         engine.setMood(.speaking)
     }
 
     /// Momo is listening to the user.
     func showListening() {
+        isInConversation = true
         engine.setMood(.listening)
     }
 
@@ -105,20 +125,23 @@ final class CharacterController {
 
     /// Momo finished answering.
     func showDone() {
-        engine.setMood(mood)
+        isInConversation = false
+        engine.setMood(restingMood)
         engine.flashMood(.happy, for: 1.4)
         resetBrainSoon()
     }
 
     /// Momo went back to its normal self without answering.
     func showIdle() {
-        engine.setMood(mood)
+        isInConversation = false
+        engine.setMood(restingMood)
         resetBrainSoon()
     }
 
     /// Something went wrong.
     func showTrouble() {
-        engine.setMood(mood)
+        isInConversation = false
+        engine.setMood(restingMood)
         engine.flashMood(.sad, for: 2.2)
         resetBrainSoon()
     }

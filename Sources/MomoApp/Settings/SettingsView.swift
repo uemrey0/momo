@@ -14,6 +14,10 @@ struct SettingsView: View {
                 .tabItem { Label(L("Brains"), systemImage: "brain") }
             VoiceSettingsView(model: model)
                 .tabItem { Label(L("Voice"), systemImage: "waveform") }
+            ConnectionsSettingsView(model: model)
+                .tabItem {
+                    Label(L("Connections"), systemImage: "point.3.connected.trianglepath.dotted")
+                }
             PrivacySettingsView(model: model)
                 .tabItem { Label(L("Privacy"), systemImage: "hand.raised") }
             AboutView()
@@ -79,6 +83,7 @@ struct GeneralSettingsView: View {
                     verbatim: L(
                         "Momo falls asleep when you step away and wakes up when you're back."))
             }
+            ReactionsSection(settings: settings, calendar: model.calendar)
             Section {
                 Button(L("Show the welcome tour again")) { model.showOnboarding() }
             }

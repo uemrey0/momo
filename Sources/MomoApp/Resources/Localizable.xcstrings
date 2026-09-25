@@ -21,6 +21,26 @@
         }
       }
     },
+    "%lld minutes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dakika"
+          }
+        }
+      }
+    },
+    "%lld tools" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld araç"
+          }
+        }
+      }
+    },
     "%lld-day streak" : {
       "localizations" : {
         "tr" : {
@@ -103,6 +123,26 @@
         }
       }
     },
+    "Add server" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sunucu ekle"
+          }
+        }
+      }
+    },
+    "Add “%@” to your calendar at %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” etkinliğini %@ saatine takvimine ekle"
+          }
+        }
+      }
+    },
     "Adding a calendar event" : {
       "localizations" : {
         "tr" : {
@@ -129,6 +169,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "İzin ver"
+          }
+        }
+      }
+    },
+    "Allow calendar access" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takvim erişimine izin ver"
           }
         }
       }
@@ -169,6 +219,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uzak bir beyin kullanmadan önce sor"
+          }
+        }
+      }
+    },
+    "Ask before using its tools" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Araçlarını kullanmadan önce sor"
           }
         }
       }
@@ -230,6 +290,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Beyinler"
+          }
+        }
+      }
+    },
+    "Calendar access lets Momo plan your day and nudge you before events. Google and Outlook calendars work once added in System Settings → Internet Accounts." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takvim erişimi, Momo'nun gününü planlamasını ve etkinliklerden önce seni dürtmesini sağlar. Google ve Outlook takvimleri, Sistem Ayarları → İnternet Hesapları'na eklendiğinde çalışır."
           }
         }
       }
@@ -414,12 +484,32 @@
         }
       }
     },
+    "Command" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komut"
+          }
+        }
+      }
+    },
     "Completing a task" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Görev tamamlanıyor"
+          }
+        }
+      }
+    },
+    "Connections" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlantılar"
           }
         }
       }
@@ -450,6 +540,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kopyala"
+          }
+        }
+      }
+    },
+    "Dance along when music plays" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Müzik çalınca dans et"
           }
         }
       }
@@ -545,6 +645,16 @@
         }
       }
     },
+    "Focus" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odak"
+          }
+        }
+      }
+    },
     "Focused" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -592,6 +702,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "API anahtarı al"
+          }
+        }
+      }
+    },
+    "Good morning!" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Günaydın!"
           }
         }
       }
@@ -904,6 +1024,16 @@
         }
       }
     },
+    "MCP servers Momo can use" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun kullanabileceği MCP sunucuları"
+          }
+        }
+      }
+    },
     "Mark as done" : {
       "localizations" : {
         "tr" : {
@@ -920,6 +1050,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yapılmadı olarak işaretle"
+          }
+        }
+      }
+    },
+    "Meeting" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı"
           }
         }
       }
@@ -999,6 +1139,16 @@
         }
       }
     },
+    "Momo starts these servers on your Mac and offers their tools to its brains. Only add servers you trust." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo bu sunucuları Mac'inde başlatır ve araçlarını beyinlerine sunar. Yalnızca güvendiğin sunucuları ekle."
+          }
+        }
+      }
+    },
     "Momo uses the first ready brain on your Mac for everyday requests and asks before sending bigger jobs to a remote brain. Use the arrows to set the order." : {
       "localizations" : {
         "tr" : {
@@ -1057,6 +1207,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aboneliğim"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ad"
           }
         }
       }
@@ -1354,12 +1514,32 @@
         }
       }
     },
+    "Reactions" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tepkiler"
+          }
+        }
+      }
+    },
     "Read every reply aloud" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Her cevabı sesli oku"
+          }
+        }
+      }
+    },
+    "Read the text on your clipboard" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panondaki metni oku"
           }
         }
       }
@@ -1424,12 +1604,42 @@
         }
       }
     },
+    "Remind me before meetings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantılardan önce hatırlat"
+          }
+        }
+      }
+    },
     "Remind me to drink water at 3 PM" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saat 15'te su içmemi hatırlat"
+          }
+        }
+      }
+    },
+    "Reminder" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hatırlatma"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaldır"
           }
         }
       }
@@ -1460,6 +1670,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yönlendirme"
+          }
+        }
+      }
+    },
+    "Run the shortcut “%@”" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” kestirmesini çalıştır"
           }
         }
       }
@@ -1771,6 +1991,16 @@
         }
       }
     },
+    "Starts in %lld minutes." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dakika sonra başlıyor."
+          }
+        }
+      }
+    },
     "Stay on this Mac" : {
       "localizations" : {
         "tr" : {
@@ -1787,6 +2017,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Durdur"
+          }
+        }
+      }
+    },
+    "Stop focus (until %@)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odağı bitir (%@ saatine kadar)"
           }
         }
       }
@@ -2091,6 +2331,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esprili"
+          }
+        }
+      }
+    },
+    "Worry when the battery is low" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pil azalınca endişelen"
+          }
+        }
+      }
+    },
+    "Yawn when it gets very late" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çok geç olunca esne"
+          }
+        }
+      }
+    },
+    "You have %lld tasks due and %lld events today. Want me to plan your day?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bugün %lld görevin ve %lld etkinliğin var. Gününü planlamamı ister misin?"
           }
         }
       }

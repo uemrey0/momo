@@ -11,6 +11,8 @@ struct StatusMenu: View {
         Button(L("Today")) { model.openChat(tab: .today) }
         Button(L("Notes")) { model.openChat(tab: .notes) }
 
+        FocusMenu(focus: model.focus)
+
         Divider()
 
         CharacterMenu(controller: model.character)
@@ -50,6 +52,31 @@ private struct CharacterMenu: View {
             Picker(L("Brain"), selection: $controller.brain) {
                 ForEach(BrainSource.allCases) { brain in
                     Text(verbatim: brain.displayName).tag(brain)
+                }
+            }
+        }
+    }
+}
+
+/// Starts and stops focus sessions.
+private struct FocusMenu: View {
+    var focus: FocusController
+
+    var body: some View {
+        if let end = focus.endDate {
+            Button(
+                String(
+                    format: L("Stop focus (until %@)"),
+                    end.formatted(date: .omitted, time: .shortened))
+            ) {
+                focus.stop()
+            }
+        } else {
+            Menu(L("Focus")) {
+                ForEach([15, 25, 45, 60], id: \.self) { minutes in
+                    Button(String(format: L("%lld minutes"), minutes)) {
+                        focus.start(minutes: minutes)
+                    }
                 }
             }
         }
