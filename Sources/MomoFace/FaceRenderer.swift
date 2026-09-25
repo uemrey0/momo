@@ -2,22 +2,45 @@ import SwiftUI
 
 /// Draws a ``FaceState`` into a SwiftUI `GraphicsContext`.
 public enum FaceRenderer {
-    static let bodyColor = Color(red: 0x12 / 255, green: 0x13 / 255, blue: 0x18 / 255)
-    static let blushColor = Color(red: 1, green: 0x8F / 255, blue: 0xA3 / 255)
     static let tongueColor = Color(red: 1, green: 0x7F / 255, blue: 0x90 / 255)
+    /// The hardware notch is always black, whatever the character looks like.
+    static let notchColor = Color(red: 0x12 / 255, green: 0x13 / 255, blue: 0x18 / 255)
+
+    /// The colours of one frame.
+    struct Palette {
+        var body: Color
+        var eyes: Color
+        var blush: Color
+        var accessory: Color
+        var rim: Color
+        var glow: Double
+    }
+
+    static func palette(for state: FaceState, appearance: CharacterAppearance) -> Palette {
+        let brain = RGBColor(red: state[.eyeRed], green: state[.eyeGreen], blue: state[.eyeBlue])
+        let resting = BrainSource.local.eyeColor
+        let glow = min(
+            1,
+            (pow(brain.red - resting.red, 2) + pow(brain.green - resting.green, 2)
+                + pow(brain.blue - resting.blue, 2)).squareRoot() / 60)
+        // Fixed eye colours still take on the brain's tint so the user can tell who answers.
+        let eyes = appearance.eyeColor.map { $0.mixed(with: brain, amount: glow * 0.85) } ?? brain
+        return Palette(
+            body: Color(appearance.bodyColor), eyes: Color(eyes),
+            blush: Color(appearance.blushColor),
+            accessory: Color(
+                appearance.accessoryColor ?? RGBColor(red: 230, green: 230, blue: 235)),
+            rim: appearance.hasLightBody ? .black.opacity(0.08) : .white.opacity(0.07), glow: glow)
+    }
 
     /// Draws one frame.
     public static func draw(
-        _ state: FaceState, in context: inout GraphicsContext, layout: FaceLayout
+        _ state: FaceState, in context: inout GraphicsContext, layout: FaceLayout,
+        appearance: CharacterAppearance = .classic
     ) {
-        let eyeColor = Color(
-            red: state[.eyeRed] / 255, green: state[.eyeGreen] / 255, blue: state[.eyeBlue] / 255)
-        let resting = BrainSource.local.eyeColor
-        let glow =
-            min(
-                1,
-                (pow(state[.eyeRed] - resting.red, 2) + pow(state[.eyeGreen] - resting.green, 2)
-                    + pow(state[.eyeBlue] - resting.blue, 2)).squareRoot() / 60)
+        let palette = palette(for: state, appearance: appearance)
+        let eyeColor = palette.eyes
+        let glow = palette.glow
 
         var body = context
         body.translateBy(x: layout.anchor.x, y: layout.anchor.y)
@@ -27,12 +50,18 @@ public enum FaceRenderer {
         let squash = state[.squash]
         body.scaleBy(x: 1 + (1 - squash) * 0.75, y: squash)
 
-        drawBody(in: body)
-        drawCheeks(state, in: body)
+        drawBody(palette, in: body)
+        drawCheeks(state, color: palette.blush, in: body)
+        if appearance.accessory == .freckles {
+            drawFreckles(color: palette.accessory, in: body)
+        }
         for side in [-1.0, 1.0] {
-            drawEye(state, side: side, color: eyeColor, glow: glow, in: body)
+            drawEye(
+                state, side: side, shape: appearance.eyeShape, color: eyeColor, glow: glow,
+                bodyColor: palette.body, in: body)
         }
         drawMouth(state, color: eyeColor, in: body)
+        drawAccessory(appearance.accessory, color: palette.accessory, in: body)
         drawThoughtBubbles(state, in: body)
 
         drawCap(layout: layout, in: context)
@@ -45,7 +74,7 @@ public enum FaceRenderer {
 
     // MARK: - Body
 
-    private static func drawBody(in context: GraphicsContext) {
+    private static func drawBody(_ palette: Palette, in context: GraphicsContext) {
         let width = FaceGeometry.bodyWidth
         let height = FaceGeometry.bodyHeight
         let top = -FaceGeometry.hiddenTop
@@ -62,8 +91,8 @@ public enum FaceRenderer {
 
         var shadowed = context
         shadowed.addFilter(.shadow(color: .black.opacity(0.35), radius: 9, x: 0, y: 6))
-        shadowed.fill(path, with: .color(bodyColor))
-        context.stroke(path, with: .color(.white.opacity(0.07)), lineWidth: 1.2)
+        shadowed.fill(path, with: .color(palette.body))
+        context.stroke(path, with: .color(palette.rim), lineWidth: 1.2)
     }
 
     private static func drawCap(layout: FaceLayout, in context: GraphicsContext) {
@@ -74,12 +103,12 @@ public enum FaceRenderer {
         let radius = min(10, layout.topInset / 3)
         let cap = UnevenRoundedRectangle(bottomLeadingRadius: radius, bottomTrailingRadius: radius)
             .path(in: rect)
-        context.fill(cap, with: .color(bodyColor))
+        context.fill(cap, with: .color(notchColor))
     }
 
     // MARK: - Face
 
-    private static func drawCheeks(_ state: FaceState, in context: GraphicsContext) {
+    private static func drawCheeks(_ state: FaceState, color: Color, in context: GraphicsContext) {
         let intensity = clamp01(state[.cheek])
         guard intensity > 0.02 else { return }
         var cheeks = context
@@ -87,16 +116,23 @@ public enum FaceRenderer {
         cheeks.addFilter(.blur(radius: 2))
         for side in [-1.0, 1.0] {
             let rect = CGRect(x: side * 41 - 8, y: 51, width: 16, height: 8)
-            cheeks.fill(Path(ellipseIn: rect), with: .color(blushColor))
+            cheeks.fill(Path(ellipseIn: rect), with: .color(color))
         }
     }
 
     private static func drawEye(
-        _ state: FaceState, side: Double, color: Color, glow: Double, in context: GraphicsContext
+        _ state: FaceState, side: Double, shape: CharacterAppearance.EyeShape, color: Color,
+        glow: Double, bodyColor: Color, in context: GraphicsContext
     ) {
         let scale = state[.eyeScale]
-        let width = FaceGeometry.eyeWidth * scale
-        let height = FaceGeometry.eyeHeight * scale
+        let baseSize: (width: Double, height: Double) =
+            switch shape {
+            case .pill: (FaceGeometry.eyeWidth, FaceGeometry.eyeHeight)
+            case .round: (21, 21)
+            case .square: (20, 19)
+            }
+        let width = baseSize.width * scale
+        let height = baseSize.height * scale
         let centerX = side * FaceGeometry.eyeOffset + state[.gazeX] * 7
         let centerY = FaceGeometry.eyeY + state[.gazeY] * 5
 
@@ -118,9 +154,9 @@ public enum FaceRenderer {
                 height: visibleHeight)
             var open = eyes
             open.opacity = normal
-            open.fill(
-                Path(roundedRect: rect, cornerRadius: min(width, visibleHeight) / 2),
-                with: .color(color))
+            let corner =
+                shape == .square ? min(5, visibleHeight / 2) : min(width, visibleHeight) / 2
+            open.fill(Path(roundedRect: rect, cornerRadius: corner), with: .color(color))
 
             let lid = clamp01(state[.lid])
             let tilt = state[.lidTilt]
@@ -163,6 +199,93 @@ public enum FaceRenderer {
             dizzyEyes.opacity = dizzy
             dizzyEyes.stroke(
                 spiral, with: .color(color), style: StrokeStyle(lineWidth: 2.3, lineCap: .round))
+        }
+    }
+
+    private static func drawFreckles(color: Color, in context: GraphicsContext) {
+        var freckles = context
+        freckles.opacity = 0.55
+        for side in [-1.0, 1.0] {
+            for (dx, dy) in [(-4.0, 52.0), (1.0, 55.0), (5.0, 51.0)] {
+                let rect = CGRect(
+                    x: side * 41 + dx * side - 1.1, y: dy - 1.1, width: 2.2, height: 2.2)
+                freckles.fill(Path(ellipseIn: rect), with: .color(color))
+            }
+        }
+    }
+
+    private static func drawAccessory(
+        _ accessory: CharacterAppearance.Accessory, color: Color, in context: GraphicsContext
+    ) {
+        switch accessory {
+        case .none, .freckles:
+            return
+        case .whiskers:
+            var whiskers = context
+            whiskers.opacity = 0.75
+            for side in [-1.0, 1.0] {
+                for (index, tilt) in [-5.0, 0, 5].enumerated() {
+                    var line = Path()
+                    let y = 49 + Double(index) * 4
+                    line.move(to: CGPoint(x: side * 50, y: y))
+                    line.addLine(to: CGPoint(x: side * 76, y: y + tilt))
+                    whiskers.stroke(
+                        line, with: .color(color),
+                        style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+                }
+            }
+        case .glasses:
+            let style = StrokeStyle(lineWidth: 2.4, lineCap: .round)
+            for side in [-1.0, 1.0] {
+                let rect = CGRect(
+                    x: side * FaceGeometry.eyeOffset - 16, y: FaceGeometry.eyeY - 15, width: 32,
+                    height: 30)
+                context.stroke(
+                    Path(roundedRect: rect, cornerRadius: 11), with: .color(color), style: style)
+            }
+            var bridge = Path()
+            bridge.move(to: CGPoint(x: -11, y: FaceGeometry.eyeY - 3))
+            bridge.addQuadCurve(
+                to: CGPoint(x: 11, y: FaceGeometry.eyeY - 3),
+                control: CGPoint(x: 0, y: FaceGeometry.eyeY - 9))
+            context.stroke(bridge, with: .color(color), style: style)
+        case .bow:
+            let center = CGPoint(x: 48, y: 12)
+            for side in [-1.0, 1.0] {
+                var wing = Path()
+                wing.move(to: center)
+                wing.addQuadCurve(
+                    to: CGPoint(x: center.x + side * 13, y: center.y - 8),
+                    control: CGPoint(x: center.x + side * 6, y: center.y - 11))
+                wing.addQuadCurve(
+                    to: CGPoint(x: center.x + side * 13, y: center.y + 8),
+                    control: CGPoint(x: center.x + side * 17, y: center.y))
+                wing.addQuadCurve(
+                    to: center, control: CGPoint(x: center.x + side * 6, y: center.y + 11))
+                context.fill(wing, with: .color(color))
+            }
+            context.fill(
+                Path(ellipseIn: CGRect(x: center.x - 4, y: center.y - 4, width: 8, height: 8)),
+                with: .color(color))
+            context.fill(
+                Path(
+                    ellipseIn: CGRect(x: center.x - 2.2, y: center.y - 2.2, width: 4.4, height: 4.4)
+                ),
+                with: .color(.white.opacity(0.35)))
+        case .sprout:
+            var stem = Path()
+            stem.move(to: CGPoint(x: 60, y: 60))
+            stem.addQuadCurve(to: CGPoint(x: 82, y: 50), control: CGPoint(x: 76, y: 62))
+            context.stroke(
+                stem, with: .color(color), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+            for (angle, offset) in [(-0.5, CGPoint(x: 80, y: 44)), (0.9, CGPoint(x: 88, y: 53))] {
+                var leaf = context
+                leaf.translateBy(x: offset.x, y: offset.y)
+                leaf.rotate(by: .radians(angle))
+                leaf.fill(
+                    Path(ellipseIn: CGRect(x: -7, y: -3.5, width: 14, height: 7)),
+                    with: .color(color))
+            }
         }
     }
 
@@ -324,5 +447,11 @@ public enum FaceRenderer {
 
     private static func clamp01(_ value: Double) -> Double {
         min(1, max(0, value))
+    }
+}
+
+extension Color {
+    init(_ color: RGBColor) {
+        self.init(red: color.red / 255, green: color.green / 255, blue: color.blue / 255)
     }
 }
