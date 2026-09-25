@@ -183,6 +183,26 @@
         }
       }
     },
+    "Allowed" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İzin verildi"
+          }
+        }
+      }
+    },
+    "Allow…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İzin ver…"
+          }
+        }
+      }
+    },
     "Always in this chat" : {
       "localizations" : {
         "tr" : {
@@ -1139,6 +1159,16 @@
         }
       }
     },
+    "Momo only looks at your screen when you ask it to, and always asks first. The text is read on your Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo ekranına yalnızca sen istediğinde bakar ve her seferinde önce sorar. Metin Mac'inde okunur."
+          }
+        }
+      }
+    },
     "Momo starts these servers on your Mac and offers their tools to its brains. Only add servers you trust." : {
       "localizations" : {
         "tr" : {
@@ -1544,6 +1574,16 @@
         }
       }
     },
+    "Read the text on your screen" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekranındaki metni oku"
+          }
+        }
+      }
+    },
     "Reading the clipboard" : {
       "localizations" : {
         "tr" : {
@@ -1580,16 +1620,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yenile"
-          }
-        }
-      }
-    },
-    "Remember that I like short answers" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kısa cevapları sevdiğimi hatırla"
           }
         }
       }
@@ -1773,6 +1803,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ekran Paylaşımı Başladı"
+          }
+        }
+      }
+    },
+    "Screen reading" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekranı okuma"
           }
         }
       }
@@ -2311,6 +2351,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Listemde ne var?"
+          }
+        }
+      }
+    },
+    "What's on my screen?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekranımda ne var?"
           }
         }
       }

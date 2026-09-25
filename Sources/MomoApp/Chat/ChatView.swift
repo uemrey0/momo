@@ -179,7 +179,7 @@ struct EmptyChatView: View {
             ("sun.max", L("Plan my day")),
             ("checklist", L("What's on my list?")),
             ("bell", L("Remind me to drink water at 3 PM")),
-            ("heart", L("Remember that I like short answers")),
+            ("text.viewfinder", L("What's on my screen?")),
         ]
     }
 

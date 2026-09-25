@@ -8,7 +8,7 @@ enum SystemTools {
     static func all(calendar: CalendarService, focus: FocusController) -> [any MomoTool] {
         [
             calendarEvents(calendar), addCalendarEvent(calendar), openApp(), openURL(),
-            listShortcuts(), runShortcut(), readClipboard(), startFocus(focus),
+            listShortcuts(), runShortcut(), readClipboard(), readScreen(), startFocus(focus),
         ]
     }
 
