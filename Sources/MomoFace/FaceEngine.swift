@@ -68,6 +68,8 @@ public final class FaceEngine {
     private var fellAsleepOnItsOwn = false
     private var scheduled: [(remaining: Double, step: ScheduledStep)] = []
     private var particles: [Particle] = []
+    private var isVoiceDriven = false
+    private var mouthEnvelope = 0.0
 
     /// Creates an engine that uses `random` for every random decision.
     public init(random: some RandomNumberGenerator) {
@@ -156,6 +158,18 @@ public final class FaceEngine {
         }
     }
 
+    /// Starts or stops lip sync from speech. While on, the speaking mouth follows
+    /// ``pulseMouth(strength:)`` instead of its built-in rhythm.
+    public func setVoiceDriven(_ enabled: Bool) {
+        isVoiceDriven = enabled
+        if !enabled { mouthEnvelope = 0 }
+    }
+
+    /// Opens the mouth for a spoken word or syllable; it closes again on its own.
+    public func pulseMouth(strength: Double = 1) {
+        mouthEnvelope = max(mouthEnvelope, min(1, strength))
+    }
+
     /// Whether a point in design space lies on the body.
     public func hitTest(_ point: SIMD2<Double>) -> Bool {
         !isTucked
@@ -230,8 +244,14 @@ public final class FaceEngine {
     ) {
         switch mood {
         case .speaking:
-            let syllable = max(0, sin(clock * 13)) * (0.55 + 0.45 * sin(clock * 2.3))
-            pose[.mouthOpen] = sin(clock * 0.9) > 0.75 ? 0 : syllable
+            if isVoiceDriven {
+                // Each word opens the mouth; a quick flutter makes it look like syllables.
+                mouthEnvelope *= exp(-dt * 7)
+                pose[.mouthOpen] = mouthEnvelope * (0.7 + 0.3 * abs(sin(clock * 22)))
+            } else {
+                let syllable = max(0, sin(clock * 13)) * (0.55 + 0.45 * sin(clock * 2.3))
+                pose[.mouthOpen] = sin(clock * 0.9) > 0.75 ? 0 : syllable
+            }
             pose[.rotation] = sin(clock * 3) * 0.025
             if sin(clock * 1.7) > 0.93 { pose[.happyEyes] = 0.6 }
         case .happy:

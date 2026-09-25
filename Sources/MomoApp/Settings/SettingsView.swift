@@ -12,6 +12,8 @@ struct SettingsView: View {
                 .tabItem { Label(L("General"), systemImage: "gearshape") }
             BrainSettingsView(model: model)
                 .tabItem { Label(L("Brains"), systemImage: "brain") }
+            VoiceSettingsView(model: model)
+                .tabItem { Label(L("Voice"), systemImage: "waveform") }
             PrivacySettingsView(model: model)
                 .tabItem { Label(L("Privacy"), systemImage: "hand.raised") }
             AboutView()
@@ -40,7 +42,6 @@ struct GeneralSettingsView: View {
                         Text(verbatim: personality.displayName).tag(personality)
                     }
                 }
-                Toggle(L("Read replies aloud"), isOn: $settings.preferences.speaksReplies)
             }
             Section {
                 LabeledContent(L("Open Momo")) {

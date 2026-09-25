@@ -15,7 +15,8 @@ final class AppModel {
     let notes: NotesModel
     let panelState = PanelState()
     @ObservationIgnored private(set) var chatPanel: ChatPanelController?
-    @ObservationIgnored private var hotKey: GlobalHotKey?
+    @ObservationIgnored private(set) var voice: VoiceController?
+    @ObservationIgnored private var hotKeys: [GlobalHotKey] = []
     @ObservationIgnored private var onboarding: OnboardingWindowController?
 
     init() {
@@ -33,14 +34,28 @@ final class AppModel {
         assistant.character = character
         today.onTaskCompleted = { [weak character] in character?.celebrate() }
 
+        let voice = VoiceController(settings: settings, assistant: assistant, character: character)
+        self.voice = voice
         let panel = ChatPanelController(
-            assistant: assistant, today: today, notes: notes, state: panelState,
+            assistant: assistant, today: today, notes: notes, state: panelState, voice: voice,
             character: character, openSettings: { [weak self] in self?.openSettings() })
         chatPanel = panel
-        character.onClick = { [weak panel] in panel?.toggle() }
-        hotKey = GlobalHotKey(keyCode: kVK_Space, modifiers: optionKey) { [weak panel] in
+        voice.showPanel = { [weak panel] in panel?.show(tab: .chat) }
+        character.onClick = { [weak panel, weak voice] in
+            voice?.stopSpeaking()
             panel?.toggle()
         }
+        hotKeys = [
+            GlobalHotKey(keyCode: kVK_Space, modifiers: optionKey) { [weak panel] in
+                panel?.toggle()
+            },
+            GlobalHotKey(keyCode: kVK_Space, modifiers: optionKey | shiftKey) {
+                [weak panel, weak voice] in
+                panel?.show(tab: .chat)
+                voice?.toggleDictation()
+            },
+        ].compactMap { $0 }
+        voice.startWakeWordIfEnabled()
 
         if !settings.preferences.hasCompletedOnboarding {
             showOnboarding()

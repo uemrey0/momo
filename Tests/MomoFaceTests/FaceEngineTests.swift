@@ -206,6 +206,22 @@ struct FaceEngineTests {
         }
     }
 
+    @Test("opens the mouth with each spoken word while voice driven")
+    func lipSync() {
+        let engine = makeEngine()
+        engine.isLifeEnabled = false
+        engine.setMood(.speaking)
+        engine.setVoiceDriven(true)
+        run(engine, seconds: 1)
+        #expect(engine.state[.mouthOpen] < 0.1)
+        engine.pulseMouth()
+        var widest = 0.0
+        run(engine, seconds: 0.2) { widest = max(widest, $0[.mouthOpen]) }
+        #expect(widest > 0.4)
+        run(engine, seconds: 1.5)
+        #expect(engine.state[.mouthOpen] < 0.1)
+    }
+
     @Test("clamps long gaps between timestamps")
     func clampsLongGaps() {
         let engine = makeEngine()

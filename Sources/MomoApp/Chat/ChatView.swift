@@ -6,6 +6,7 @@ import SwiftUI
 struct ChatView: View {
     @Bindable var assistant: AssistantController
     @Bindable var state: PanelState
+    var voice: VoiceController? = nil
     @FocusState private var isComposerFocused: Bool
     @Environment(\.snapshotMode) private var snapshotMode
 
@@ -95,6 +96,9 @@ struct ChatView: View {
             .padding(.vertical, 9)
             .padding(.leading, 12)
 
+            if let voice, !assistant.isBusy {
+                MicrophoneButton(voice: voice)
+            }
             if assistant.isBusy {
                 Button {
                     assistant.stop()
@@ -134,6 +138,35 @@ struct ChatView: View {
                 .strokeBorder(Color.white.opacity(isComposerFocused ? 0.16 : 0.06))
         )
         .padding(12)
+    }
+}
+
+/// Starts and stops dictation, pulsing with the input level while listening.
+struct MicrophoneButton: View {
+    var voice: VoiceController
+
+    var body: some View {
+        Button {
+            voice.toggleDictation()
+        } label: {
+            ZStack {
+                if voice.isListening {
+                    Circle()
+                        .fill(Theme.danger.opacity(0.25))
+                        .frame(width: 28 + voice.level * 14, height: 28 + voice.level * 14)
+                        .animation(.easeOut(duration: 0.08), value: voice.level)
+                }
+                Image(systemName: voice.isListening ? "mic.fill" : "mic")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(voice.isListening ? Theme.danger : Theme.secondaryText)
+                    .frame(width: 28, height: 28)
+            }
+            .frame(width: 32, height: 32)
+        }
+        .buttonStyle(.plain)
+        .help(voice.isListening ? L("Stop listening") : L("Speak (⌥⇧Space)"))
+        .accessibilityLabel(voice.isListening ? L("Stop listening") : L("Speak"))
+        .padding(.vertical, 2)
     }
 }
 

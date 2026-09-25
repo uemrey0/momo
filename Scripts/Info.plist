@@ -31,9 +31,17 @@
 	<string>14.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Momo reads your calendar to plan your day and remind you before meetings.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Momo reads your calendar to plan your day and remind you before meetings.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 The Momo Authors. Licensed under the Apache License 2.0.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Momo listens when you talk to it, and for “Hey Momo” if you turn that on.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Momo turns what you say into text, on your Mac whenever possible.</string>
 </dict>
 </plist>

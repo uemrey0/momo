@@ -76,13 +76,14 @@ final class ChatPanelController {
 
     init(
         assistant: AssistantController, today: TodayModel, notes: NotesModel,
-        state: PanelState, character: CharacterController, openSettings: @escaping () -> Void
+        state: PanelState, voice: VoiceController?, character: CharacterController,
+        openSettings: @escaping () -> Void
     ) {
         self.assistant = assistant
         self.state = state
         self.character = character
         let root = PanelView(
-            assistant: assistant, today: today, notes: notes, state: state,
+            assistant: assistant, today: today, notes: notes, state: state, voice: voice,
             openSettings: openSettings, close: { [weak self] in self?.hide() })
         let host = NSHostingView(rootView: root)
         host.sizingOptions = []

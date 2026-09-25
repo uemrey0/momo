@@ -8,6 +8,7 @@ struct PanelView: View {
     var today: TodayModel
     var notes: NotesModel
     @Bindable var state: PanelState
+    var voice: VoiceController? = nil
     var openSettings: () -> Void
     var close: () -> Void
     @Environment(\.snapshotMode) private var snapshotMode
@@ -18,7 +19,7 @@ struct PanelView: View {
             Divider().overlay(Color.white.opacity(0.06))
             Group {
                 switch state.tab {
-                case .chat: ChatView(assistant: assistant, state: state)
+                case .chat: ChatView(assistant: assistant, state: state, voice: voice)
                 case .today: TodayView(model: today)
                 case .notes: NotesView(model: notes)
                 }
