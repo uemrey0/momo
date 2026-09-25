@@ -1,0 +1,340 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "API Key" : {
+      "comment" : "Brain source name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API Anahtarı"
+          }
+        }
+      }
+    },
+    "About Momo" : {
+      "comment" : "Menu item that opens the About panel",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo Hakkında"
+          }
+        }
+      }
+    },
+    "Brain" : {
+      "comment" : "Menu title for choosing which AI source the eye colour shows",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beyin"
+          }
+        }
+      }
+    },
+    "Dizzy" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Başı Dönmüş"
+          }
+        }
+      }
+    },
+    "Focused" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odaklanmış"
+          }
+        }
+      }
+    },
+    "Grooving" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Müziğe Kapılmış"
+          }
+        }
+      }
+    },
+    "Happy" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mutlu"
+          }
+        }
+      }
+    },
+    "Idle" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bekliyor"
+          }
+        }
+      }
+    },
+    "In Love" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sevgi Dolu"
+          }
+        }
+      }
+    },
+    "It's 2 AM" : {
+      "comment" : "Simulated event",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saat Gece 2"
+          }
+        }
+      }
+    },
+    "Listening" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinliyor"
+          }
+        }
+      }
+    },
+    "Live on Its Own" : {
+      "comment" : "Menu toggle for idle behaviours such as yawning and falling asleep",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kendi Kendine Yaşasın"
+          }
+        }
+      }
+    },
+    "Low Battery" : {
+      "comment" : "Simulated event",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pil Azaldı"
+          }
+        }
+      }
+    },
+    "Meeting in 5 Minutes" : {
+      "comment" : "Simulated event",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 Dakika Sonra Toplantı"
+          }
+        }
+      }
+    },
+    "Momo" : {
+      "comment" : "The app and character name",
+      "shouldTranslate" : false
+    },
+    "Mood" : {
+      "comment" : "Menu title for choosing the character's mood",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruh Hâli"
+          }
+        }
+      }
+    },
+    "My Subscription" : {
+      "comment" : "Brain source name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aboneliğim"
+          }
+        }
+      }
+    },
+    "New Email" : {
+      "comment" : "Simulated event",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeni E-posta"
+          }
+        }
+      }
+    },
+    "On This Mac" : {
+      "comment" : "Brain source name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu Mac'te"
+          }
+        }
+      }
+    },
+    "Quit Momo" : {
+      "comment" : "Menu item that quits the app",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'dan Çık"
+          }
+        }
+      }
+    },
+    "Sad" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Üzgün"
+          }
+        }
+      }
+    },
+    "Screen Sharing Ended" : {
+      "comment" : "Simulated event",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran Paylaşımı Bitti"
+          }
+        }
+      }
+    },
+    "Screen Sharing Started" : {
+      "comment" : "Simulated event",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran Paylaşımı Başladı"
+          }
+        }
+      }
+    },
+    "Show Momo" : {
+      "comment" : "Menu toggle that shows or hides the character",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'yu Göster"
+          }
+        }
+      }
+    },
+    "Sleepy" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uykulu"
+          }
+        }
+      }
+    },
+    "Something Failed" : {
+      "comment" : "Simulated event",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir Şey Ters Gitti"
+          }
+        }
+      }
+    },
+    "Speaking" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuşuyor"
+          }
+        }
+      }
+    },
+    "Surprised" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Şaşkın"
+          }
+        }
+      }
+    },
+    "Task Completed" : {
+      "comment" : "Simulated event",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görev Tamamlandı"
+          }
+        }
+      }
+    },
+    "Thinking" : {
+      "comment" : "Mood name",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Düşünüyor"
+          }
+        }
+      }
+    },
+    "Try a Reaction" : {
+      "comment" : "Menu title for simulating events the character reacts to",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tepki Dene"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
