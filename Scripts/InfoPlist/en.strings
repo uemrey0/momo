@@ -1,0 +1,5 @@
+"CFBundleDisplayName" = "Momo";
+"NSMicrophoneUsageDescription" = "Momo listens when you talk to it, and for “Hey Momo” if you turn that on.";
+"NSSpeechRecognitionUsageDescription" = "Momo turns what you say into text, on your Mac whenever possible.";
+"NSCalendarsFullAccessUsageDescription" = "Momo reads your calendar to plan your day and remind you before meetings.";
+"NSCalendarsUsageDescription" = "Momo reads your calendar to plan your day and remind you before meetings.";

@@ -35,11 +35,11 @@ for bundle in "$PRODUCTS"/*.bundle; do
     cp -R "$bundle" "$APP/Contents/Resources/"
 done
 
-# The app bundle must declare its localizations for macOS to pick the user's language for the
-# resource bundles inside it.
+# Localized Info.plist strings (permission prompts). They also declare the app's
+# localizations, which macOS needs to pick the user's language for the resource bundles.
 for language in "${LOCALIZATIONS[@]}"; do
     mkdir -p "$APP/Contents/Resources/$language.lproj"
-    printf '"CFBundleDisplayName" = "Momo";\n' > "$APP/Contents/Resources/$language.lproj/InfoPlist.strings"
+    cp "$ROOT/Scripts/InfoPlist/$language.strings" "$APP/Contents/Resources/$language.lproj/InfoPlist.strings"
 done
 
 if [[ -n "${VERSION:-}" ]]; then
@@ -49,6 +49,7 @@ BUILD_NUMBER="$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 1)"
 plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$APP/Contents/Info.plist"
 
 echo "==> Signing with identity '$SIGN_IDENTITY'"
-codesign --force --deep --options runtime --sign "$SIGN_IDENTITY" "$APP"
+codesign --force --deep --options runtime --entitlements "$ROOT/Scripts/Momo.entitlements" \
+    --sign "$SIGN_IDENTITY" "$APP"
 
 echo "==> Done: $APP"
