@@ -27,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Stay out of the Dock and the app switcher, also when launched without an Info.plist
         // (for example with `swift run`).
         NSApp.setActivationPolicy(.accessory)
+        #if DEBUG
+            if Snapshots.renderIfRequested() || HeadlessAsk.runIfRequested() { return }
+        #endif
         model.start()
     }
 }
