@@ -1054,6 +1054,16 @@
         }
       }
     },
+    "Make your own character with a small JSON file." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Küçük bir JSON dosyasıyla kendi karakterini yap."
+          }
+        }
+      }
+    },
     "Mark as done" : {
       "localizations" : {
         "tr" : {
@@ -1383,6 +1393,16 @@
         }
       }
     },
+    "Open Characters Folder" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karakterler Klasörünü Aç"
+          }
+        }
+      }
+    },
     "Open Momo" : {
       "localizations" : {
         "tr" : {
@@ -1620,6 +1640,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yenile"
+          }
+        }
+      }
+    },
+    "Reload" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeniden Yükle"
           }
         }
       }

@@ -10,6 +10,8 @@ struct SettingsView: View {
         TabView {
             GeneralSettingsView(model: model)
                 .tabItem { Label(L("General"), systemImage: "gearshape") }
+            CharacterSettingsView(model: model)
+                .tabItem { Label(L("Character"), systemImage: "face.smiling") }
             BrainSettingsView(model: model)
                 .tabItem { Label(L("Brains"), systemImage: "brain") }
             VoiceSettingsView(model: model)
