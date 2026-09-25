@@ -1,6 +1,46 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%lld characters" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld karakter"
+          }
+        }
+      }
+    },
+    "%lld min" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dk"
+          }
+        }
+      }
+    },
+    "%lld-day streak" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld günlük seri"
+          }
+        }
+      }
+    },
+    "A tiny, living companion for your Mac. Free and open source." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac'in için minik, canlı bir arkadaş. Ücretsiz ve açık kaynak."
+          }
+        }
+      }
+    },
     "API Key" : {
       "comment" : "Brain source name",
       "localizations" : {
@@ -8,6 +48,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "API Anahtarı"
+          }
+        }
+      }
+    },
+    "API key" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API anahtarı"
+          }
+        }
+      }
+    },
+    "About" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakkında"
           }
         }
       }
@@ -23,6 +83,126 @@
         }
       }
     },
+    "Add a habit" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alışkanlık ekle"
+          }
+        }
+      }
+    },
+    "Add a task" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görev ekle"
+          }
+        }
+      }
+    },
+    "Adding a calendar event" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takvime etkinlik ekleniyor"
+          }
+        }
+      }
+    },
+    "Adding a task" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görev ekleniyor"
+          }
+        }
+      }
+    },
+    "Allow" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İzin ver"
+          }
+        }
+      }
+    },
+    "Always in this chat" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu sohbette hep"
+          }
+        }
+      }
+    },
+    "Ask %@?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ sorulsun mu?"
+          }
+        }
+      }
+    },
+    "Ask Momo anything…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'ya bir şey sor…"
+          }
+        }
+      }
+    },
+    "Ask before using a remote brain" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uzak bir beyin kullanmadan önce sor"
+          }
+        }
+      }
+    },
+    "Ask once" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir kez sor"
+          }
+        }
+      }
+    },
+    "Automatic" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otomatik"
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geri"
+          }
+        }
+      }
+    },
     "Brain" : {
       "comment" : "Menu title for choosing which AI source the eye colour shows",
       "localizations" : {
@@ -30,6 +210,266 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Beyin"
+          }
+        }
+      }
+    },
+    "Brains" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beyinler"
+          }
+        }
+      }
+    },
+    "Calm" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sakin"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vazgeç"
+          }
+        }
+      }
+    },
+    "Character" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karakter"
+          }
+        }
+      }
+    },
+    "Chat" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sohbet"
+          }
+        }
+      }
+    },
+    "ChatGPT (your plan, via Codex)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT (aboneliğin, Codex ile)"
+          }
+        }
+      }
+    },
+    "Checking the time" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saate bakılıyor"
+          }
+        }
+      }
+    },
+    "Checking what I remember" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hatırladıklarıma bakılıyor"
+          }
+        }
+      }
+    },
+    "Checking your habits" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alışkanlıklarına bakılıyor"
+          }
+        }
+      }
+    },
+    "Checking your tasks" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görevlerine bakılıyor"
+          }
+        }
+      }
+    },
+    "Cheerful" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neşeli"
+          }
+        }
+      }
+    },
+    "Choose a model" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model seç"
+          }
+        }
+      }
+    },
+    "Choose which brain answers" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hangi beynin cevap vereceğini seç"
+          }
+        }
+      }
+    },
+    "Claude (API key)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude (API anahtarı)"
+          }
+        }
+      }
+    },
+    "Claude Desktop: add this to claude_desktop_config.json under “mcpServers”:" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Desktop: bunu claude_desktop_config.json dosyasında “mcpServers” altına ekle:"
+          }
+        }
+      }
+    },
+    "Claude subscriptions can't be used by other apps. To use your Claude plan with Momo, add Momo to Claude as an MCP server instead (see Privacy)." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude abonelikleri başka uygulamalarda kullanılamıyor. Claude aboneliğinle Momo'yu kullanmak için Momo'yu Claude'a MCP sunucusu olarak ekle (Gizlilik bölümüne bak)."
+          }
+        }
+      }
+    },
+    "Clear log" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaydı temizle"
+          }
+        }
+      }
+    },
+    "Click me in the notch to open my panel." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panelimi açmak için çentikte bana tıkla."
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kapat"
+          }
+        }
+      }
+    },
+    "Completing a task" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görev tamamlanıyor"
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devam"
+          }
+        }
+      }
+    },
+    "Copied" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopyalandı"
+          }
+        }
+      }
+    },
+    "Copy" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopyala"
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sil"
+          }
+        }
+      }
+    },
+    "Deleting a note" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not siliniyor"
+          }
+        }
+      }
+    },
+    "Deleting a task" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görev siliniyor"
           }
         }
       }
@@ -45,6 +485,56 @@
         }
       }
     },
+    "Don't allow" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İzin verme"
+          }
+        }
+      }
+    },
+    "Doze off after" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uyuklamadan önce bekle"
+          }
+        }
+      }
+    },
+    "Erase all of Momo's data…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun tüm verilerini sil…"
+          }
+        }
+      }
+    },
+    "Erase all tasks, notes, habits and memories?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tüm görevler, notlar, alışkanlıklar ve hatıralar silinsin mi?"
+          }
+        }
+      }
+    },
+    "Erase everything" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hepsini sil"
+          }
+        }
+      }
+    },
     "Focused" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -52,6 +542,56 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Odaklanmış"
+          }
+        }
+      }
+    },
+    "Forgetting" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unutuluyor"
+          }
+        }
+      }
+    },
+    "Gemini (your Google account, via Gemini CLI)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemini (Google hesabın, Gemini CLI ile)"
+          }
+        }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genel"
+          }
+        }
+      }
+    },
+    "Get an API key" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API anahtarı al"
+          }
+        }
+      }
+    },
+    "Google Gemini (API key)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Gemini (API anahtarı)"
           }
         }
       }
@@ -67,6 +607,16 @@
         }
       }
     },
+    "Habits" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alışkanlıklar"
+          }
+        }
+      }
+    },
     "Happy" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -74,6 +624,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mutlu"
+          }
+        }
+      }
+    },
+    "Harder requests" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daha zor istekler"
+          }
+        }
+      }
+    },
+    "Hi! What can I do for you?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selam! Senin için ne yapabilirim?"
+          }
+        }
+      }
+    },
+    "Hi, I'm Momo!" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selam, ben Momo!"
+          }
+        }
+      }
+    },
+    "Hide personal details from remote brains" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kişisel bilgileri uzak beyinlerden gizle"
+          }
+        }
+      }
+    },
+    "How to reach me" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bana nasıl ulaşırsın"
+          }
+        }
+      }
+    },
+    "I can keep your tasks, notes and habits, remember things and answer questions." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görevlerini, notlarını ve alışkanlıklarını tutabilir, bir şeyleri hatırlayabilir ve sorularını cevaplayabilirim."
+          }
+        }
+      }
+    },
+    "I don't have an on-device brain available right now." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Şu an Mac'inde kullanabileceğim bir beyin yok."
+          }
+        }
+      }
+    },
+    "I doze off when you step away. Wiggle the mouse and I'll wake up." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sen uzaklaşınca uyuklarım. Fareyi oynat, uyanırım."
+          }
+        }
+      }
+    },
+    "I live in your notch. I keep your tasks, notes and habits, remember what matters to you, and answer questions, privately on your Mac whenever I can." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çentiğinde yaşıyorum. Görevlerini, notlarını ve alışkanlıklarını tutar, senin için önemli olanları hatırlar ve sorularını cevaplarım. Elimden geldiğince hepsini gizlice, Mac'inde yaparım."
+          }
+        }
+      }
+    },
+    "I think on your Mac first. For bigger jobs I can borrow the ChatGPT or Gemini plan you already have, or an API key. I always ask before anything leaves your Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Önce Mac'inde düşünürüm. Büyük işler için zaten sahip olduğun ChatGPT ya da Gemini aboneliğini veya bir API anahtarını ödünç alabilirim. Mac'inden bir şey çıkmadan önce hep sorarım."
           }
         }
       }
@@ -100,6 +750,26 @@
         }
       }
     },
+    "Install LM Studio from lmstudio.ai, download a model and start its local server." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio'yu lmstudio.ai adresinden kur, bir model indir ve yerel sunucusunu başlat."
+          }
+        }
+      }
+    },
+    "Install Ollama from ollama.com, then download a model, for example:" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama'yı ollama.com adresinden kur, sonra bir model indir. Örneğin:"
+          }
+        }
+      }
+    },
     "It's 2 AM" : {
       "comment" : "Simulated event",
       "localizations" : {
@@ -107,6 +777,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saat Gece 2"
+          }
+        }
+      }
+    },
+    "Keep everything on this Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her şeyi bu Mac'te tut"
+          }
+        }
+      }
+    },
+    "Keys are stored in your macOS Keychain and only sent to that provider." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anahtarlar macOS Anahtar Zinciri'nde saklanır ve yalnızca o sağlayıcıya gönderilir."
+          }
+        }
+      }
+    },
+    "Licensed under the Apache License 2.0." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apache Lisansı 2.0 ile lisanslanmıştır."
           }
         }
       }
@@ -133,6 +833,36 @@
         }
       }
     },
+    "Loading…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yükleniyor…"
+          }
+        }
+      }
+    },
+    "Logging a habit" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alışkanlık işaretleniyor"
+          }
+        }
+      }
+    },
+    "Looking at your calendar" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takvimine bakılıyor"
+          }
+        }
+      }
+    },
     "Low Battery" : {
       "comment" : "Simulated event",
       "localizations" : {
@@ -140,6 +870,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pil Azaldı"
+          }
+        }
+      }
+    },
+    "Mark as done" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapıldı olarak işaretle"
+          }
+        }
+      }
+    },
+    "Mark as not done" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapılmadı olarak işaretle"
           }
         }
       }
@@ -155,9 +905,79 @@
         }
       }
     },
+    "Message" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesaj"
+          }
+        }
+      }
+    },
+    "Model" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
+          }
+        }
+      }
+    },
+    "Model (optional)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model (isteğe bağlı)"
+          }
+        }
+      }
+    },
     "Momo" : {
       "comment" : "The app and character name",
       "shouldTranslate" : false
+    },
+    "Momo falls asleep when you step away and wakes up when you're back." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo sen uzaklaşınca uykuya dalar, dönünce uyanır."
+          }
+        }
+      }
+    },
+    "Momo includes an MCP server, so agents you already use can read and update your tasks, notes, habits and memories. Claude Code:" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo bir MCP sunucusuyla gelir. Böylece zaten kullandığın ajanlar görevlerini, notlarını, alışkanlıklarını ve hatıralarını okuyup güncelleyebilir. Claude Code:"
+          }
+        }
+      }
+    },
+    "Momo is thinking" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo düşünüyor"
+          }
+        }
+      }
+    },
+    "Momo uses the first ready brain on your Mac for everyday requests and asks before sending bigger jobs to a remote brain. Use the arrows to set the order." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo günlük istekler için Mac'indeki ilk hazır beyni kullanır, büyük işleri uzak bir beyne göndermeden önce sorar. Sırayı oklarla değiştirebilirsin."
+          }
+        }
+      }
     },
     "Mood" : {
       "comment" : "Menu title for choosing the character's mood",
@@ -166,6 +986,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ruh Hâli"
+          }
+        }
+      }
+    },
+    "Most requests" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çoğu istek"
+          }
+        }
+      }
+    },
+    "Move down" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aşağı taşı"
+          }
+        }
+      }
+    },
+    "Move up" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yukarı taşı"
           }
         }
       }
@@ -192,6 +1042,86 @@
         }
       }
     },
+    "New conversation" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeni sohbet"
+          }
+        }
+      }
+    },
+    "New note" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeni not"
+          }
+        }
+      }
+    },
+    "No notes match your search." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aramana uyan not yok."
+          }
+        }
+      }
+    },
+    "No notes yet. Write one, or tell me “note that…” in the chat." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Henüz not yok. Bir tane yaz ya da sohbette bana “not al…” de."
+          }
+        }
+      }
+    },
+    "Not set up yet" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Henüz kurulmadı"
+          }
+        }
+      }
+    },
+    "Notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notlar"
+          }
+        }
+      }
+    },
+    "Nothing has left this Mac yet." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu Mac'ten henüz hiçbir şey çıkmadı."
+          }
+        }
+      }
+    },
+    "Nothing to do. Enjoy it, or ask me to plan your day." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapacak bir şey yok. Tadını çıkar ya da gününü planlamamı iste."
+          }
+        }
+      }
+    },
     "On This Mac" : {
       "comment" : "Brain source name",
       "localizations" : {
@@ -199,6 +1129,186 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bu Mac'te"
+          }
+        }
+      }
+    },
+    "On this Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu Mac'te"
+          }
+        }
+      }
+    },
+    "Only the hardest requests" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yalnızca en zor istekler"
+          }
+        }
+      }
+    },
+    "Only very long requests" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yalnızca çok uzun istekler"
+          }
+        }
+      }
+    },
+    "Open Momo" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'yu aç"
+          }
+        }
+      }
+    },
+    "Open at login" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girişte aç"
+          }
+        }
+      }
+    },
+    "OpenAI (API key)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI (API anahtarı)"
+          }
+        }
+      }
+    },
+    "OpenRouter (API key)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter (API anahtarı)"
+          }
+        }
+      }
+    },
+    "Opening a link" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlantı açılıyor"
+          }
+        }
+      }
+    },
+    "Opening an app" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uygulama açılıyor"
+          }
+        }
+      }
+    },
+    "Personal details hidden" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kişisel bilgiler gizlendi"
+          }
+        }
+      }
+    },
+    "Personal details like emails, phone numbers and IDs will be hidden first." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-posta, telefon numarası ve kimlik numarası gibi kişisel bilgiler önce gizlenecek."
+          }
+        }
+      }
+    },
+    "Personality" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kişilik"
+          }
+        }
+      }
+    },
+    "Pick my brains" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beyinlerimi seç"
+          }
+        }
+      }
+    },
+    "Plan my day" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Günümü planla"
+          }
+        }
+      }
+    },
+    "Press ⌥Space anywhere to open me." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beni açmak için her yerde ⌥Boşluk'a bas."
+          }
+        }
+      }
+    },
+    "Press ⌥Space anywhere to talk to me." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benimle konuşmak için her yerde ⌥Boşluk'a bas."
+          }
+        }
+      }
+    },
+    "Privacy" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gizlilik"
+          }
+        }
+      }
+    },
+    "Professional" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profesyonel"
           }
         }
       }
@@ -214,6 +1324,126 @@
         }
       }
     },
+    "Read replies aloud" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cevapları sesli oku"
+          }
+        }
+      }
+    },
+    "Reading the clipboard" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pano okunuyor"
+          }
+        }
+      }
+    },
+    "Reading your screen" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekranın okunuyor"
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hazır"
+          }
+        }
+      }
+    },
+    "Refresh" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yenile"
+          }
+        }
+      }
+    },
+    "Remember that I like short answers" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kısa cevapları sevdiğimi hatırla"
+          }
+        }
+      }
+    },
+    "Remembering" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hatırlanıyor"
+          }
+        }
+      }
+    },
+    "Remind me to drink water at 3 PM" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saat 15'te su içmemi hatırlat"
+          }
+        }
+      }
+    },
+    "Report a problem" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sorun bildir"
+          }
+        }
+      }
+    },
+    "Routing" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yönlendirme"
+          }
+        }
+      }
+    },
+    "Running a shortcut" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kestirme çalıştırılıyor"
+          }
+        }
+      }
+    },
+    "Runs privately on your Mac. Needs macOS 26 with Apple Intelligence turned on." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamamen Mac'inde çalışır. Apple Intelligence'ı açık macOS 26 gerekir."
+          }
+        }
+      }
+    },
     "Sad" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -221,6 +1451,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Üzgün"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaydet"
+          }
+        }
+      }
+    },
+    "Saved" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaydedildi"
+          }
+        }
+      }
+    },
+    "Saving a note" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not kaydediliyor"
+          }
+        }
+      }
+    },
+    "Say things like “remind me to call Ayşe at 3” or “note that the Wi-Fi password is on the fridge”." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Saat 3'te Ayşe'yi aramamı hatırlat” ya da “Wi-Fi şifresinin buzdolabında olduğunu not al” gibi şeyler söyle."
           }
         }
       }
@@ -247,6 +1517,106 @@
         }
       }
     },
+    "Search notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notlarda ara"
+          }
+        }
+      }
+    },
+    "Searching your notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notların aranıyor"
+          }
+        }
+      }
+    },
+    "Send" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gönder"
+          }
+        }
+      }
+    },
+    "Sent as written" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yazıldığı gibi gönderildi"
+          }
+        }
+      }
+    },
+    "Sent to remote brains" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uzak beyinlere gönderilenler"
+          }
+        }
+      }
+    },
+    "Server address" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sunucu adresi"
+          }
+        }
+      }
+    },
+    "Set up brains in Settings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beyinleri Ayarlar'da kur"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayarlar"
+          }
+        }
+      }
+    },
+    "Settings…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayarlar…"
+          }
+        }
+      }
+    },
+    "Should I do this?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bunu yapayım mı?"
+          }
+        }
+      }
+    },
     "Show Momo" : {
       "comment" : "Menu toggle that shows or hides the character",
       "localizations" : {
@@ -254,6 +1624,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo'yu Göster"
+          }
+        }
+      }
+    },
+    "Show the welcome tour again" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanıtım turunu yeniden göster"
           }
         }
       }
@@ -291,6 +1671,46 @@
         }
       }
     },
+    "Start" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Başla"
+          }
+        }
+      }
+    },
+    "Starting a focus session" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odak oturumu başlatılıyor"
+          }
+        }
+      }
+    },
+    "Stay on this Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu Mac'te kalsın"
+          }
+        }
+      }
+    },
+    "Stop" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durdur"
+          }
+        }
+      }
+    },
     "Surprised" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -298,6 +1718,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Şaşkın"
+          }
+        }
+      }
+    },
+    "Talk to Momo" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo ile konuş"
           }
         }
       }
@@ -313,6 +1743,16 @@
         }
       }
     },
+    "Tasks" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görevler"
+          }
+        }
+      }
+    },
     "Thinking" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -324,6 +1764,76 @@
         }
       }
     },
+    "This can't be undone." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu işlem geri alınamaz."
+          }
+        }
+      }
+    },
+    "This is too long for my on-device brain." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu, Mac'imdeki beyin için fazla uzun."
+          }
+        }
+      }
+    },
+    "This looks like a bigger job than my on-device brain handles well." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu, Mac'imdeki beynin rahatça yapabileceğinden büyük bir iş gibi görünüyor."
+          }
+        }
+      }
+    },
+    "This request would go to a remote brain." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu istek uzak bir beyne gidecek."
+          }
+        }
+      }
+    },
+    "Title" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Başlık"
+          }
+        }
+      }
+    },
+    "Today" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bugün"
+          }
+        }
+      }
+    },
+    "Track small daily wins, like drinking water." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Su içmek gibi küçük günlük başarılarını takip et."
+          }
+        }
+      }
+    },
     "Try a Reaction" : {
       "comment" : "Menu title for simulating events the character reacts to",
       "localizations" : {
@@ -331,6 +1841,186 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tepki Dene"
+          }
+        }
+      }
+    },
+    "Turned off" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kapalı"
+          }
+        }
+      }
+    },
+    "Untitled" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Başlıksız"
+          }
+        }
+      }
+    },
+    "Updating a note" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not güncelleniyor"
+          }
+        }
+      }
+    },
+    "Updating a task" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görev güncelleniyor"
+          }
+        }
+      }
+    },
+    "Use Momo from Claude, Codex and other agents" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'yu Claude, Codex ve diğer ajanlardan kullan"
+          }
+        }
+      }
+    },
+    "Use a remote brain for" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uzak beyni şunlar için kullan"
+          }
+        }
+      }
+    },
+    "Uses your ChatGPT plan. Install the official Codex CLI and sign in once:" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT aboneliğini kullanır. Resmi Codex CLI'ı kur ve bir kez giriş yap:"
+          }
+        }
+      }
+    },
+    "Uses your Google account. Install the official Gemini CLI and sign in once:" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google hesabını kullanır. Resmi Gemini CLI'ı kur ve bir kez giriş yap:"
+          }
+        }
+      }
+    },
+    "Using %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kullanılıyor"
+          }
+        }
+      }
+    },
+    "Version %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sürüm %@"
+          }
+        }
+      }
+    },
+    "Website" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web sitesi"
+          }
+        }
+      }
+    },
+    "What's on my list?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listemde ne var?"
+          }
+        }
+      }
+    },
+    "When hiding is on, emails, phone numbers, IBANs, card numbers, ID numbers and names are replaced with placeholders before a message leaves your Mac, and put back in the answer." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gizleme açıkken e-postalar, telefon numaraları, IBAN'lar, kart numaraları, kimlik numaraları ve isimler, mesaj Mac'inden çıkmadan önce yer tutucularla değiştirilir ve cevapta geri konur."
+          }
+        }
+      }
+    },
+    "Witty" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esprili"
+          }
+        }
+      }
+    },
+    "You picked this brain for our conversation." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu sohbet için bu beyni sen seçtin."
+          }
+        }
+      }
+    },
+    "Your data lives in %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verilerin şurada duruyor: %@."
+          }
+        }
+      }
+    },
+    "Your message will be sent as written." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesajın yazıldığı gibi gönderilecek."
+          }
+        }
+      }
+    },
+    "Your subscription" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aboneliğin"
           }
         }
       }
