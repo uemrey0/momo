@@ -155,6 +155,20 @@ struct OpenAIRealtimeCodecTests {
         #expect(messages[1]["type"] as? String == "response.create")
     }
 
+    @Test("adds a typed turn as a user message, then asks for a response")
+    func userText() throws {
+        let messages = try OpenAIRealtimeCodec(apiKey: "sk", model: "m")
+            .userTextMessages("What's on my calendar?").compactMap(RealtimeJSON.object)
+        #expect(messages.count == 2)
+        #expect(messages[0]["type"] as? String == "conversation.item.create")
+        let item = try #require(messages[0]["item"] as? [String: Any])
+        #expect(item["role"] as? String == "user")
+        let content = try #require((item["content"] as? [[String: Any]])?.first)
+        #expect(content["type"] as? String == "input_text")
+        #expect(content["text"] as? String == "What's on my calendar?")
+        #expect(messages[1]["type"] as? String == "response.create")
+    }
+
     @Test("decodes every handled server event")
     func decodes() {
         var codec = OpenAIRealtimeCodec(apiKey: "sk", model: "m")
@@ -313,6 +327,18 @@ struct RealtimeVoiceSessionTests {
         #expect((sent.first?["item"] as? [String: Any])?["call_id"] as? String == call.id)
         #expect(sent.last?["type"] as? String == "response.create")
         #expect(await session.usage.textCharactersSent == 2 + output.count)
+        await session.close()
+    }
+
+    @Test("sends a typed turn and counts its characters")
+    func userTextTurn() async throws {
+        let (session, factory, _) = try await readySession()
+        await session.sendUserText("  Hello  ")
+        await factory.transport.waitForSent(3)
+        #expect(
+            factory.transport.sentObjects.suffix(2).first?["type"] as? String
+                == "conversation.item.create")
+        #expect(await session.usage.textCharactersSent == 2 + 5)
         await session.close()
     }
 

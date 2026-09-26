@@ -12,8 +12,11 @@ extension LiveEngineChoice {
         }
     }
 
-    /// The choices offered in Settings. Cloud realtime follows once its engine exists.
-    static var offered: [LiveEngineChoice] { [.automatic, .apple, .openSource] }
+    /// The choices offered in Settings: cloud realtime only with an OpenAI or Gemini key
+    /// and outside local-only mode, or while it is the current choice.
+    static func offered(includingCloud: Bool) -> [LiveEngineChoice] {
+        includingCloud ? allCases : [.automatic, .apple, .openSource]
+    }
 }
 
 /// Live conversation settings: the switch, the engine, the follow-up window and the open
@@ -29,7 +32,7 @@ struct LiveConversationSection: View {
             Toggle(L("Live conversation"), isOn: $settings.preferences.liveConversation)
             if settings.preferences.liveConversation {
                 Picker(L("Engine"), selection: $settings.preferences.liveEngine) {
-                    ForEach(LiveEngineChoice.offered) { choice in
+                    ForEach(LiveEngineChoice.offered(includingCloud: offersCloud)) { choice in
                         Text(verbatim: choice.displayName).tag(choice)
                     }
                 }
@@ -47,9 +50,20 @@ struct LiveConversationSection: View {
         } footer: {
             Text(verbatim: footnote)
         }
-        if settings.preferences.liveConversation, settings.preferences.liveEngine != .apple {
-            OpenSourceModelsSection(models: models)
+        if settings.preferences.liveConversation {
+            switch settings.preferences.liveEngine {
+            case .automatic, .openSource: OpenSourceModelsSection(models: models)
+            case .cloudRealtime: CloudRealtimeSection(settings: settings)
+            case .apple: EmptyView()
+            }
         }
+    }
+
+    private var offersCloud: Bool {
+        settings.preferences.liveEngine == .cloudRealtime
+            || CloudRealtimeSetup.isOffered(settings.preferences) {
+                !(settings.keys.key(for: $0) ?? "").isEmpty
+            }
     }
 
     private func followUpName(_ seconds: Double) -> String {
@@ -68,12 +82,108 @@ struct LiveConversationSection: View {
             "Momo talks with you like a person: it starts answering while it still thinks, you can interrupt it at any time, and it keeps listening for a follow-up. Say “thanks, that's all” or press Esc to finish."
         )
         let privacy =
-            settings.preferences.speechVoice == .openAI
+            settings.preferences.liveEngine == .cloudRealtime
             ? L(
-                "Listening stays on this Mac; with an OpenAI voice, each sentence Momo says is sent to OpenAI."
+                "With cloud realtime voice, your microphone audio goes to the chosen service while the conversation is open."
             )
-            : L("Listening and speaking stay on this Mac.")
+            : settings.preferences.speechVoice == .openAI
+                ? L(
+                    "Listening stays on this Mac; with an OpenAI voice, each sentence Momo says is sent to OpenAI."
+                )
+                : L("Listening and speaking stay on this Mac.")
         return how + " " + privacy
+    }
+}
+
+/// The cloud realtime engine: the service, its model and voice, what it costs and whether
+/// audio may leave the Mac.
+private struct CloudRealtimeSection: View {
+    @Bindable var settings: AppSettings
+
+    private var provider: RealtimeProviderChoice { settings.preferences.realtimeProvider }
+
+    private var hasKey: Bool {
+        !(settings.keys.key(for: provider.keyProviderID) ?? "").isEmpty
+    }
+
+    private var model: Binding<String> {
+        switch provider {
+        case .openAI: $settings.preferences.realtimeOpenAIModel
+        case .gemini: $settings.preferences.realtimeGeminiModel
+        }
+    }
+
+    private var voice: Binding<String> {
+        switch provider {
+        case .openAI: $settings.preferences.realtimeOpenAIVoice
+        case .gemini: $settings.preferences.realtimeGeminiVoice
+        }
+    }
+
+    /// Whether the user agreed that audio goes to the chosen service.
+    private var consent: Binding<Bool> {
+        Binding {
+            !CloudRealtimeSetup.needsConsent(settings.preferences)
+        } set: { allowed in
+            if allowed {
+                CloudRealtimeSetup.grantConsent(&settings.preferences)
+            } else {
+                settings.preferences.realtimeConsentProvider = ""
+            }
+        }
+    }
+
+    var body: some View {
+        Section {
+            Picker(L("Service"), selection: $settings.preferences.realtimeProvider) {
+                ForEach(RealtimeProviderChoice.allCases) { choice in
+                    Text(verbatim: choice.displayName).tag(choice)
+                }
+            }
+            Picker(L("Model"), selection: model) {
+                ForEach(models, id: \.self) { name in
+                    Text(verbatim: name).tag(name)
+                }
+            }
+            Picker(L("Voice"), selection: voice) {
+                ForEach(provider.voices, id: \.self) { name in
+                    Text(verbatim: name.capitalized).tag(name)
+                }
+            }
+            Toggle(L("Allow my microphone audio to leave this Mac"), isOn: consent)
+            if settings.preferences.brains.localOnly {
+                Text(
+                    verbatim: L(
+                        "“Keep everything on this Mac” is on, so Momo uses its built-in voice engine instead."
+                    )
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            } else if !hasKey {
+                Text(
+                    verbatim: String(
+                        format: L("%@ needs an API key, which you can add in AI settings."),
+                        provider.displayName)
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
+        } header: {
+            Text(verbatim: L("Cloud realtime voice"))
+        } footer: {
+            Text(
+                verbatim: RealtimeVoicePrivacy.localizedNotice + " "
+                    + L(
+                        "The cloud model only talks; Momo's assistant still does the real work. The service bills your key for audio in both directions while a conversation is open, and each session is listed in Privacy."
+                    ))
+        }
+    }
+
+    /// The suggested models, plus a custom one the user set elsewhere.
+    private var models: [String] {
+        let current = model.wrappedValue
+        let suggested = provider.suggestedModels
+        return suggested.contains(current) || current.isEmpty ? suggested : suggested + [current]
     }
 }
 

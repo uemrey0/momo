@@ -121,6 +121,11 @@ struct GeminiLiveCodec: RealtimeCodec {
         return #"{"realtimeInput":{"audio":{"data":"\#(data)","mimeType":"audio/pcm;rate=16000"}}}"#
     }
 
+    func userTextMessages(_ text: String) throws -> [String] {
+        // Realtime text input: the model answers it like speech, with its voice.
+        [try RealtimeJSON.string(["realtimeInput": ["text": text]])]
+    }
+
     func functionResultMessages(
         _ output: String, for call: RealtimeFunctionCall
     ) throws

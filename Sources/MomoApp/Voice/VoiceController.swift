@@ -10,6 +10,15 @@ struct VoiceSession: Equatable {
     var messageID: UUID?
 }
 
+/// A cloud realtime conversation that waits for the user to agree that audio leaves the Mac.
+struct RealtimeConsentRequest: Equatable {
+    /// The service's name, such as "OpenAI Realtime".
+    var providerName: String
+    var service: RealtimeVoiceService
+    var firstTurn: String?
+    var pushToTalk: Bool
+}
+
 /// Connects dictation, spoken replies and the wake word to the assistant and the character.
 ///
 /// With live conversation on (the default), the shortcut and "Hey Momo" start a
@@ -70,8 +79,21 @@ final class VoiceController {
     private(set) var liveState: LiveConversation.State?
     /// The open source engine's models, for Settings.
     let liveModels: LiveVoiceModels
-    @ObservationIgnored private var live: LiveConversation?
+    @ObservationIgnored private var live: (any LiveConversing)?
     @ObservationIgnored private let liveBrain: AssistantLiveBrain
+    /// Whether the live conversation runs with a cloud realtime model.
+    private(set) var isRealtime = false
+    /// What the realtime model says in its current response.
+    private(set) var realtimeReply = ""
+    /// Whether the realtime model handed a request to Momo's assistant that still runs.
+    private(set) var isRealtimeWorking = false
+    /// The running tool's activity label while the assistant works for the realtime model.
+    private(set) var realtimeActivity: String?
+    /// A cloud realtime conversation waiting for the user to agree that audio leaves the Mac.
+    private(set) var realtimeConsent: RealtimeConsentRequest?
+    @ObservationIgnored private let realtimeBrain: AssistantRealtimeBrain
+    /// Set when a cloud realtime session failed, so the next conversation runs on the Mac.
+    @ObservationIgnored private var realtimeFailedRecently = false
     /// The `momo-voice` helper, when it is installed and runs on this Mac.
     @ObservationIgnored private let liveHelper: LiveVoiceHelperClient?
     @ObservationIgnored private var liveReleasedWhileStarting = false
@@ -81,6 +103,7 @@ final class VoiceController {
         self.assistant = assistant
         self.character = character
         liveBrain = AssistantLiveBrain(assistant: assistant)
+        realtimeBrain = AssistantRealtimeBrain(assistant: assistant)
         if LiveVoiceHelperClient.isSupportedOnThisMac, let path = AppSettings.liveVoiceHelperPath {
             liveHelper = LiveVoiceHelperClient(executableURL: URL(fileURLWithPath: path))
         } else {
@@ -101,6 +124,7 @@ final class VoiceController {
         assistant.onPrompt = { [weak self] in self?.promptAppeared() }
         assistant.onRequestFinished = { [weak self] in self?.requestFinished() }
         assistant.onPromptAnswered = { [weak self] in self?.liveBrain.promptAnswered() }
+        realtimeBrain.onActivity = { [weak self] label in self?.realtimeActivity = label }
     }
 
     // MARK: - Shortcut
@@ -109,6 +133,10 @@ final class VoiceController {
     /// that is being answered. With push to talk, listening lasts while the key is held.
     func shortcutPressed() {
         let pushToTalk = settings.preferences.pushToTalk
+        if realtimeConsent != nil {
+            cancelVoiceSession()
+            return
+        }
         if let live {
             if pushToTalk {
                 isHoldingToTalk = true
@@ -363,6 +391,15 @@ final class VoiceController {
             endVoiceSession()
             return
         }
+        if realtimeConsent != nil {
+            realtimeConsent = nil
+            liveState = nil
+            isHoldingToTalk = false
+            character?.showIdle()
+            endVoiceSession()
+            startWakeWordIfEnabled()
+            return
+        }
         guard session != nil else { return }
         dictationGeneration += 1
         engine?.stop(deliver: false)
@@ -390,6 +427,7 @@ final class VoiceController {
     /// The chat panel opened, so it takes over from the bubble.
     func chatPanelDidOpen() {
         live?.end()
+        if realtimeConsent != nil { cancelVoiceSession() }
         guard session != nil else { return }
         stopListeningForAnswer()
         endVoiceSession()
@@ -416,6 +454,7 @@ final class VoiceController {
     private func requestFinished() {
         if live != nil {
             liveBrain.requestFinished()
+            realtimeBrain.requestFinished()
             return
         }
         guard session != nil else { return }
@@ -432,6 +471,7 @@ final class VoiceController {
         if live != nil {
             bubble?.show()
             liveBrain.promptAppeared()
+            realtimeBrain.promptAppeared()
             return
         }
         guard session != nil, let assistant else { return }
@@ -611,7 +651,9 @@ final class VoiceController {
             wakeWord.stop()
             return
         }
-        guard !isListening, !isStarting, !isSpeaking, !isAwaitingAnswer, live == nil else {
+        guard !isListening, !isStarting, !isSpeaking, !isAwaitingAnswer, live == nil,
+            realtimeConsent == nil
+        else {
             return
         }
         if wakeWord.isRunning {
@@ -687,17 +729,36 @@ extension VoiceController {
         liveState = .starting
         liveReleasedWhileStarting = false
         Task {
-            let (io, kind) = await makeLiveIO()
-            launchLive(io: io, kind: kind, firstTurn: firstTurn, pushToTalk: pushToTalk)
+            switch await makeLiveIO() {
+            case .speech(let io, let kind):
+                launchSpeechEngine(io: io, kind: kind, firstTurn: firstTurn, pushToTalk: pushToTalk)
+            case .realtime(let service):
+                guard session != nil, liveState == .starting else { return }
+                if CloudRealtimeSetup.needsConsent(settings.preferences) {
+                    askRealtimeConsent(
+                        service: service, firstTurn: firstTurn, pushToTalk: pushToTalk)
+                } else {
+                    launchRealtime(service: service, firstTurn: firstTurn, pushToTalk: pushToTalk)
+                }
+            }
         }
     }
 
-    private func launchLive(
+    private func launchSpeechEngine(
         io: any LiveSpeechIO, kind: LiveEngineKind, firstTurn: String?, pushToTalk: Bool
     ) {
         guard session != nil, liveState == .starting else { return }
-        let conversation = makeLiveConversation(io: io, pushToTalk: pushToTalk)
+        launch(
+            makeLiveConversation(io: io, pushToTalk: pushToTalk), kind: kind,
+            firstTurn: firstTurn, pushToTalk: pushToTalk)
+    }
+
+    private func launch(
+        _ conversation: any LiveConversing, kind: LiveEngineKind, firstTurn: String?,
+        pushToTalk: Bool
+    ) {
         live = conversation
+        isRealtime = kind == .cloudRealtime
         conversation.holdsWindowOpen = pushToTalk && isHoldingToTalk
         Task {
             do {
@@ -711,13 +772,19 @@ extension VoiceController {
             } catch {
                 guard live === conversation else { return }
                 live = nil
-                if kind == .openSource {
-                    errorMessage = String(
-                        format: L(
+                isRealtime = false
+                if kind == .openSource || kind == .cloudRealtime {
+                    let format =
+                        kind == .openSource
+                        ? L(
                             "The open source voice engine couldn't start, so Momo used Apple's built-in one. %@"
-                        ), error.localizedDescription)
+                        )
+                        : L(
+                            "Cloud realtime voice couldn't start, so Momo used Apple's built-in engine. %@"
+                        )
+                    errorMessage = String(format: format, error.localizedDescription)
                     liveState = .starting
-                    launchLive(
+                    launchSpeechEngine(
                         io: makeAppleLiveIO(), kind: .apple, firstTurn: firstTurn,
                         pushToTalk: pushToTalk)
                     return
@@ -732,31 +799,70 @@ extension VoiceController {
         }
     }
 
-    /// The speech engine for the user's choice.
-    private func makeLiveIO() async -> (any LiveSpeechIO, LiveEngineKind) {
-        let choice = settings.preferences.liveEngine
+    /// The engine a live conversation runs with.
+    enum LiveEngineSetup {
+        /// A speech layer in front of Momo's brain.
+        case speech(any LiveSpeechIO, LiveEngineKind)
+        /// A cloud realtime model that hands real work to Momo's brain.
+        case realtime(RealtimeVoiceService)
+    }
+
+    /// The engine for the user's choice.
+    private func makeLiveIO() async -> LiveEngineSetup {
+        let preferences = settings.preferences
+        let choice = preferences.liveEngine
         if liveHelper != nil, choice == .automatic || choice == .openSource,
             liveModels.models.isEmpty
         {
             await liveModels.refresh()
         }
-        let selection = LiveEngineSelector.select(
-            choice, helperReady: liveHelper != nil && liveModels.isReady,
-            cloudRealtimeReady: false)
+        let unavailable = CloudRealtimeSetup.unavailableReason(
+            preferences, key: key(for:), recentFailure: realtimeFailedRecently)
+        let selection = CloudRealtimeSetup.selectEngine(
+            preferences, helperReady: liveHelper != nil && liveModels.isReady, key: key(for:),
+            recentFailure: realtimeFailedRecently)
+        if choice == .cloudRealtime {
+            // One conversation on the Mac after a failure, then the cloud engine again.
+            realtimeFailedRecently = false
+        }
         if selection.isFallback {
             errorMessage =
                 choice == .openSource
                 ? L(
                     "The open source voice engine isn't ready (download its models in Settings), so Momo used Apple's built-in one."
                 )
-                : L(
-                    "Cloud realtime voices aren't available yet, so Momo used Apple's built-in engine."
-                )
+                : realtimeFallbackMessage(unavailable)
         }
-        if selection.kind == .openSource, let liveHelper {
-            return (HelperLiveSpeechIO(client: liveHelper), .openSource)
+        switch selection.kind {
+        case .cloudRealtime:
+            if let service = CloudRealtimeSetup.service(preferences, key: key(for:)) {
+                return .realtime(service)
+            }
+        case .openSource:
+            if let liveHelper {
+                return .speech(HelperLiveSpeechIO(client: liveHelper), .openSource)
+            }
+        case .apple:
+            break
         }
-        return (makeAppleLiveIO(), .apple)
+        return .speech(makeAppleLiveIO(), .apple)
+    }
+
+    private func realtimeFallbackMessage(_ reason: CloudRealtimeSetup.Unavailable?) -> String {
+        switch reason {
+        case .localOnly:
+            L(
+                "Everything stays on this Mac, so Momo used its built-in voice engine instead of cloud realtime voice."
+            )
+        case .recentFailure:
+            L(
+                "Cloud realtime voice failed last time, so Momo used Apple's built-in engine for this conversation."
+            )
+        case .missingKey, nil:
+            L(
+                "Cloud realtime voice needs an API key for the chosen service, so Momo used Apple's built-in engine."
+            )
+        }
     }
 
     private func makeAppleLiveIO() -> AppleLiveSpeechIO {
@@ -796,12 +902,18 @@ extension VoiceController {
                     locale: Locale.current, voice: voice, endsTurnsOnPause: !pushToTalk),
                 followUpWindow: max(0, preferences.liveFollowUpSeconds)),
             firstPhrase: Int.random(in: 0..<4))
+        conversation.onTurn = { [weak self] text in self?.liveTurnSent(text) }
+        observe(conversation)
+        return conversation
+    }
+
+    /// Connects the conversation's events to the bubble and the character.
+    private func observe(_ conversation: any LiveConversing) {
         conversation.onStateChange = { [weak self] state in self?.liveStateChanged(state) }
         conversation.onSpeakingChange = { [weak self] speaking in
             self?.liveSpeakingChanged(speaking)
         }
         conversation.onPartial = { [weak self] text in self?.livePartial(text) }
-        conversation.onTurn = { [weak self] text in self?.liveTurnSent(text) }
         conversation.onLevel = { [weak self] level in self?.level = level }
         conversation.onMouth = { [weak self] level in
             self?.character?.engine.pulseMouth(strength: min(1, level * 1.3))
@@ -811,10 +923,70 @@ extension VoiceController {
             guard let self, let conversation, self.live === conversation else { return }
             self.liveEnded()
         }
-        return conversation
+    }
+
+    // MARK: - Cloud realtime
+
+    /// Asks in the bubble whether audio may go to the provider, before the first cloud
+    /// realtime conversation with it.
+    private func askRealtimeConsent(
+        service: RealtimeVoiceService, firstTurn: String?, pushToTalk: Bool
+    ) {
+        realtimeConsent = RealtimeConsentRequest(
+            providerName: settings.preferences.realtimeProvider.displayName, service: service,
+            firstTurn: firstTurn, pushToTalk: pushToTalk)
+        character?.showCurious()
+        bubble?.show()
+    }
+
+    /// The user answered the consent question in the bubble: talk with the cloud model, or
+    /// use the built-in engine this time.
+    func answerRealtimeConsent(_ allowed: Bool) {
+        guard let request = realtimeConsent else { return }
+        realtimeConsent = nil
+        guard session != nil, liveState == .starting else { return }
+        character?.showListening()
+        if allowed {
+            CloudRealtimeSetup.grantConsent(&settings.preferences)
+            launchRealtime(
+                service: request.service, firstTurn: request.firstTurn,
+                pushToTalk: request.pushToTalk)
+        } else {
+            launchSpeechEngine(
+                io: makeAppleLiveIO(), kind: .apple, firstTurn: request.firstTurn,
+                pushToTalk: request.pushToTalk)
+        }
+    }
+
+    private func launchRealtime(service: RealtimeVoiceService, firstTurn: String?, pushToTalk: Bool)
+    {
+        let preferences = settings.preferences
+        let conversation = RealtimeConversation(
+            settings: .init(
+                service: service,
+                session: CloudRealtimeSetup.sessionConfiguration(preferences),
+                followUpWindow: max(0, preferences.liveFollowUpSeconds), pushToTalk: pushToTalk),
+            audio: RealtimeAudioEngine(), brain: realtimeBrain)
+        observe(conversation)
+        conversation.onAssistantTranscript = { [weak self] text in self?.realtimeReply = text }
+        conversation.onWorkingChange = { [weak self] working in
+            self?.isRealtimeWorking = working
+            if !working { self?.realtimeActivity = nil }
+        }
+        conversation.onFailure = { [weak self] _ in self?.realtimeFailedRecently = true }
+        conversation.onUsage = { [weak self] service, usage in
+            self?.assistant?.recordOutbound(
+                service: service, characters: usage.textCharactersSent,
+                audioSeconds: usage.inputAudioSeconds)
+        }
+        launch(conversation, kind: .cloudRealtime, firstTurn: firstTurn, pushToTalk: pushToTalk)
     }
 
     private func liveStateChanged(_ state: LiveConversation.State) {
+        if isRealtime, state == .listening, liveState != .listening, liveState != .starting {
+            // The user talks again: the bubble shows them instead of the last reply.
+            realtimeReply = ""
+        }
         liveState = state
         isAwaitingAnswer = state == .awaitingAnswer
         switch state {
@@ -852,6 +1024,10 @@ extension VoiceController {
     private func liveEnded() {
         live = nil
         liveState = nil
+        isRealtime = false
+        realtimeReply = ""
+        isRealtimeWorking = false
+        realtimeActivity = nil
         isSpeaking = false
         isAwaitingAnswer = false
         isHoldingToTalk = false

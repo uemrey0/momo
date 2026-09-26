@@ -65,6 +65,14 @@ struct Preferences: Codable, Equatable {
     var liveEngine = LiveEngineChoice.automatic
     /// How long Momo listens for a follow-up after answering, in seconds; 0 ends at once.
     var liveFollowUpSeconds = 8.0
+    /// The cloud realtime service when ``liveEngine`` is cloud realtime.
+    var realtimeProvider = RealtimeProviderChoice.openAI
+    var realtimeOpenAIModel = OpenAIRealtime.defaultModel
+    var realtimeGeminiModel = GeminiLive.defaultModel
+    var realtimeOpenAIVoice = OpenAIRealtime.defaultVoice
+    var realtimeGeminiVoice = GeminiLive.defaultVoice
+    /// The realtime provider the user agreed to stream microphone audio to, or empty.
+    var realtimeConsentProvider = ""
     var mcpServers: [MCPServerConfiguration] = []
     var checksForUpdates = true
     var hidesFromScreenCapture = true
@@ -109,6 +117,13 @@ struct Preferences: Codable, Equatable {
         liveConversation = value(.liveConversation, defaults.liveConversation)
         liveEngine = value(.liveEngine, defaults.liveEngine)
         liveFollowUpSeconds = value(.liveFollowUpSeconds, defaults.liveFollowUpSeconds)
+        realtimeProvider = value(.realtimeProvider, defaults.realtimeProvider)
+        realtimeOpenAIModel = value(.realtimeOpenAIModel, defaults.realtimeOpenAIModel)
+        realtimeGeminiModel = value(.realtimeGeminiModel, defaults.realtimeGeminiModel)
+        realtimeOpenAIVoice = value(.realtimeOpenAIVoice, defaults.realtimeOpenAIVoice)
+        realtimeGeminiVoice = value(.realtimeGeminiVoice, defaults.realtimeGeminiVoice)
+        realtimeConsentProvider = value(
+            .realtimeConsentProvider, defaults.realtimeConsentProvider)
         mcpServers = value(.mcpServers, defaults.mcpServers)
         checksForUpdates = value(.checksForUpdates, defaults.checksForUpdates)
         hidesFromScreenCapture = value(.hidesFromScreenCapture, defaults.hidesFromScreenCapture)

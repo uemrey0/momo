@@ -51,6 +51,16 @@
         }
       }
     },
+    "%@ needs an API key, which you can add in AI settings." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bir API anahtarı gerektirir; bunu Yapay Zekâ ayarlarından ekleyebilirsin."
+          }
+        }
+      }
+    },
     "%@ · %@ GB download" : {
       "localizations" : {
         "tr" : {
@@ -513,6 +523,16 @@
         }
       }
     },
+    "Allow my microphone audio to leave this Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon sesimin bu Mac'ten çıkmasına izin ver"
+          }
+        }
+      }
+    },
     "Allowed" : {
       "localizations" : {
         "tr" : {
@@ -954,6 +974,16 @@
         }
       }
     },
+    "Can I ask %@? It isn't on this Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ modeline sorabilir miyim? Bu Mac'te çalışmıyor."
+          }
+        }
+      }
+    },
     "Can I ask %@? Say yes or no." : {
       "localizations" : {
         "tr" : {
@@ -1264,12 +1294,42 @@
         }
       }
     },
-    "Cloud realtime voices aren't available yet, so Momo used Apple's built-in engine." : {
+    "Cloud realtime voice" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bulutta gerçek zamanlı sesler henüz kullanılamıyor, bu yüzden Momo Apple'ın yerleşik motorunu kullandı."
+            "value" : "Bulut gerçek zamanlı ses"
+          }
+        }
+      }
+    },
+    "Cloud realtime voice couldn't start, so Momo used Apple's built-in engine. %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulut gerçek zamanlı ses başlatılamadı, bu yüzden Momo Apple'ın yerleşik motorunu kullandı. %@"
+          }
+        }
+      }
+    },
+    "Cloud realtime voice failed last time, so Momo used Apple's built-in engine for this conversation." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulut gerçek zamanlı ses geçen sefer başarısız oldu, bu yüzden Momo bu sohbette Apple'ın yerleşik motorunu kullandı."
+          }
+        }
+      }
+    },
+    "Cloud realtime voice needs an API key for the chosen service, so Momo used Apple's built-in engine." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulut gerçek zamanlı ses, seçilen hizmet için bir API anahtarı gerektirir; bu yüzden Momo Apple'ın yerleşik motorunu kullandı."
           }
         }
       }
@@ -1991,6 +2051,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Her gün saat %@"
+          }
+        }
+      }
+    },
+    "Everything stays on this Mac, so Momo used its built-in voice engine instead of cloud realtime voice." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her şey bu Mac'te kalıyor, bu yüzden Momo bulut gerçek zamanlı ses yerine yerleşik ses motorunu kullandı."
           }
         }
       }
@@ -2809,6 +2879,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kendi Kendine Yaşasın"
+          }
+        }
+      }
+    },
+    "Live voice with a cloud model streams your microphone audio to the provider while the conversation is open, and sends Momo's answers there to be spoken. The audio leaves your Mac and uses your own API key." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulut modeliyle canlı ses, sohbet açıkken mikrofon sesini sağlayıcıya aktarır ve Momo'nun yanıtlarını seslendirilmek üzere oraya gönderir. Ses Mac'inden çıkar ve kendi API anahtarını kullanır."
           }
         }
       }
@@ -5267,6 +5347,16 @@
         }
       }
     },
+    "Service" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hizmet"
+          }
+        }
+      }
+    },
     "Set Up AI…" : {
       "localizations" : {
         "tr" : {
@@ -5902,6 +5992,16 @@
         }
       }
     },
+    "Talk live with %@?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ile canlı konuşalım mı?"
+          }
+        }
+      }
+    },
     "Talk to Momo" : {
       "localizations" : {
         "tr" : {
@@ -6029,6 +6129,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seçilen konuşma motoru bir API anahtarı gerektiriyor, bu yüzden Momo bunun yerine bu Mac'te dinledi."
+          }
+        }
+      }
+    },
+    "The cloud model only talks; Momo's assistant still does the real work. The service bills your key for audio in both directions while a conversation is open, and each session is listed in Privacy." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulut modeli yalnızca konuşur; asıl işi yine Momo'nun asistanı yapar. Hizmet, sohbet açıkken iki yöndeki ses için anahtarından ücret alır ve her oturum Gizlilik'te listelenir."
           }
         }
       }
@@ -6735,6 +6845,16 @@
         }
       }
     },
+    "With cloud realtime voice, your microphone audio goes to the chosen service while the conversation is open." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulut gerçek zamanlı seste, sohbet açıkken mikrofon sesin seçilen hizmete gider."
+          }
+        }
+      }
+    },
     "With “Hey Momo” on, the microphone stays on while Momo listens for its name (always on this Mac), and macOS shows the microphone indicator." : {
       "localizations" : {
         "tr" : {
@@ -6751,6 +6871,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esprili"
+          }
+        }
+      }
+    },
+    "Working on it…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Üzerinde çalışıyorum…"
           }
         }
       }
@@ -7035,6 +7165,16 @@
         }
       }
     },
+    "engine, interrupt, follow-up, realtime, OpenAI Realtime, Gemini Live" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "motor, sözünü kesme, devam sorusu, gerçek zamanlı, OpenAI Realtime, Gemini Live"
+          }
+        }
+      }
+    },
     "local only, offline" : {
       "localizations" : {
         "tr" : {
@@ -7205,6 +7345,16 @@
         }
       }
     },
+    "speech to speech, OpenAI Realtime, Gemini Live, cloud voice" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sesten sese, OpenAI Realtime, Gemini Live, bulut ses"
+          }
+        }
+      }
+    },
     "speech, microphone, read aloud, voices, talk, push to talk, live voice, Hey Momo, wake word, dictation, speech recognition" : {
       "localizations" : {
         "tr" : {
@@ -7291,6 +7441,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“%1$@”, %2$@ uygulamasında başlamış gibi görünüyor."
+          }
+        }
+      }
+    },
+    "“Keep everything on this Mac” is on, so Momo uses its built-in voice engine instead." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Her şeyi bu Mac'te tut” açık, bu yüzden Momo bunun yerine yerleşik ses motorunu kullanır."
           }
         }
       }

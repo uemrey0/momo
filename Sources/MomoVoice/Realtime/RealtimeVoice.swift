@@ -238,6 +238,8 @@ protocol RealtimeCodec: Sendable {
     func setupMessages(for configuration: RealtimeSessionConfiguration) throws -> [String]
     /// A message carrying microphone audio.
     func audioMessage(_ pcm16: Data) -> String
+    /// The messages that add a typed user turn and ask the model to answer it.
+    func userTextMessages(_ text: String) throws -> [String]
     /// The messages that return a function result and let the model continue.
     func functionResultMessages(
         _ output: String, for call: RealtimeFunctionCall

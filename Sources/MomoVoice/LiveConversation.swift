@@ -636,3 +636,40 @@ public final class LiveConversation {
         }
     }
 }
+
+/// A live conversation the app can host in the caption bubble, whatever does the talking:
+/// ``LiveConversation`` (a speech layer in front of Momo's brain) or
+/// ``RealtimeConversation`` (a cloud realtime model that hands real work to the brain).
+@MainActor
+public protocol LiveConversing: AnyObject {
+    /// Where the conversation is.
+    var state: LiveConversation.State { get }
+    /// While set (push to talk held), the follow-up window never runs out; with push to talk,
+    /// the user is only listened to while it is set.
+    var holdsWindowOpen: Bool { get set }
+    var onStateChange: ((LiveConversation.State) -> Void)? { get set }
+    /// Whether Momo's voice is playing.
+    var onSpeakingChange: ((Bool) -> Void)? { get set }
+    /// The words of the user's current turn so far.
+    var onPartial: ((String) -> Void)? { get set }
+    /// The microphone level, 0...1.
+    var onLevel: ((Double) -> Void)? { get set }
+    /// The output level, 0...1, for the mouth.
+    var onMouth: ((Double) -> Void)? { get set }
+    /// A problem worth showing; the conversation may go on.
+    var onError: ((String) -> Void)? { get set }
+    /// The conversation ended and the microphone is closed.
+    var onEnded: (() -> Void)? { get set }
+
+    /// Opens the microphone and starts listening; `firstTurn` (from "Hey Momo, …") is
+    /// answered right away.
+    func start(firstTurn: String?) async throws
+    /// Ends the conversation now.
+    func end()
+    /// Ends the user's turn now (push to talk let go).
+    func endTurn()
+    /// Stops Momo at once so the user can talk.
+    func interrupt()
+}
+
+extension LiveConversation: LiveConversing {}
