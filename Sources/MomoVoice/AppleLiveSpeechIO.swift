@@ -900,8 +900,14 @@ private final class SpeechRecognizerSession: LiveRecognitionSession {
         request.addsPunctuation = true
         request.taskHint = .dictation
         self.request = request
-        let box = RequestBox(request)
-        feed = { buffer in box.request.append(buffer) }
+        feed = Self.makeFeed(RequestBox(request))
+    }
+
+    // Runs on the audio thread, so it must not inherit main actor isolation.
+    private nonisolated static func makeFeed(
+        _ box: RequestBox
+    ) -> @Sendable (AVAudioPCMBuffer) -> Void {
+        { buffer in box.request.append(buffer) }
     }
 
     func start() async throws {
@@ -972,7 +978,14 @@ private final class AnalyzerRecognitionSession: LiveRecognitionSession {
         self.stream = stream
         let sink = AnalyzerSink(continuation: continuation)
         self.sink = sink
-        feed = { buffer in sink.append(buffer) }
+        feed = Self.makeFeed(sink)
+    }
+
+    // Runs on the audio thread, so it must not inherit main actor isolation.
+    private nonisolated static func makeFeed(
+        _ sink: AnalyzerSink
+    ) -> @Sendable (AVAudioPCMBuffer) -> Void {
+        { buffer in sink.append(buffer) }
     }
 
     /// Whether the transcriber runs here and its model for `locale` is installed. Live
