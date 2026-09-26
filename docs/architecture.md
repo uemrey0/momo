@@ -123,8 +123,11 @@ speaking), the mood the user picked, and the ambient mood (music, focus).
 | `AudioTranscriptionService` | Transcribes a recorded clip into text and timed segments: `OpenAITranscriptionService` (including `gpt-4o-transcribe-diarize` speaker labels) and `GeminiTranscriptionService`. Reusable for long recordings in chunks. |
 | `SpeechSynthesizer`, `CloudSpeechSynthesizer` | Mac voices, or OpenAI voices streamed as PCM with the mouth following the output level. |
 
-`DictationEngineSelector` turns the user's choice into an engine (cloud engines only with a
-key). The wake word always uses Apple Speech on the Mac. Cloud requests use the keys of the
+In the app, `VoiceController` runs spoken requests in voice mode: the character listens,
+`VoiceBubbleController` shows the transcript and the reply in a non-activating caption bubble
+under the notch, and consent or confirmation questions are asked aloud and answered with a
+spoken yes or no (`SpeechText.answer(in:)`). `DictationEngineSelector` turns the user's
+choice into an engine (cloud engines only with a key). The wake word always uses Apple Speech on the Mac. Cloud requests use the keys of the
 OpenAI and Gemini brains and are listed in the privacy log.
 
 ## Data and privacy
