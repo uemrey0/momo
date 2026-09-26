@@ -95,7 +95,7 @@ struct CLIBridgeConfigurationTests {
         command: "/Applications/Momo.app/Contents/MacOS/momo-mcp",
         arguments: ["--bridge", "/tmp/momo-a\"b/mcp.sock"])
 
-    @Test("gives Codex the bridge, a long tool timeout and web search")
+    @Test("gives Codex the bridge, pre-approved tools, a long timeout and web search")
     func codexBridge() {
         let provider = CodexProvider(
             mcpServerPath: "/Applications/Momo.app/Contents/MacOS/momo-mcp",
@@ -110,6 +110,7 @@ struct CLIBridgeConfigurationTests {
         #expect(
             arguments.contains(#"mcp_servers.momo.args=["--bridge", "/tmp/momo-a\"b/mcp.sock"]"#))
         #expect(arguments.contains("mcp_servers.momo.tool_timeout_sec=600"))
+        #expect(arguments.contains(#"mcp_servers.momo.default_tools_approval_mode="approve""#))
         #expect(arguments.last == "-")
         // Every -c is followed by its value.
         for (index, argument) in arguments.enumerated() where argument == "-c" {

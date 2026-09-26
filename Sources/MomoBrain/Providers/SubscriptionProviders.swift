@@ -61,6 +61,12 @@ public struct CodexProvider: ChatProvider {
         } else if let mcpServerPath {
             arguments += ["-c", "\(server).command=\(Self.tomlString(mcpServerPath))"]
         }
+        if bridge != nil || mcpServerPath != nil {
+            // `codex exec` never asks for approval, so Codex refuses every MCP call that
+            // needs one. Momo asks the user itself before anything irreversible, so its tools
+            // are pre-approved for Codex.
+            arguments += ["-c", #"\#(server).default_tools_approval_mode="approve""#]
+        }
         arguments.append("-")
         return arguments
     }
