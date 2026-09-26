@@ -183,7 +183,7 @@ final class AssistantController {
     }
 
     private func run(_ message: String) async {
-        let configuration = await makeConfiguration()
+        let configuration = await makeConfiguration(for: message)
         activityLabels = Dictionary(
             configuration.toolbox.definitions.compactMap { definition in
                 definition.activityLabel.map { (definition.name, $0) }
@@ -252,7 +252,8 @@ final class AssistantController {
         task = nil
     }
 
-    private func makeConfiguration() async -> Assistant.Configuration {
+    /// Everything the assistant needs to answer `message`, with the memories related to it.
+    private func makeConfiguration(for message: String) async -> Assistant.Configuration {
         let preferences = settings.preferences
         let providers = BrainCatalog.providers(
             settings: preferences.brains, keys: settings.keys,
@@ -265,7 +266,7 @@ final class AssistantController {
             masksPersonalData: preferences.brains.masksPersonalData,
             systemPrompt: SystemPrompt.make(
                 memories: memories, languageName: preferredLanguageName,
-                personality: preferences.personality.instruction))
+                personality: preferences.personality.instruction, message: message))
     }
 
     // MARK: - Prompts

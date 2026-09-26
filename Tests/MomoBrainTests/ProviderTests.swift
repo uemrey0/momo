@@ -254,6 +254,21 @@ struct PromptAndSettingsTests {
         #expect(prompt.contains("Turkish"))
     }
 
+    @Test("keeps core and related memories when there are too many")
+    func relevantMemories() {
+        var memories = (0..<40).map { Memory(text: "Filler fact number \($0)") }
+        memories.insert(Memory(text: "Prefers short answers", category: .preference), at: 0)
+        memories.insert(Memory(text: "The user's cat is called Pamuk"), at: 5)
+        let prompt = SystemPrompt.make(
+            memories: memories, languageName: "English", message: "Is my cat hungry?",
+            ranker: MemoryRanker(usesEmbeddings: false))
+        #expect(prompt.contains("Prefers short answers"))
+        #expect(prompt.contains("The user's cat is called Pamuk"))
+        #expect(prompt.contains("list_memories"))
+        let listed = prompt.split(separator: "\n").filter { $0.hasPrefix("- ") }
+        #expect(listed.count == SystemPrompt.memoryLimit)
+    }
+
     @Test("decodes old settings and adds new brains")
     func lenientSettings() throws {
         let settings = try JSONDecoder().decode(
