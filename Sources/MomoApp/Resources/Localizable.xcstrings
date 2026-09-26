@@ -61,6 +61,16 @@
         }
       }
     },
+    "AI" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapay Zekâ"
+          }
+        }
+      }
+    },
     "API Key" : {
       "comment" : "Brain source name",
       "localizations" : {
@@ -544,6 +554,16 @@
         }
       }
     },
+    "Connect ChatGPT, Gemini, Claude or a free model on this Mac. It takes about a minute, no Terminal needed." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT, Gemini, Claude ya da bu Mac'te çalışan ücretsiz bir model bağla. Yaklaşık bir dakika sürer, Terminal gerekmez."
+          }
+        }
+      }
+    },
     "Connections" : {
       "localizations" : {
         "tr" : {
@@ -838,6 +858,16 @@
         }
       }
     },
+    "Hide Momo" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'yu Gizle"
+          }
+        }
+      }
+    },
     "Hide personal details from remote brains" : {
       "localizations" : {
         "tr" : {
@@ -981,6 +1011,16 @@
         }
       }
     },
+    "Let's give me a brain!" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bana bir beyin verelim!"
+          }
+        }
+      }
+    },
     "Licensed under the Apache License 2.0." : {
       "localizations" : {
         "tr" : {
@@ -1070,6 +1110,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo'nun kullanabileceği MCP sunucuları"
+          }
+        }
+      }
+    },
+    "MCP, server, tools, agents, Claude Code, Claude Desktop" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP, sunucu, araçlar, ajanlar, server, tools, agents, Claude Code, Claude Desktop"
           }
         }
       }
@@ -1887,6 +1937,16 @@
         }
       }
     },
+    "Search" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ara"
+          }
+        }
+      }
+    },
     "Search notes" : {
       "localizations" : {
         "tr" : {
@@ -1943,6 +2003,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sunucu adresi"
+          }
+        }
+      }
+    },
+    "Set Up AI…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapay Zekâyı Kur…"
+          }
+        }
+      }
+    },
+    "Set up" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kur"
+          }
+        }
+      }
+    },
+    "Set up AI" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapay zekâyı kur"
           }
         }
       }
@@ -2004,6 +2094,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tanıtım turunu yeniden göster"
+          }
+        }
+      }
+    },
+    "Sleep" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uyku"
           }
         }
       }
@@ -2531,6 +2631,76 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aboneliğin"
+          }
+        }
+      }
+    },
+    "brain, model, ChatGPT, Gemini, Claude, OpenAI, Ollama, LM Studio, Apple Intelligence, API key, subscription" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "beyin, model, yapay zeka, ChatGPT, Gemini, Claude, OpenAI, Ollama, LM Studio, Apple Intelligence, API anahtarı, API key, abonelik, AI"
+          }
+        }
+      }
+    },
+    "calendar, meetings, music, battery, late night, sleep, doze" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "takvim, toplantı, müzik, pil, gece, uyku, uyuklama, calendar, music, battery"
+          }
+        }
+      }
+    },
+    "data, personal details, screen, log, erase, local only" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "veri, kişisel bilgiler, ekran, kayıt, silme, yalnızca yerel, gizlilik, privacy"
+          }
+        }
+      }
+    },
+    "look, appearance, skin, theme, custom" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "görünüm, kostüm, tema, özel, karakter, appearance, theme"
+          }
+        }
+      }
+    },
+    "personality, shortcut, login, updates, welcome tour" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kişilik, kısayol, girişte aç, güncellemeler, hoş geldin turu, shortcut, updates"
+          }
+        }
+      }
+    },
+    "speech, microphone, read aloud, Hey Momo, wake word, dictation" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "konuşma, mikrofon, sesli okuma, Hey Momo, uyandırma kelimesi, dikte, voice, speech"
+          }
+        }
+      }
+    },
+    "version, license, website, report a problem" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sürüm, lisans, web sitesi, sorun bildir, version, license"
           }
         }
       }

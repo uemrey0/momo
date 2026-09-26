@@ -9,7 +9,7 @@ struct PanelView: View {
     var notes: NotesModel
     @Bindable var state: PanelState
     var voice: VoiceController? = nil
-    var openSettings: () -> Void
+    var openSettings: (SettingsPane?) -> Void
     var close: () -> Void
     @Environment(\.snapshotMode) private var snapshotMode
 
@@ -19,7 +19,10 @@ struct PanelView: View {
             Divider().overlay(Color.white.opacity(0.06))
             Group {
                 switch state.tab {
-                case .chat: ChatView(assistant: assistant, state: state, voice: voice)
+                case .chat:
+                    ChatView(
+                        assistant: assistant, state: state, voice: voice,
+                        setUpAI: { openSettings(.ai) })
                 case .today: TodayView(model: today)
                 case .notes: NotesView(model: notes)
                 }
@@ -73,7 +76,7 @@ struct PanelView: View {
                     state.focusRequest += 1
                 }
             }
-            IconButton(systemImage: "gearshape", help: L("Settings")) { openSettings() }
+            IconButton(systemImage: "gearshape", help: L("Settings")) { openSettings(nil) }
             IconButton(systemImage: "xmark", help: L("Close")) { close() }
         }
         .padding(.horizontal, 12)

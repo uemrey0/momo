@@ -119,7 +119,7 @@ struct OnboardingView: View {
             }
             .padding(12)
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
-            Button(L("Set up brains in Settings")) { model.openSettings() }
+            Button(L("Set up brains in Settings")) { model.openSettings(.ai) }
         }
     }
 

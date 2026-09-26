@@ -77,7 +77,7 @@ final class ChatPanelController {
     init(
         assistant: AssistantController, today: TodayModel, notes: NotesModel,
         state: PanelState, voice: VoiceController?, character: CharacterController,
-        openSettings: @escaping () -> Void
+        openSettings: @escaping (SettingsPane?) -> Void
     ) {
         self.assistant = assistant
         self.state = state

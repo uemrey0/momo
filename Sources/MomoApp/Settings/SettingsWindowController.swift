@@ -34,10 +34,15 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     private func makeWindow(model: AppModel) -> NSWindow {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 620, height: 560),
-            styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered, defer: false)
         window.title = L("Momo Settings")
-        window.contentViewController = NSHostingController(rootView: SettingsView(model: model))
+        window.toolbarStyle = .unified
+        let content = NSHostingController(rootView: SettingsView(model: model))
+        content.sceneBridgingOptions = [.toolbars, .title]
+        window.contentViewController = content
+        window.setContentSize(NSSize(width: 820, height: 600))
         window.isReleasedWhenClosed = false
         window.setFrameAutosaveName("MomoSettings")
         window.delegate = self

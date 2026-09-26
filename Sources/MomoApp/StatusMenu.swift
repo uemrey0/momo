@@ -24,6 +24,9 @@ struct StatusMenu: View {
                 model.updates.openReleasePage()
             }
         }
+        if model.hasReadyBrain == false {
+            Button(L("Set Up AI…")) { model.openSettings(.ai) }
+        }
         Button(L("Settings…")) { model.openSettings() }
             .keyboardShortcut(",")
         Button(L("About Momo")) {
