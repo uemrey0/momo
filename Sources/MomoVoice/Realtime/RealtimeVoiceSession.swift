@@ -61,6 +61,7 @@ public actor RealtimeVoiceSession {
         let codec: any RealtimeCodec =
             switch service {
             case .openAI(let apiKey, let model): OpenAIRealtimeCodec(apiKey: apiKey, model: model)
+            case .gemini(let apiKey, let model): GeminiLiveCodec(apiKey: apiKey, model: model)
             }
         self.init(
             codec: codec, displayName: service.displayName, transportFactory: transportFactory,

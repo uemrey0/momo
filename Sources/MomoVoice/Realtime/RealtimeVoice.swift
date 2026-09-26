@@ -9,11 +9,13 @@ import Foundation
 public enum RealtimeVoiceService: Sendable, Equatable, CustomStringConvertible {
     /// OpenAI's Realtime API over WebSocket.
     case openAI(apiKey: String, model: String = OpenAIRealtime.defaultModel)
+    /// Google's Gemini Live API over WebSocket.
+    case gemini(apiKey: String, model: String = GeminiLive.defaultModel)
 
     /// The model name.
     public var model: String {
         switch self {
-        case .openAI(_, let model): model
+        case .openAI(_, let model), .gemini(_, let model): model
         }
     }
 
@@ -22,6 +24,7 @@ public enum RealtimeVoiceService: Sendable, Equatable, CustomStringConvertible {
     public var displayName: String {
         switch self {
         case .openAI(_, let model): "OpenAI \(model)"
+        case .gemini(_, let model): "Gemini \(model)"
         }
     }
 
