@@ -367,6 +367,7 @@ private struct MeetingDetailView: View {
     var meeting: Meeting
     var controller: MeetingController
     @State private var showsTranscript = false
+    @Environment(\.snapshotMode) private var snapshotMode
 
     private var pendingItems: [MeetingActionItem] {
         meeting.actionItems.filter { $0.taskID == nil }
@@ -384,22 +385,24 @@ private struct MeetingDetailView: View {
                 }
                 .buttonStyle(.plain)
                 Spacer()
-                Menu {
-                    Button(L("Summarize again")) { Task { await controller.summarize(meeting) } }
+                if snapshotMode {
+                    moreIcon
+                } else {
+                    Menu {
+                        Button(L("Summarize again")) {
+                            Task { await controller.summarize(meeting) }
+                        }
                         .disabled(
                             controller.summarizing.contains(meeting.id) || meeting.segments.isEmpty)
-                    Divider()
-                    Button(L("Delete"), role: .destructive) { controller.delete(meeting) }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Theme.secondaryText)
-                        .frame(width: 28, height: 28)
-                        .background(Theme.card, in: Circle())
+                        Divider()
+                        Button(L("Delete"), role: .destructive) { controller.delete(meeting) }
+                    } label: {
+                        moreIcon
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .fixedSize()
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
@@ -430,6 +433,14 @@ private struct MeetingDetailView: View {
                 .padding(.bottom, 16)
             }
         }
+    }
+
+    private var moreIcon: some View {
+        Image(systemName: "ellipsis")
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(Theme.secondaryText)
+            .frame(width: 28, height: 28)
+            .background(Theme.card, in: Circle())
     }
 
     private var header: some View {
@@ -499,7 +510,7 @@ private struct MeetingDetailView: View {
                             Label(L("Add as tasks"), systemImage: "plus.circle.fill")
                                 .font(.system(size: 11.5, weight: .semibold))
                         }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(.plain)
                         .foregroundStyle(Theme.accent)
                     }
                 }
