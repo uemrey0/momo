@@ -36,6 +36,7 @@ struct MeetingNotesSection: View {
     var body: some View {
         Section {
             Toggle(L("Offer to take meeting notes"), isOn: $settings.preferences.offersMeetingNotes)
+                .settingsAnchor("meetings.offer")
             Picker(L("Meeting language"), selection: $settings.preferences.meetingLanguage) {
                 Text(verbatim: L("Same as the Mac")).tag("")
                 ForEach(Self.languages, id: \.self) { code in
@@ -43,7 +44,9 @@ struct MeetingNotesSection: View {
                         .tag(code)
                 }
             }
+            .settingsAnchor("meetings.language")
             Toggle(L("Keep meeting audio"), isOn: $settings.preferences.keepsMeetingAudio)
+                .settingsAnchor("meetings.audio")
             if settings.preferences.keepsMeetingAudio {
                 Button(L("Show Meeting Audio in Finder")) {
                     let folder = AppSettings.meetingsDirectory
@@ -62,6 +65,7 @@ struct MeetingNotesSection: View {
                     }
                 }
             }
+            .settingsAnchor("meetings.callAudio")
         } header: {
             Text(verbatim: L("Meeting notes"))
         } footer: {

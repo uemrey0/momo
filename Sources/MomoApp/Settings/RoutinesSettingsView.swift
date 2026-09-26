@@ -69,6 +69,7 @@ struct RoutinesSettingsView: View {
                         schedule: RoutineSchedule(
                             hour: 9, minute: 0, weekdays: RoutineSchedule.workweek))
                 }
+                .settingsAnchor("routines.add")
             } footer: {
                 Text(
                     verbatim: L(

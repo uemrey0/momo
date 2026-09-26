@@ -41,6 +41,7 @@ struct AISettingsView: View {
                 } label: {
                     Text(verbatim: L("Advanced: order, models and routing"))
                 }
+                .settingsAnchor("ai.advanced")
             }
         }
         .formStyle(.grouped)

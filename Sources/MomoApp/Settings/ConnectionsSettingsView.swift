@@ -17,6 +17,7 @@ struct ConnectionsSettingsView: View {
         Form {
             Section {
                 MCPSetupView()
+                    .settingsAnchor("connections.agents")
             } header: {
                 Text(verbatim: L("Use Momo from Claude, Codex and other agents"))
             }
@@ -57,6 +58,7 @@ struct ConnectionsSettingsView: View {
                         .disabled(name.isEmpty || command.isEmpty)
                 }
                 .textFieldStyle(.roundedBorder)
+                .settingsAnchor("connections.servers")
             } header: {
                 Text(verbatim: L("MCP servers Momo can use"))
             } footer: {
@@ -125,6 +127,7 @@ struct WebSearchSection: View {
                 }
                 .disabled(key == storedKey)
             }
+            .settingsAnchor("connections.webSearch")
             if let url = URL(string: "https://api-dashboard.search.brave.com/") {
                 Link(L("Get a Brave Search API key"), destination: url).font(.caption)
             }
@@ -166,8 +169,11 @@ struct ReactionsSection: View {
             }
             .settingsAnchor("reactions.calendar")
             Toggle(L("Dance along when music plays"), isOn: $settings.preferences.reactsToMusic)
+                .settingsAnchor("reactions.music")
             Toggle(L("Worry when the battery is low"), isOn: $settings.preferences.reactsToBattery)
+                .settingsAnchor("reactions.battery")
             Toggle(L("Yawn when it gets very late"), isOn: $settings.preferences.reactsToLateNight)
+                .settingsAnchor("reactions.lateNight")
         } header: {
             Text(verbatim: L("Reactions"))
         } footer: {

@@ -974,6 +974,16 @@
         }
       }
     },
+    "ChatGPT, Codex, Gemini, Claude, OpenAI, OpenRouter, Ollama, LM Studio, Apple Intelligence, API key, subscription" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT, Codex, Gemini, Claude, OpenAI, OpenRouter, Ollama, LM Studio, Apple Intelligence, API anahtarı, abonelik"
+          }
+        }
+      }
+    },
     "Check for updates automatically" : {
       "localizations" : {
         "tr" : {
@@ -1300,6 +1310,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo'yu Claude'a bağla"
+          }
+        }
+      }
+    },
+    "Connect a brain" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir beyin bağla"
           }
         }
       }
@@ -2166,6 +2186,16 @@
         }
       }
     },
+    "GitHub, license" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub, lisans"
+          }
+        }
+      }
+    },
     "Good afternoon!" : {
       "localizations" : {
         "tr" : {
@@ -2734,12 +2764,22 @@
         }
       }
     },
-    "MCP, server, tools, agents, Claude Code, Claude Desktop" : {
+    "MCP, Claude Code, Claude Desktop, Cursor" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MCP, sunucu, araçlar, ajanlar, server, tools, agents, Claude Code, Claude Desktop"
+            "value" : "MCP, Claude Code, Claude Desktop, Cursor"
+          }
+        }
+      }
+    },
+    "MCP, server, tools, agents, Claude Code, Claude Desktop, web search, Brave, DuckDuckGo" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP, sunucu, araçlar, ajanlar, Claude Code, Claude Desktop, web araması, Brave, DuckDuckGo"
           }
         }
       }
@@ -2754,12 +2794,32 @@
         }
       }
     },
+    "Mac voices, OpenAI voices, sound" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac sesleri, OpenAI sesleri, ses"
+          }
+        }
+      }
+    },
     "Mail, Messages & contacts" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mail, Mesajlar ve kişiler"
+          }
+        }
+      }
+    },
+    "Mail, Messages, Music, Spotify, System Events, Safari, Chrome, Arc, Edge, Brave" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mail, Mesajlar, Müzik, Spotify, System Events, Safari, Chrome, Arc, Edge, Brave"
           }
         }
       }
@@ -4977,6 +5037,16 @@
         }
       }
     },
+    "Settings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayarlar"
+          }
+        }
+      }
+    },
     "Settings…" : {
       "localizations" : {
         "tr" : {
@@ -6125,6 +6195,16 @@
         }
       }
     },
+    "WAV, recording" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WAV, kayıt"
+          }
+        }
+      }
+    },
     "Web" : {
       "localizations" : {
         "tr" : {
@@ -6485,42 +6565,132 @@
         }
       }
     },
-    "brain, model, ChatGPT, Gemini, Claude, OpenAI, Ollama, LM Studio, Apple Intelligence, API key, subscription" : {
+    "add server, tools, command" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "beyin, model, yapay zeka, ChatGPT, Gemini, Claude, OpenAI, Ollama, LM Studio, Apple Intelligence, API anahtarı, API key, abonelik, AI"
+            "value" : "sunucu ekle, araçlar, komut"
           }
         }
       }
     },
-    "calendar, meetings, music, battery, late night, sleep, doze" : {
+    "brain, model, ChatGPT, Codex, Gemini, Claude, OpenAI, OpenRouter, Ollama, LM Studio, Apple Intelligence, API key, subscription, remote, routing" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "takvim, toplantı, müzik, pil, gece, uyku, uyuklama, calendar, music, battery"
+            "value" : "beyin, model, ChatGPT, Codex, Gemini, Claude, OpenAI, OpenRouter, Ollama, LM Studio, Apple Intelligence, API anahtarı, abonelik, uzak, yönlendirme"
           }
         }
       }
     },
-    "data, personal details, screen, log, erase, local only" : {
+    "bug, issue" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "veri, kişisel bilgiler, ekran, kayıt, silme, yalnızca yerel, gizlilik, privacy"
+            "value" : "hata, sorun, bug"
           }
         }
       }
     },
-    "look, appearance, skin, theme, custom" : {
+    "calendar, events" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "görünüm, kostüm, tema, özel, karakter, appearance, theme"
+            "value" : "takvim, etkinlikler"
+          }
+        }
+      }
+    },
+    "calendar, reminder before meetings, music, dance, battery, late night, sleep, doze" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "takvim, toplantı öncesi hatırlatma, müzik, dans, pil, gece geç saat, uyku, uyuklama"
+          }
+        }
+      }
+    },
+    "custom character, JSON, look, skin" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "özel karakter, JSON, görünüm, kaplama"
+          }
+        }
+      }
+    },
+    "data, personal details, masking, hide from screen sharing, log, erase, delete, local only" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "veri, kişisel bilgiler, maskeleme, ekran paylaşımında gizle, kayıt, sil, silme, yalnızca yerel"
+          }
+        }
+      }
+    },
+    "delete, reset" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sil, sıfırla"
+          }
+        }
+      }
+    },
+    "dictation, transcription, Whisper, microphone" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dikte, yazıya dökme, Whisper, mikrofon"
+          }
+        }
+      }
+    },
+    "local only, offline" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "yalnızca yerel, çevrimdışı"
+          }
+        }
+      }
+    },
+    "log, outbound, history" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kayıt, giden, geçmiş"
+          }
+        }
+      }
+    },
+    "look, appearance, skin, theme, custom, personality, tone, cheerful, calm, witty" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "görünüm, dış görünüş, kaplama, tema, özel, kişilik, ton, neşeli, sakin, esprili"
+          }
+        }
+      }
+    },
+    "mask, email, phone, IBAN, names" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "maskele, e-posta, telefon, IBAN, isimler"
           }
         }
       }
@@ -6535,12 +6705,42 @@
         }
       }
     },
-    "personality, shortcut, login, updates, welcome tour" : {
+    "onboarding, introduction" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "kişilik, kısayol, girişte aç, güncellemeler, hoş geldin turu, shortcut, updates"
+            "value" : "tanıtım, karşılama"
+          }
+        }
+      }
+    },
+    "push to talk, shortcut, talk to Momo" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bas konuş, kısayol, Momo ile konuş"
+          }
+        }
+      }
+    },
+    "record, transcript, summary, Zoom, Teams, Meet" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kayıt, döküm, özet, Zoom, Teams, Meet"
+          }
+        }
+      }
+    },
+    "remote brain, ask before, difficulty, model, order, routing" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uzak beyin, önce sor, zorluk, model, sıra, yönlendirme"
           }
         }
       }
@@ -6555,12 +6755,102 @@
         }
       }
     },
-    "speech, microphone, read aloud, Hey Momo, wake word, dictation" : {
+    "schedule, every day, morning brief, recurring" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "konuşma, mikrofon, sesli okuma, Hey Momo, uyandırma kelimesi, dikte, voice, speech"
+            "value" : "zamanla, her gün, sabah özeti, yinelenen"
+          }
+        }
+      }
+    },
+    "screen recording, system audio" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ekran kaydı, sistem sesi"
+          }
+        }
+      }
+    },
+    "screenshot, screen sharing" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ekran görüntüsü, ekran paylaşımı"
+          }
+        }
+      }
+    },
+    "shortcut, hotkey" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kısayol, kısayol tuşu"
+          }
+        }
+      }
+    },
+    "shortcut, hotkey, login, startup, updates, welcome tour" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kısayol, kısayol tuşu, oturum açma, başlangıç, güncellemeler, karşılama turu"
+          }
+        }
+      }
+    },
+    "sleep, asleep, idle" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uyku, uyumak, boşta"
+          }
+        }
+      }
+    },
+    "speak, read aloud, voice replies" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "konuş, sesli oku, sesli yanıtlar"
+          }
+        }
+      }
+    },
+    "speech, microphone, read aloud, voices, talk, push to talk, live voice, Hey Momo, wake word, dictation, speech recognition" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "konuşma, mikrofon, sesli oku, sesler, konuş, bas konuş, canlı ses, Hey Momo, uyandırma sözcüğü, dikte, konuşma tanıma"
+          }
+        }
+      }
+    },
+    "startup, launch" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "başlangıç, açılış"
+          }
+        }
+      }
+    },
+    "tone, cheerful, calm, witty, professional" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ton, neşeli, sakin, esprili, profesyonel"
           }
         }
       }
@@ -6575,12 +6865,42 @@
         }
       }
     },
+    "update, new version" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "güncelleme, yeni sürüm"
+          }
+        }
+      }
+    },
     "version, license, website, report a problem" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "sürüm, lisans, web sitesi, sorun bildir, version, license"
+          }
+        }
+      }
+    },
+    "wake word" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uyandırma sözcüğü"
+          }
+        }
+      }
+    },
+    "web search, DuckDuckGo" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "web araması, DuckDuckGo"
           }
         }
       }

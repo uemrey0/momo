@@ -66,7 +66,7 @@ final class PermissionCenter {
     @ObservationIgnored private let defaults: UserDefaults
 
     /// The permissions besides Automation, in the order Settings lists them.
-    static let basics: [MacPermission] = [
+    nonisolated static let basics: [MacPermission] = [
         .microphone, .speechRecognition, .calendars, .reminders, .contacts, .screenRecording,
         .accessibility, .notifications, .location,
     ]

@@ -18,10 +18,14 @@ struct PrivacySettingsView: View {
         Form {
             Section {
                 Toggle(
-                    L("Keep everything on this Mac"), isOn: $settings.preferences.brains.localOnly)
+                    L("Keep everything on this Mac"), isOn: $settings.preferences.brains.localOnly
+                )
+                .settingsAnchor("privacy.localOnly")
                 Toggle(
                     L("Hide personal details from remote brains"),
-                    isOn: $settings.preferences.brains.masksPersonalData)
+                    isOn: $settings.preferences.brains.masksPersonalData
+                )
+                .settingsAnchor("privacy.masking")
             } footer: {
                 Text(
                     verbatim: L(
@@ -52,6 +56,7 @@ struct PrivacySettingsView: View {
                 .onChange(of: settings.preferences.hidesFromScreenCapture) {
                     model.applyPreferences()
                 }
+                .settingsAnchor("privacy.captureHiding")
             } footer: {
                 Text(
                     verbatim: L(
@@ -91,6 +96,7 @@ struct PrivacySettingsView: View {
                 }
             } header: {
                 Text(verbatim: L("Sent to remote brains"))
+                    .settingsAnchor("privacy.log")
             }
 
             Section {
@@ -111,6 +117,7 @@ struct PrivacySettingsView: View {
                 } message: {
                     Text(verbatim: L("This can't be undone."))
                 }
+                .settingsAnchor("privacy.erase")
             } footer: {
                 Text(
                     verbatim: String(

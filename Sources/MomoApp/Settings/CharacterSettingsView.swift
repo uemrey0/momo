@@ -57,6 +57,7 @@ struct CharacterSettingsView: View {
                         at: folder, withIntermediateDirectories: true)
                     NSWorkspace.shared.open(folder)
                 }
+                .settingsAnchor("character.custom")
                 Button(L("Reload")) { characters = model.availableCharacters }
             }
             .padding([.horizontal, .bottom], 20)

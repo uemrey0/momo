@@ -67,36 +67,49 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .ai:
             L(
-                "brain, model, ChatGPT, Gemini, Claude, OpenAI, Ollama, LM Studio, Apple Intelligence, API key, subscription"
+                "brain, model, ChatGPT, Codex, Gemini, Claude, OpenAI, OpenRouter, Ollama, LM Studio, Apple Intelligence, API key, subscription, remote, routing"
             )
         case .abilities:
             L(
                 "tools, what Momo can do, turn off, always ask, confirm, tasks, notes, calendar, reminders, files, mail, messages, contacts, music, system, web search, weather, screen, AppleScript, shell, meetings, routines, MCP"
             )
-        case .character: L("look, appearance, skin, theme, custom")
-        case .voice: L("speech, microphone, read aloud, Hey Momo, wake word, dictation")
+        case .character:
+            L("look, appearance, skin, theme, custom, personality, tone, cheerful, calm, witty")
+        case .voice:
+            L(
+                "speech, microphone, read aloud, voices, talk, push to talk, live voice, Hey Momo, wake word, dictation, speech recognition"
+            )
         case .meetings:
             L(
                 "meeting notes, transcript, summary, record, call audio, Zoom, Teams, Meet, language, keep audio"
             )
-        case .reactions: L("calendar, meetings, music, battery, late night, sleep, doze")
+        case .reactions:
+            L("calendar, reminder before meetings, music, dance, battery, late night, sleep, doze")
         case .routines: L("schedule, automation, every day, morning brief, recurring prompt")
-        case .connections: L("MCP, server, tools, agents, Claude Code, Claude Desktop")
+        case .connections:
+            L(
+                "MCP, server, tools, agents, Claude Code, Claude Desktop, web search, Brave, DuckDuckGo"
+            )
         case .permissions:
             L(
                 "access, allow, denied, privacy, microphone, calendar, reminders, contacts, screen recording, accessibility, automation, notifications, location, System Settings"
             )
-        case .privacy: L("data, personal details, screen, log, erase, local only")
-        case .general: L("personality, shortcut, login, updates, welcome tour")
+        case .privacy:
+            L(
+                "data, personal details, masking, hide from screen sharing, log, erase, delete, local only"
+            )
+        case .general: L("shortcut, hotkey, login, startup, updates, welcome tour")
         case .about: L("version, license, website, report a problem")
         }
     }
 
+    /// Whether the pane's title or keywords contain `query`; an empty query matches.
     func matches(_ query: String) -> Bool {
         let query = query.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
-        return title.localizedCaseInsensitiveContains(query)
-            || keywords.localizedCaseInsensitiveContains(query)
+        let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+        return title.range(of: query, options: options) != nil
+            || keywords.range(of: query, options: options) != nil
     }
 }
 
@@ -167,8 +180,24 @@ struct SettingsView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: selection) {
+                if !results.isEmpty {
+                    Section {
+                        ForEach(results) { setting in
+                            Button {
+                                open(setting)
+                            } label: {
+                                SearchResultLabel(setting: setting)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } header: {
+                        Text(verbatim: L("Settings"))
+                    }
+                }
                 ForEach(SettingsSidebarSection.allCases) { section in
-                    let panes = section.panes.filter { $0.matches(search) }
+                    let panes = section.panes.filter { pane in
+                        pane.matches(search) || results.contains { $0.pane == pane }
+                    }
                     if !panes.isEmpty {
                         Section {
                             ForEach(panes) { pane in
@@ -184,7 +213,9 @@ struct SettingsView: View {
             }
             .searchable(text: $search, placement: .sidebar, prompt: Text(verbatim: L("Search")))
             .onSubmit(of: .search) {
-                if let first = SettingsPane.allCases.first(where: { $0.matches(search) }) {
+                if let first = results.first {
+                    open(first)
+                } else if let first = SettingsPane.allCases.first(where: { $0.matches(search) }) {
                     navigation.pane = first
                 }
             }
@@ -216,6 +247,15 @@ struct SettingsView: View {
         case .general: GeneralSettingsView(model: model)
         case .about: AboutView()
         }
+    }
+
+    /// Settings matching the search, at most a screenful.
+    private var results: [SearchableSetting] {
+        Array(SettingsSearch.results(for: search).prefix(12))
+    }
+
+    private func open(_ setting: SearchableSetting) {
+        navigation.show(setting.pane, highlighting: setting.anchor)
     }
 
     /// Scrolls to the highlighted setting once its pane is laid out, then lets the highlight
@@ -293,6 +333,7 @@ struct ReactionsSettingsView: View {
                     }
                 }
                 .onChange(of: settings.preferences.sleepDelayMinutes) { model.applyPreferences() }
+                .settingsAnchor("reactions.sleep")
             } header: {
                 Text(verbatim: L("Sleep"))
             } footer: {
@@ -321,6 +362,7 @@ struct GeneralSettingsView: View {
                 LabeledContent(L("Open Momo")) {
                     Text(verbatim: "⌥ Space").font(.system(.body, design: .monospaced))
                 }
+                .settingsAnchor("general.shortcut")
                 Toggle(L("Open at login"), isOn: $launchesAtLogin)
                     .onChange(of: launchesAtLogin) { _, enabled in
                         do {
@@ -333,11 +375,14 @@ struct GeneralSettingsView: View {
                             launchesAtLogin = SMAppService.mainApp.status == .enabled
                         }
                     }
+                    .settingsAnchor("general.login")
             }
             Section {
                 Toggle(
                     L("Check for updates automatically"),
-                    isOn: $settings.preferences.checksForUpdates)
+                    isOn: $settings.preferences.checksForUpdates
+                )
+                .settingsAnchor("general.updates")
                 Button(L("Check now")) { Task { await model.updates.check() } }
                 if let update = model.updates.availableUpdate {
                     Button(String(format: L("Update to Momo %@…"), update.version)) {
@@ -352,6 +397,7 @@ struct GeneralSettingsView: View {
             }
             Section {
                 Button(L("Show the welcome tour again")) { model.showOnboarding() }
+                    .settingsAnchor("general.tour")
             }
         }
         .formStyle(.grouped)
