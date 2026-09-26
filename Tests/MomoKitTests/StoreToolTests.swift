@@ -27,6 +27,99 @@ struct StoreToolTests {
         #expect(result.isError)
     }
 
+    @Test("add_task reads repeat rules, priority and tags")
+    func repeatingTask() async throws {
+        let store = temporaryStore()
+        let box = Toolbox(StoreTools.all(store: store))
+        let added = await box.execute(
+            ToolCall(
+                id: "1", name: "add_task",
+                arguments:
+                    #"{"title":"Water plants","due":"2030-01-05T10:00","repeat":"weekly","repeat_interval":2,"priority":"high","tags":"home, #Garden"}"#
+            ))
+        #expect(!added.isError)
+        #expect(added.output.contains("repeats every 2 weeks"))
+        #expect(added.output.contains("(high priority)"))
+        #expect(added.output.contains("#home #garden"))
+        let task = try #require(await store.tasks().first)
+        #expect(task.recurrence == Recurrence(frequency: .weekly, interval: 2))
+        #expect(task.tags == ["home", "garden"])
+
+        let completed = await box.execute(
+            ToolCall(id: "2", name: "complete_task", arguments: #"{"task":"Water"}"#))
+        #expect(completed.output.contains("Next occurrence"))
+        #expect(completed.output.contains("2030-01-19T10:00"))
+
+        let filtered = await box.execute(
+            ToolCall(id: "3", name: "list_tasks", arguments: #"{"tag":"garden"}"#))
+        #expect(filtered.output.contains("Water plants"))
+        let none = await box.execute(
+            ToolCall(id: "4", name: "list_tasks", arguments: #"{"tag":"work"}"#))
+        #expect(none.output == "No tasks match.")
+    }
+
+    @Test("update_task changes and clears the repeat rule, priority and tags")
+    func updateDetails() async throws {
+        let store = temporaryStore()
+        try await store.addTask(title: "Standup", recurrence: Recurrence(frequency: .daily))
+        let box = Toolbox(StoreTools.all(store: store))
+        let changed = await box.execute(
+            ToolCall(
+                id: "1", name: "update_task",
+                arguments:
+                    #"{"task":"Standup","repeat":"weekdays","priority":"low","tags":["work"]}"#))
+        #expect(!changed.isError)
+        var task = try #require(await store.tasks().first)
+        #expect(task.recurrence?.frequency == .weekdays)
+        #expect(task.priority == .low)
+        #expect(task.tags == ["work"])
+
+        _ = await box.execute(
+            ToolCall(
+                id: "2", name: "update_task", arguments: #"{"task":"Standup","repeat":"none"}"#))
+        task = try #require(await store.tasks().first)
+        #expect(task.recurrence == nil)
+        #expect(task.priority == .low)
+    }
+
+    @Test("rejects unknown repeat rules, priorities and categories")
+    func badDetails() async {
+        let box = Toolbox(StoreTools.all(store: temporaryStore()))
+        for arguments in [
+            #"{"title":"X","repeat":"fortnightly"}"#, #"{"title":"X","priority":"urgent"}"#,
+            #"{"title":"X","repeat":"daily","repeat_interval":0}"#,
+        ] {
+            let result = await box.execute(
+                ToolCall(id: "1", name: "add_task", arguments: arguments))
+            #expect(result.isError)
+        }
+        let memory = await box.execute(
+            ToolCall(id: "2", name: "remember", arguments: #"{"fact":"X","category":"secret"}"#))
+        #expect(memory.isError)
+    }
+
+    @Test("remember and list_memories use categories")
+    func memoryCategories() async {
+        let store = temporaryStore()
+        let box = Toolbox(StoreTools.all(store: store))
+        let saved = await box.execute(
+            ToolCall(
+                id: "1", name: "remember",
+                arguments: #"{"fact":"Prefers short answers","category":"preference"}"#))
+        #expect(saved.output.contains("(preference)"))
+        _ = await box.execute(
+            ToolCall(id: "2", name: "remember", arguments: #"{"fact":"Works on Momo"}"#))
+        let preferences = await box.execute(
+            ToolCall(id: "3", name: "list_memories", arguments: #"{"category":"preference"}"#))
+        #expect(preferences.output.contains("Prefers short answers"))
+        #expect(!preferences.output.contains("Works on Momo"))
+        let all = await box.execute(ToolCall(id: "4", name: "list_memories", arguments: "{}"))
+        #expect(all.output.contains("(fact) Works on Momo"))
+        let people = await box.execute(
+            ToolCall(id: "5", name: "list_memories", arguments: #"{"category":"person"}"#))
+        #expect(people.output == "Nothing remembered in that category.")
+    }
+
     @Test("deleting needs confirmation")
     func deleteNeedsConfirmation() async throws {
         let store = temporaryStore()
