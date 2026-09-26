@@ -1,7 +1,6 @@
 import AppKit
 import Foundation
 import MomoKit
-import PDFKit
 
 /// Tools that find, read and tidy the user's files. Places that hold secrets are refused by
 /// ``FilePathPolicy``.
@@ -99,13 +98,11 @@ enum FileTools {
                 throw ToolError("That's a folder. Use list_folder to see what's inside.")
             }
             let text = try await Task.detached(priority: .userInitiated) {
-                try extractText(from: url)
+                try DocumentText.fullText(of: url, maximumFileSize: 100_000_000)
             }.value
             let offset = max(0, arguments["offset"]?.intValue ?? 0)
             let limit = min(60_000, max(1000, arguments["max_characters"]?.intValue ?? 20_000))
-            guard offset < text.count else {
-                return text.isEmpty ? "The file has no text." : "The file ends before that offset."
-            }
+            guard offset < text.count else { return "The file ends before that offset." }
             let rest = text.dropFirst(offset)
             var output = String(rest.prefix(limit))
             if rest.count > limit {
@@ -113,53 +110,6 @@ enum FileTools {
                     "\n… (\(rest.count - limit) more characters; read again with offset \(offset + limit))"
             }
             return output
-        }
-    }
-
-    /// Reads a document's text, choosing the reader by file type.
-    static func extractText(from url: URL) throws -> String {
-        let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
-        let size = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
-        let fileExtension = url.pathExtension.lowercased()
-        switch fileExtension {
-        case "pdf":
-            guard size < 200_000_000, let document = PDFDocument(url: url) else {
-                throw ToolError("I couldn't open that PDF.")
-            }
-            if document.isLocked { throw ToolError("That PDF is password protected.") }
-            var pages: [String] = []
-            for index in 0..<document.pageCount {
-                let text = document.page(at: index)?.string ?? ""
-                pages.append("[Page \(index + 1)]\n\(text)")
-            }
-            let text = pages.joined(separator: "\n\n")
-            let hasText = text.contains { $0.isLetter }
-            return hasText ? text : "The PDF has no selectable text (it may be scanned)."
-        case "rtf", "rtfd", "doc", "docx", "odt", "wordml":
-            let types: [String: NSAttributedString.DocumentType] = [
-                "rtf": .rtf, "rtfd": .rtfd, "doc": .docFormat, "docx": .officeOpenXML,
-                "odt": .openDocument, "wordml": .wordML,
-            ]
-            var options: [NSAttributedString.DocumentReadingOptionKey: Any] = [:]
-            if let type = types[fileExtension] { options[.documentType] = type }
-            let document = try NSAttributedString(
-                url: url, options: options, documentAttributes: nil)
-            return document.string
-        case "pages", "numbers", "key":
-            throw ToolError(
-                "Momo can't read iWork files directly. Ask the user to export it as PDF or Word.")
-        default:
-            guard size < 20_000_000 else {
-                throw ToolError("That file is too large to read (\(OutputText.byteCount(size))).")
-            }
-            let data = try Data(contentsOf: url)
-            if data.prefix(8192).contains(0) {
-                throw ToolError("That looks like a binary file, not text.")
-            }
-            if let text = String(data: data, encoding: .utf8) { return text }
-            var encoding = String.Encoding.utf8
-            if let text = try? String(contentsOf: url, usedEncoding: &encoding) { return text }
-            return String(data: data, encoding: .isoLatin1) ?? ""
         }
     }
 
