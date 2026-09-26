@@ -180,8 +180,14 @@ public enum StoreTools {
                 ]))
         ) { arguments in
             let query = arguments["query"]?.stringValue ?? ""
-            let notes =
+            var notes =
                 query.isEmpty ? await store.notes() : await store.searchNotes(query)
+            if notes.isEmpty, !query.isEmpty {
+                // No note has every word: fall back to notes that share words or stems.
+                notes = MemoryRanker(usesEmbeddings: false)
+                    .rank(await store.notes(), by: { $0.title + " " + $0.body }, query: query)
+                    .filter { $0.score > 0 }.map(\.item)
+            }
             guard !notes.isEmpty else { return "No notes found." }
             return notes.prefix(10).map { note in
                 let body =
