@@ -61,6 +61,10 @@
     enum Snapshots {
         static func renderIfRequested() -> Bool {
             let arguments = CommandLine.arguments
+            if let index = arguments.firstIndex(of: "--render-icon"), index + 1 < arguments.count {
+                renderIcon(to: URL(fileURLWithPath: arguments[index + 1]))
+                exit(0)
+            }
             guard let index = arguments.firstIndex(of: "--snapshot"), index + 1 < arguments.count
             else { return false }
             let folder = URL(
@@ -161,6 +165,44 @@
                     "face-\(mood.rawValue)", folder)
             }
             print("Snapshots written to \(folder.path)")
+        }
+
+        /// Renders the 1024 × 1024 app icon: Momo smiling on a soft gradient squircle.
+        private static func renderIcon(to url: URL) {
+            let engine = FaceEngine()
+            engine.isLifeEnabled = false
+            engine.setMood(.happy)
+            engine.reducesMotion = true
+            var face = FaceState.resting
+            for _ in 0..<120 { face = engine.advance(by: 1 / 60, input: .init()) }
+            let snapshot = face
+            // Momo hangs from a notch at the top of the squircle, as it does on the Mac.
+            let layout = FaceLayout(topInset: 110, capWidth: 400, scale: 4.3)
+            let squircle = RoundedRectangle(cornerRadius: 185, style: .continuous)
+            let icon = ZStack(alignment: .top) {
+                squircle.fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.45, green: 0.91, blue: 0.80),
+                            Color(red: 0.62, green: 0.60, blue: 0.98),
+                        ], startPoint: .topLeading, endPoint: .bottomTrailing))
+                Canvas { context, _ in
+                    FaceRenderer.draw(snapshot, in: &context, layout: layout)
+                }
+                .frame(width: layout.canvasSize.width, height: layout.canvasSize.height)
+            }
+            .frame(width: 824, height: 824)
+            .clipShape(squircle)
+            .shadow(color: .black.opacity(0.25), radius: 18, y: 10)
+            .frame(width: 1024, height: 1024)
+            let renderer = ImageRenderer(content: icon)
+            renderer.scale = 1
+            guard let image = renderer.nsImage, let tiff = image.tiffRepresentation,
+                let bitmap = NSBitmapImageRep(data: tiff),
+                let png = bitmap.representation(using: .png, properties: [:])
+            else { return }
+            try? png.write(to: url)
+            print("Icon written to \(url.path)")
         }
 
         private static func save(_ view: some View, _ name: String, _ folder: URL) {
