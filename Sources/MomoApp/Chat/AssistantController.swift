@@ -141,6 +141,10 @@ final class AssistantController {
     @ObservationIgnored var systemTools: () -> [any MomoTool] = { [] }
     /// Called with each finished reply, for speaking it aloud.
     @ObservationIgnored var onReply: ((String) -> Void)?
+    /// Called when a consent or confirmation question appears, for asking it aloud.
+    @ObservationIgnored var onPrompt: (() -> Void)?
+    /// Called when a request ends, whether it was answered, failed or was cancelled.
+    @ObservationIgnored var onRequestFinished: (() -> Void)?
 
     @ObservationIgnored private let assistant = Assistant()
     /// Labels tools describe themselves with, from the latest configuration.
@@ -253,6 +257,7 @@ final class AssistantController {
         }
         isBusy = false
         task = nil
+        onRequestFinished?()
     }
 
     private func makeConfiguration() async -> Assistant.Configuration {
@@ -282,6 +287,7 @@ final class AssistantController {
         return await withCheckedContinuation { continuation in
             consentContinuation = continuation
             consentPrompt = ConsentPrompt(brain: brain, reason: reason, masksData: masked)
+            onPrompt?()
         }
     }
 
@@ -297,6 +303,7 @@ final class AssistantController {
         return await withCheckedContinuation { continuation in
             confirmationContinuation = continuation
             confirmationPrompt = ConfirmationPrompt(summary: summary)
+            onPrompt?()
         }
     }
 

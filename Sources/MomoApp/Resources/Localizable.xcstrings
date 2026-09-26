@@ -524,6 +524,16 @@
         }
       }
     },
+    "Can I ask %@? Say yes or no." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ile sorabilir miyim? Evet ya da hayır de."
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "tr" : {
@@ -1548,6 +1558,26 @@
         }
       }
     },
+    "Hold the shortcut to talk" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuşmak için kısayolu basılı tut"
+          }
+        }
+      }
+    },
+    "Hold ⌥⇧Space while you speak and let go to send. Momo answers in a small caption under the notch; click it to open the chat, or press Esc to cancel." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuşurken ⌥⇧Boşluk'u basılı tut, göndermek için bırak. Momo çentiğin altındaki küçük bir baloncukta yanıt verir; sohbeti açmak için ona tıkla ya da iptal etmek için Esc'ye bas."
+          }
+        }
+      }
+    },
     "How to reach me" : {
       "localizations" : {
         "tr" : {
@@ -1718,6 +1748,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dinliyor"
+          }
+        }
+      }
+    },
+    "Listening…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinliyorum…"
+          }
+        }
+      }
+    },
+    "Listening… let go to send" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinliyorum… göndermek için bırak"
           }
         }
       }
@@ -1935,6 +1985,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo düşünmeye hazır"
+          }
+        }
+      }
+    },
+    "Momo is still answering. Try again in a moment." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo hâlâ yanıt veriyor. Birazdan tekrar dene."
           }
         }
       }
@@ -2313,6 +2373,26 @@
         }
       }
     },
+    "Open the chat" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sohbeti aç"
+          }
+        }
+      }
+    },
+    "Open the chat for spoken requests" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesli isteklerde sohbeti aç"
+          }
+        }
+      }
+    },
     "OpenAI" : {
       "localizations" : {
         "tr" : {
@@ -2519,6 +2599,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Benimle konuşmak için her yerde ⌥Boşluk'a bas."
+          }
+        }
+      }
+    },
+    "Press ⌥⇧Space or say “Hey Momo”, then speak; Momo sends when you pause. It answers in a small caption under the notch; click it to open the chat, or press Esc or the shortcut again to cancel." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌥⇧Boşluk'a bas ya da “Hey Momo” de, sonra konuş; duraklayınca Momo gönderir. Çentiğin altındaki küçük bir baloncukta yanıt verir; sohbeti açmak için ona tıkla, iptal etmek için Esc'ye ya da kısayola yeniden bas."
           }
         }
       }
@@ -2845,6 +2935,16 @@
         }
       }
     },
+    "Say yes or no" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Evet ya da hayır de"
+          }
+        }
+      }
+    },
     "Screen Sharing Ended" : {
       "comment" : "Simulated event",
       "localizations" : {
@@ -3013,6 +3113,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bunu yapayım mı?"
+          }
+        }
+      }
+    },
+    "Should I go ahead?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devam edeyim mi?"
           }
         }
       }
@@ -3484,6 +3594,16 @@
         }
       }
     },
+    "Thinking…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Düşünüyorum…"
+          }
+        }
+      }
+    },
     "This can't be undone." : {
       "localizations" : {
         "tr" : {
@@ -3745,6 +3865,16 @@
         }
       }
     },
+    "Voice mode" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesli mod"
+          }
+        }
+      }
+    },
     "Voices" : {
       "localizations" : {
         "tr" : {
@@ -3861,6 +3991,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pil azalınca endişelen"
+          }
+        }
+      }
+    },
+    "Writing down what you said…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Söylediklerini yazıya döküyorum…"
           }
         }
       }
