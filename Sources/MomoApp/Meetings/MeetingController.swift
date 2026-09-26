@@ -430,7 +430,7 @@ final class MeetingController {
         phase = .finishing
         let endedAt = Date()
         Task {
-            await capture.stop()
+            let keptAudio = await capture.stop()
             character?.isRecordingMeeting = false
             levels = [:]
             onRecordingChanged?()
@@ -444,6 +444,10 @@ final class MeetingController {
             }
             meeting.endedAt = endedAt
             meeting.segments = MeetingTranscript.removingEcho(meeting.segments)
+            // Kept files live in the meeting's own folder, named relative to the meetings folder.
+            meeting.audioFiles = keptAudio.map {
+                "\(meeting.id)/\($0.lastPathComponent)"
+            }
             current = nil
             phase = .idle
             selectedMeetingID = meeting.id

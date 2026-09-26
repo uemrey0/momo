@@ -29,7 +29,8 @@ public struct Meeting: Codable, Sendable, Hashable, Identifiable {
     public var openQuestions: [String]
     /// The note the summary was saved to.
     public var noteID: String?
-    /// Names of audio files kept in the meetings folder, when the user keeps meeting audio.
+    /// Audio files kept when the user keeps meeting audio, as paths relative to the meetings
+    /// folder ("<meeting id>/microphone.wav").
     public var audioFiles: [String]
     /// Why the meeting has no summary, when summarising failed.
     public var failureReason: String?
