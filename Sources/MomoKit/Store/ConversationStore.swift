@@ -73,6 +73,17 @@ public struct ConversationMessage: Codable, Sendable, Hashable {
         }
     }
 
+    /// A file or image that was attached to a message. Only its name is saved.
+    public struct AttachmentInfo: Codable, Sendable, Hashable {
+        public var name: String
+        public var isImage: Bool
+
+        public init(name: String, isImage: Bool) {
+            self.name = name
+            self.isImage = isImage
+        }
+    }
+
     public var role: Role
     public var text: String
     public var date: Date
@@ -82,10 +93,12 @@ public struct ConversationMessage: Codable, Sendable, Hashable {
     public var activities: [Activity]
     /// What the tools were asked and returned, so a reopened conversation keeps its context.
     public var toolRecords: [ToolRecord]
+    public var attachments: [AttachmentInfo]
 
     public init(
         role: Role, text: String, date: Date = Date(), brainName: String? = nil,
-        brainKind: BrainKind? = nil, activities: [Activity] = [], toolRecords: [ToolRecord] = []
+        brainKind: BrainKind? = nil, activities: [Activity] = [], toolRecords: [ToolRecord] = [],
+        attachments: [AttachmentInfo] = []
     ) {
         self.role = role
         self.text = text
@@ -94,10 +107,11 @@ public struct ConversationMessage: Codable, Sendable, Hashable {
         self.brainKind = brainKind
         self.activities = activities
         self.toolRecords = toolRecords
+        self.attachments = attachments
     }
 
     enum CodingKeys: String, CodingKey {
-        case role, text, date, brainName, brainKind, activities, toolRecords
+        case role, text, date, brainName, brainKind, activities, toolRecords, attachments
     }
 
     public init(from decoder: any Decoder) throws {
@@ -110,6 +124,8 @@ public struct ConversationMessage: Codable, Sendable, Hashable {
         activities = try container.decodeIfPresent([Activity].self, forKey: .activities) ?? []
         toolRecords =
             try container.decodeIfPresent([ToolRecord].self, forKey: .toolRecords) ?? []
+        attachments =
+            try container.decodeIfPresent([AttachmentInfo].self, forKey: .attachments) ?? []
     }
 }
 
