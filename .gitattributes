@@ -1,0 +1,3 @@
+# Merge String Catalogs as JSON so parallel branches can all add translations.
+# Enable the driver once per clone: see Scripts/merge-xcstrings.py.
+*.xcstrings merge=xcstrings

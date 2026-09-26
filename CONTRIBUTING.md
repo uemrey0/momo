@@ -128,6 +128,17 @@ To add a language:
    `Scripts/build-app.sh`.
 4. Run `make l10n`, build with `make app` and check the UI in that language.
 
+To add strings from a script or the command line, pass a JSON map of English keys to their
+translations to `Scripts/add-translations.py`; it keeps Xcode's formatting.
+
+Parallel branches that add strings would conflict in the catalog, so it merges as JSON through
+a git merge driver. Enable it once per clone:
+
+```bash
+git config merge.xcstrings.name "String Catalog merge"
+git config merge.xcstrings.driver "python3 Scripts/merge-xcstrings.py %O %A %B"
+```
+
 ## Architecture decisions
 
 Significant decisions are recorded as ADRs in [`docs/adr`](docs/adr). If your change alters one
