@@ -24,7 +24,10 @@ struct ChatView: View {
     /// The height the chat would like: its messages and the composer, or a comfortable
     /// size for the welcome screen.
     private var preferredHeight: CGFloat {
-        (assistant.messages.isEmpty ? welcomeHeight : messagesHeight) + footerHeight
+        let content = assistant.messages.isEmpty ? welcomeHeight : messagesHeight
+        // Nothing to report until the content has been measured.
+        guard content > 0, footerHeight > 0 else { return 0 }
+        return content + footerHeight
     }
 
     var body: some View {

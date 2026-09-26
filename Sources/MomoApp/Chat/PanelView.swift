@@ -40,8 +40,10 @@ struct PanelView: View {
             .clipped()
         }
         .frame(width: ChatPanelController.size.width)
-        .frame(height: snapshotMode ? ChatPanelController.size.height : nil)
-        .frame(maxHeight: .infinity, alignment: .top)
+        .frame(
+            height: snapshotMode ? ChatPanelController.size.height : state.layoutHeight,
+            alignment: .top
+        )
         .background(
             ZStack {
                 if snapshotMode {
@@ -52,10 +54,10 @@ struct PanelView: View {
                 }
             }
         )
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
+        .clipShape(PanelShape(visibleHeight: state.visibleHeight))
         .overlay(
-            RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08))
+            PanelShape(visibleHeight: state.visibleHeight)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
         .scaleEffect(appeared ? 1 : 0.94, anchor: .top)
         .opacity(appeared ? 1 : 0)
@@ -64,7 +66,8 @@ struct PanelView: View {
         .tint(Theme.accent)
         .animation(Theme.spring, value: state.tab)
         .onPreferenceChange(PanelHeightKey.self) { height in
-            resize(Self.headerHeight + height)
+            // Zero means the section hasn't measured itself yet.
+            if height > 0 { resize(Self.headerHeight + height) }
         }
         .onChange(of: state.presentations) {
             // Drops out of the notch each time the panel opens.
