@@ -58,7 +58,7 @@ public struct AnthropicProvider: ChatProvider {
         continuation: AsyncThrowingStream<ChatEvent, any Error>.Continuation
     ) async throws {
         var messages: [JSONValue] = ChatTurn.alternating(request.turns).map {
-            ["role": .string($0.role.rawValue), "content": .string($0.text)]
+            ["role": .string($0.role.rawValue), "content": .string($0.contextText)]
         }
         for _ in 0..<maximumToolRounds {
             try Task.checkCancellation()
@@ -247,10 +247,12 @@ extension ChatTurn {
     /// strictly alternating APIs require.
     public static func alternating(_ turns: [ChatTurn]) -> [ChatTurn] {
         var result: [ChatTurn] = []
-        for turn in turns where !turn.text.isEmpty {
+        for turn in turns where !turn.contextText.isEmpty {
             if result.isEmpty && turn.role == .assistant { continue }
             if let last = result.last, last.role == turn.role {
-                result[result.count - 1].text += "\n\n" + turn.text
+                let separator = last.text.isEmpty || turn.text.isEmpty ? "" : "\n\n"
+                result[result.count - 1].text += separator + turn.text
+                result[result.count - 1].toolRecords += turn.toolRecords
             } else {
                 result.append(turn)
             }

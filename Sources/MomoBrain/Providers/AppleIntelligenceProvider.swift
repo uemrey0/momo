@@ -187,7 +187,7 @@ public enum PromptFlattener {
         var used = latest.text.count
         for turn in turns.dropLast().reversed() {
             let speaker = turn.role == .user ? "User" : "Momo"
-            let line = "\(speaker): \(turn.text)"
+            let line = "\(speaker): \(turn.contextText)"
             if used + line.count > budget { break }
             history.insert(line, at: 0)
             used += line.count

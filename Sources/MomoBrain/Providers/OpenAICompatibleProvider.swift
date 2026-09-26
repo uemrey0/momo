@@ -144,7 +144,7 @@ public struct OpenAICompatibleProvider: ChatProvider {
     ) async throws {
         var messages: [JSONValue] = [["role": "system", "content": .string(request.systemPrompt)]]
         messages += request.turns.map {
-            ["role": .string($0.role.rawValue), "content": .string($0.text)]
+            ["role": .string($0.role.rawValue), "content": .string($0.contextText)]
         }
         var tools = request.tools
         for _ in 0..<maximumToolRounds {
