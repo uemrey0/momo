@@ -33,6 +33,14 @@ struct ConversationStoreTests {
         let title = conversation([long]).title
         #expect(title.count == Conversation.titleLength)
         #expect(title.hasSuffix("…"))
+        let attachmentsOnly = Conversation(messages: [
+            ConversationMessage(
+                role: .user, text: " ",
+                attachments: [
+                    .init(name: "shot.png", isImage: true), .init(name: "notes.md", isImage: false),
+                ])
+        ])
+        #expect(attachmentsOnly.title == "shot.png, notes.md")
     }
 
     @Test("saves, reloads in another instance and lists the newest first")

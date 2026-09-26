@@ -24,9 +24,12 @@ public struct Conversation: Codable, Sendable, Hashable, Identifiable {
     public static let titleLength = 80
 
     /// A title made from the first user message: whitespace collapsed, trimmed, shortened.
+    /// A message with only attachments is titled after them.
     public static func title(for messages: [ConversationMessage]) -> String {
-        let first = messages.first { $0.role == .user }?.text ?? ""
-        let line = first.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let first = messages.first { $0.role == .user }
+        var line = (first?.text ?? "").split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+        if line.isEmpty { line = first?.attachments.map(\.name).joined(separator: ", ") ?? "" }
         guard line.count > titleLength else { return line }
         return String(line.prefix(titleLength - 1)).trimmingCharacters(in: .whitespaces) + "…"
     }
