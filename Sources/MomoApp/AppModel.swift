@@ -45,7 +45,7 @@ final class AppModel {
         applyPreferences()
         assistant.character = character
         today.onTaskCompleted = { [weak character] in character?.celebrate() }
-        let systemTools = SystemTools.all(calendar: calendar, focus: focus)
+        let systemTools = SystemTools.all(calendar: calendar, focus: focus) + MacTools.all()
         assistant.systemTools = { [weak connections] in systemTools + (connections?.tools ?? []) }
         Task { await connections.refresh() }
 

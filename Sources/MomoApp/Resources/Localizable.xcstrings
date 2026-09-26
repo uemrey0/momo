@@ -1693,6 +1693,16 @@
         }
       }
     },
+    "Looking in a folder" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klasöre bakıyorum"
+          }
+        }
+      }
+    },
     "Low Battery" : {
       "comment" : "Simulated event",
       "localizations" : {
@@ -1966,6 +1976,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yukarı taşı"
+          }
+        }
+      }
+    },
+    "Move “%@” to the Trash" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” Çöp Sepeti'ne taşınsın"
+          }
+        }
+      }
+    },
+    "Moving to the Trash" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çöp Sepeti'ne taşıyorum"
           }
         }
       }
@@ -2494,6 +2524,16 @@
         }
       }
     },
+    "Reading a file" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dosyayı okuyorum"
+          }
+        }
+      }
+    },
     "Reading the clipboard" : {
       "localizations" : {
         "tr" : {
@@ -2787,6 +2827,16 @@
         }
       }
     },
+    "Searching your files" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dosyalarında arıyorum"
+          }
+        }
+      }
+    },
     "Searching your notes" : {
       "localizations" : {
         "tr" : {
@@ -2914,6 +2964,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tanıtım turunu yeniden göster"
+          }
+        }
+      }
+    },
+    "Showing it in Finder" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finder'da gösteriyorum"
           }
         }
       }
