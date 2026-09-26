@@ -253,7 +253,7 @@ public final class FaceEngine {
                 pose[.mouthOpen] = sin(clock * 0.9) > 0.75 ? 0 : syllable
             }
             pose[.rotation] = sin(clock * 3) * 0.025
-            if sin(clock * 1.7) > 0.93 { pose[.happyEyes] = 0.6 }
+            if sin(clock * 1.7) > 0.93 { pose[.happyEyes] = 1 }
         case .happy:
             pose[.lift] = -abs(sin(clock * 5)) * 4
             emit(.sparkle, every: 0.6, dt: dt)
