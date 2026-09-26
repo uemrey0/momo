@@ -69,7 +69,9 @@ struct MCPServerTests {
         let names =
             list?["result"]?["tools"]?.arrayValue?.compactMap { $0["name"]?.stringValue } ?? []
         #expect(names.contains("add_task"))
+        #expect(names.contains("add_routine"))
         #expect(!names.contains("delete_task"))
+        #expect(!names.contains("delete_routine"))
 
         let open = MCPServer(
             toolbox: Toolbox(StoreTools.all(store: store)), allowsConfirmationTools: true)

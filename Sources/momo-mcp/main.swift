@@ -2,10 +2,10 @@ import Foundation
 import MomoKit
 import MomoMCP
 
-// momo-mcp: offers Momo's tasks, notes, habits and memories to other agents over MCP.
+// momo-mcp: offers Momo's tasks, notes, habits, memories and routines to other agents over MCP.
 //
 //   momo-mcp                       tools that never need confirmation
-//   momo-mcp --allow-destructive   also deleting tasks and notes; the agent must ask first
+//   momo-mcp --allow-destructive   also tools that delete data; the agent must ask first
 //   momo-mcp --data <path>         use another data file (for testing)
 
 let arguments = CommandLine.arguments
@@ -33,8 +33,8 @@ let server = MCPServer(
     toolbox: Toolbox(StoreTools.all(store: store)),
     instructions: """
         Momo is the user's personal assistant on their Mac. Use these tools to read and update \
-        the user's tasks, reminders, notes, habits and the facts Momo remembers about them. \
-        Changes show up in the Momo app right away.
+        the user's tasks, reminders, notes, habits, routines and the facts Momo remembers about \
+        them. Changes show up in the Momo app right away; routines run in the app.
         """,
     allowsConfirmationTools: arguments.contains("--allow-destructive"))
 

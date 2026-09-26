@@ -350,16 +350,20 @@ public actor MomoStore {
         return routine
     }
 
+    /// Changes the given parts of a routine; `time` and `weekdays` can change independently.
     @discardableResult
     public func updateRoutine(
         _ reference: String, title: String? = nil, prompt: String? = nil,
-        schedule: RoutineSchedule? = nil, isEnabled: Bool? = nil
+        time: (hour: Int, minute: Int)? = nil, weekdays: Set<Int>? = nil, isEnabled: Bool? = nil
     ) throws -> Routine {
         let index = try routineIndex(for: reference)
         try mutate {
             if let title { $0.routines[index].title = title }
             if let prompt { $0.routines[index].prompt = prompt }
-            if let schedule { $0.routines[index].schedule = schedule }
+            let current = $0.routines[index].schedule
+            $0.routines[index].schedule = RoutineSchedule(
+                hour: time?.hour ?? current.hour, minute: time?.minute ?? current.minute,
+                weekdays: weekdays ?? current.weekdays)
             if let isEnabled { $0.routines[index].isEnabled = isEnabled }
         }
         return data.routines[index]

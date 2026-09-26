@@ -1,6 +1,7 @@
 import Foundation
 
-/// The tools that read and change Momo's own data: tasks, notes, habits and memories.
+/// The tools that read and change Momo's own data: tasks, notes, habits, memories and
+/// routines.
 ///
 /// These are shared by the in-app assistant and the MCP server.
 public enum StoreTools {
@@ -9,7 +10,8 @@ public enum StoreTools {
             addTask(store), listTasks(store), completeTask(store), updateTask(store),
             deleteTask(store), addNote(store), searchNotes(store), appendToNote(store),
             deleteNote(store), logHabit(store), listHabits(store), remember(store),
-            listMemories(store), forget(store), currentTime(),
+            listMemories(store), forget(store), addRoutine(store), listRoutines(store),
+            updateRoutine(store), deleteRoutine(store), currentTime(),
         ]
     }
 
@@ -322,6 +324,115 @@ public enum StoreTools {
             let memory = try await store.forget(try required(arguments, "memory"))
             return "Forgot: \(memory.text)"
         }
+    }
+
+    // MARK: - Routines
+
+    static let daysDescription =
+        "'daily', 'weekdays', 'weekends' or days such as 'mon, wed, fri'"
+
+    static func addRoutine(_ store: MomoStore) -> any MomoTool {
+        ClosureTool(
+            ToolDefinition(
+                name: "add_routine",
+                description:
+                    "Create a routine: a prompt Momo runs by itself on a schedule and delivers as a notification, e.g. every weekday at 09:00 'Summarise my day and the weather'.",
+                parameters: JSONSchema.object(
+                    [
+                        "title": JSONSchema.string("Short name, e.g. 'Morning brief'"),
+                        "prompt": JSONSchema.string(
+                            "What Momo should do each time, written as the user's request"),
+                        "time": JSONSchema.string("Local time of day, 24-hour HH:mm"),
+                        "days": JSONSchema.string("Optional: \(daysDescription). Default daily"),
+                    ], required: ["title", "prompt", "time"]))
+        ) { arguments in
+            guard let time = try time(arguments) else {
+                throw ToolError("The 'time' argument is required, e.g. 09:00.")
+            }
+            let routine = try await store.addRoutine(
+                title: try required(arguments, "title"), prompt: try required(arguments, "prompt"),
+                schedule: RoutineSchedule(
+                    hour: time.hour, minute: time.minute, weekdays: try days(arguments) ?? []))
+            return "Added routine \(describe(routine))"
+        }
+    }
+
+    static func listRoutines(_ store: MomoStore) -> any MomoTool {
+        ClosureTool(
+            ToolDefinition(
+                name: "list_routines",
+                description: "List the user's routines with their schedules.")
+        ) { _ in
+            let routines = await store.routines()
+            guard !routines.isEmpty else { return "No routines yet." }
+            return routines.map(describe).joined(separator: "\n")
+        }
+    }
+
+    static func updateRoutine(_ store: MomoStore) -> any MomoTool {
+        ClosureTool(
+            ToolDefinition(
+                name: "update_routine",
+                description:
+                    "Change a routine's title, prompt or schedule, or pause and resume it.",
+                parameters: JSONSchema.object(
+                    [
+                        "routine": JSONSchema.string("Routine ID or title"),
+                        "title": JSONSchema.string("New title"),
+                        "prompt": JSONSchema.string("New prompt"),
+                        "time": JSONSchema.string("New local time of day, HH:mm"),
+                        "days": JSONSchema.string("New days: \(daysDescription)"),
+                        "enabled": JSONSchema.boolean("false to pause, true to resume"),
+                    ], required: ["routine"]))
+        ) { arguments in
+            let routine = try await store.updateRoutine(
+                try required(arguments, "routine"), title: arguments["title"]?.stringValue,
+                prompt: arguments["prompt"]?.stringValue, time: try time(arguments),
+                weekdays: try days(arguments), isEnabled: arguments["enabled"]?.boolValue)
+            return "Updated routine \(describe(routine))"
+        }
+    }
+
+    static func deleteRoutine(_ store: MomoStore) -> any MomoTool {
+        ClosureTool(
+            ToolDefinition(
+                name: "delete_routine",
+                description:
+                    "Permanently delete a routine. Prefer update_routine with enabled false to pause it.",
+                parameters: JSONSchema.object(
+                    ["routine": JSONSchema.string("Routine ID or title")], required: ["routine"]),
+                requiresConfirmation: true),
+            summary: { "Delete the routine “\($0["routine"]?.stringValue ?? "")”" }
+        ) { arguments in
+            let routine = try await store.deleteRoutine(try required(arguments, "routine"))
+            return "Deleted routine \(routine.title)"
+        }
+    }
+
+    static func describe(_ routine: Routine) -> String {
+        var parts = ["[\(routine.id)] \(routine.title): \(routine.schedule.summary)"]
+        if !routine.isEnabled { parts.append("(paused)") }
+        if let lastRun = routine.lastRun {
+            parts.append("last ran \(FlexibleDate.format(lastRun))")
+        }
+        parts.append("— \(routine.prompt)")
+        return parts.joined(separator: " ")
+    }
+
+    static func time(_ arguments: JSONValue) throws -> (hour: Int, minute: Int)? {
+        guard let text = arguments["time"]?.stringValue, !text.isEmpty else { return nil }
+        guard let time = RoutineSchedule.parseTime(text) else {
+            throw ToolError("'\(text)' is not a time. Use 24-hour HH:mm such as 09:00.")
+        }
+        return time
+    }
+
+    static func days(_ arguments: JSONValue) throws -> Set<Int>? {
+        guard let text = arguments["days"]?.stringValue, !text.isEmpty else { return nil }
+        guard let days = RoutineSchedule.parseDays(text) else {
+            throw ToolError("'\(text)' are not days. Use \(daysDescription).")
+        }
+        return days
     }
 
     // MARK: - Time

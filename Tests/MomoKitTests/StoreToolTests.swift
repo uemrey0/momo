@@ -120,6 +120,65 @@ struct StoreToolTests {
         #expect(people.output == "Nothing remembered in that category.")
     }
 
+    @Test("add_routine, update_routine and list_routines manage routines")
+    func routines() async throws {
+        let store = temporaryStore()
+        let box = Toolbox(StoreTools.all(store: store))
+        let added = await box.execute(
+            ToolCall(
+                id: "1", name: "add_routine",
+                arguments:
+                    #"{"title":"Morning brief","prompt":"Summarise my day","time":"9:00","days":"weekdays"}"#
+            ))
+        #expect(!added.isError)
+        #expect(added.output.contains("weekdays at 09:00"))
+
+        let daysOnly = await box.execute(
+            ToolCall(
+                id: "2", name: "update_routine",
+                arguments: #"{"routine":"morning","days":"mon, fri","enabled":false}"#))
+        #expect(!daysOnly.isError)
+        var routine = try #require(await store.routines().first)
+        #expect(routine.schedule == RoutineSchedule(hour: 9, minute: 0, weekdays: [2, 6]))
+        #expect(!routine.isEnabled)
+
+        _ = await box.execute(
+            ToolCall(
+                id: "3", name: "update_routine", arguments: #"{"routine":"morning","time":"07:30"}"#
+            ))
+        routine = try #require(await store.routines().first)
+        #expect(routine.schedule == RoutineSchedule(hour: 7, minute: 30, weekdays: [2, 6]))
+
+        let listed = await box.execute(ToolCall(id: "4", name: "list_routines", arguments: "{}"))
+        #expect(listed.output.contains("Mon, Fri at 07:30 (paused)"))
+        #expect(listed.output.contains("Summarise my day"))
+    }
+
+    @Test("routine tools reject bad times and days, and deleting needs confirmation")
+    func routineArguments() async throws {
+        let store = temporaryStore()
+        let box = Toolbox(StoreTools.all(store: store))
+        for arguments in [
+            #"{"title":"X","prompt":"Y"}"#, #"{"title":"X","prompt":"Y","time":"half past"}"#,
+            #"{"title":"X","prompt":"Y","time":"09:00","days":"someday"}"#,
+        ] {
+            let result = await box.execute(
+                ToolCall(id: "1", name: "add_routine", arguments: arguments))
+            #expect(result.isError)
+        }
+        try await store.addRoutine(
+            title: "Evening", prompt: "Plan tomorrow",
+            schedule: RoutineSchedule(hour: 21, minute: 0))
+        let declined = await box.execute(
+            ToolCall(id: "2", name: "delete_routine", arguments: #"{"routine":"Evening"}"#))
+        #expect(declined.isError)
+        let approved = await box.execute(
+            ToolCall(id: "3", name: "delete_routine", arguments: #"{"routine":"Evening"}"#),
+            confirm: { _ in true })
+        #expect(!approved.isError)
+        #expect(await store.routines().isEmpty)
+    }
+
     @Test("deleting needs confirmation")
     func deleteNeedsConfirmation() async throws {
         let store = temporaryStore()
