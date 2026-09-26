@@ -4,7 +4,7 @@ import SwiftUI
 /// A way for Momo to think, as the user sees it in Settings. One option can cover several
 /// providers; Gemini, for example, works with a free key or with the Gemini CLI.
 enum BrainOption: String, CaseIterable, Identifiable {
-    case appleIntelligence, ollama, lmStudio, chatGPT, gemini, claude, openAI, openRouter
+    case appleIntelligence, ollama, lmStudio, chatGPT, gemini, claude, openAI, geminiAPI, openRouter
 
     var id: String { rawValue }
 
@@ -25,7 +25,9 @@ enum BrainOption: String, CaseIterable, Identifiable {
             case .onThisMac:
                 L("Private and free. Nothing you say leaves your Mac.")
             case .yourPlan:
-                L("Momo borrows the plan you already have. It asks before sending anything.")
+                L(
+                    "Uses the plan you already pay for, with no extra charges. Momo asks before sending anything."
+                )
             case .apiKey:
                 L("You pay the provider for what you use. Keys stay in your Keychain.")
             }
@@ -40,7 +42,7 @@ enum BrainOption: String, CaseIterable, Identifiable {
         switch self {
         case .appleIntelligence, .ollama, .lmStudio: .onThisMac
         case .chatGPT, .gemini: .yourPlan
-        case .claude, .openAI, .openRouter: .apiKey
+        case .claude, .openAI, .geminiAPI, .openRouter: .apiKey
         }
     }
 
@@ -51,7 +53,8 @@ enum BrainOption: String, CaseIterable, Identifiable {
         case .ollama: ["ollama"]
         case .lmStudio: ["lmstudio"]
         case .chatGPT: ["codex"]
-        case .gemini: ["gemini-api", "gemini-cli"]
+        case .gemini: ["gemini-cli"]
+        case .geminiAPI: ["gemini-api"]
         case .claude: ["anthropic"]
         case .openAI: ["openai"]
         case .openRouter: ["openrouter"]
@@ -67,6 +70,7 @@ enum BrainOption: String, CaseIterable, Identifiable {
         case .gemini: "Google Gemini"
         case .claude: "Claude"
         case .openAI: L("OpenAI API")
+        case .geminiAPI: L("Gemini API")
         case .openRouter: "OpenRouter"
         }
     }
@@ -77,7 +81,8 @@ enum BrainOption: String, CaseIterable, Identifiable {
         case .ollama: L("Free app that runs open models on your Mac.")
         case .lmStudio: L("Free app to download and run models.")
         case .chatGPT: L("Sign in with your ChatGPT account.")
-        case .gemini: L("A free key from your Google account.")
+        case .gemini: L("Sign in with your Google account.")
+        case .geminiAPI: L("Google's models, with an API key.")
         case .claude: L("Anthropic's models, with an API key.")
         case .openAI: L("GPT models, with an API key.")
         case .openRouter: L("Hundreds of models with one key.")
@@ -93,6 +98,7 @@ enum BrainOption: String, CaseIterable, Identifiable {
         case .gemini: "sparkle"
         case .claude: "asterisk"
         case .openAI: "circle.hexagongrid.fill"
+        case .geminiAPI: "key.fill"
         case .openRouter: "arrow.triangle.branch"
         }
     }
@@ -106,6 +112,7 @@ enum BrainOption: String, CaseIterable, Identifiable {
         case .gemini: Color(red: 0.26, green: 0.52, blue: 0.96)
         case .claude: Color(red: 0.85, green: 0.47, blue: 0.34)
         case .openAI: Color(red: 0.2, green: 0.2, blue: 0.22)
+        case .geminiAPI: Color(red: 0.26, green: 0.52, blue: 0.96)
         case .openRouter: Color(red: 0.4, green: 0.36, blue: 0.9)
         }
     }
@@ -113,7 +120,7 @@ enum BrainOption: String, CaseIterable, Identifiable {
     /// The API key provider this option uses, if it is set up with a key.
     var keyProviderID: String? {
         switch self {
-        case .gemini: "gemini-api"
+        case .geminiAPI: "gemini-api"
         case .claude: "anthropic"
         case .openAI: "openai"
         case .openRouter: "openrouter"
@@ -124,7 +131,7 @@ enum BrainOption: String, CaseIterable, Identifiable {
     /// Where the user creates an API key.
     var keyPage: URL? {
         switch self {
-        case .gemini: URL(literal: "https://aistudio.google.com/apikey")
+        case .geminiAPI: URL(literal: "https://aistudio.google.com/apikey")
         case .claude: URL(literal: "https://console.anthropic.com/settings/keys")
         case .openAI: URL(literal: "https://platform.openai.com/api-keys")
         case .openRouter: URL(literal: "https://openrouter.ai/keys")
@@ -135,8 +142,8 @@ enum BrainOption: String, CaseIterable, Identifiable {
     /// Short directions for the key page.
     var keyDirections: String {
         switch self {
-        case .gemini:
-            L("Sign in with Google and choose “Create API key”. It's free for everyday use.")
+        case .geminiAPI:
+            L("Sign in with Google and choose “Create API key”.")
         case .claude: L("Sign in, choose “Create Key” and give it a name like “Momo”.")
         case .openAI: L("Sign in, choose “Create new secret key” and name it “Momo”.")
         case .openRouter: L("Sign in, choose “Create Key” and name it “Momo”.")

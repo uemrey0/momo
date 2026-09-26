@@ -57,13 +57,11 @@ struct BrainSetupSheet: View {
         case .ollama: OllamaSetupView(model: model)
         case .lmStudio: LMStudioSetupView(model: model)
         case .chatGPT: ChatGPTSetupView(model: model)
-        case .gemini:
-            APIKeySetupView(option: option, model: model)
-            GeminiCLISignIn(model: model)
+        case .gemini: GeminiSetupView(model: model)
         case .claude:
             APIKeySetupView(option: option, model: model)
             ClaudePlanNote(model: model)
-        case .openAI, .openRouter:
+        case .openAI, .geminiAPI, .openRouter:
             APIKeySetupView(option: option, model: model)
         }
     }
@@ -484,17 +482,14 @@ private struct ChatGPTSetupView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             SetupStep(
-                number: 1, title: L("Get the ChatGPT app"),
+                number: 1, title: L("Get Codex"),
                 state: step(done: hasCodex, previousDone: true)
             ) {
                 StepNote(
                     text: L(
-                        "Momo uses the Codex engine that comes with the ChatGPT app for Mac. If you already use the Codex app or command line tool, Momo finds it too."
+                        "Codex is OpenAI's official tool for using your ChatGPT plan. Momo downloads it into its own folder. If you have the ChatGPT app or Codex already, Momo finds it on its own."
                     ))
-                Button(L("Download ChatGPT for Mac")) {
-                    NSWorkspace.shared.open(URL(literal: "https://openai.com/chatgpt/download/"))
-                }
-                .buttonStyle(.borderedProminent)
+                ToolDownloadButton(tool: .codex, megabytes: 95) { hasCodex = true }
             }
             SetupStep(
                 number: 2, title: L("Sign in with your ChatGPT account"),
@@ -569,59 +564,137 @@ private struct ChatGPTSetupView: View {
     }
 }
 
-// MARK: - Gemini CLI
+// MARK: - Gemini
 
-/// Signing in through the Gemini CLI, offered only when the user already has it.
-private struct GeminiCLISignIn: View {
+/// Gemini with the user's Google account: Momo gets the official Gemini CLI and starts its
+/// Google sign-in. No API key, so no extra charges.
+private struct GeminiSetupView: View {
     var model: AppModel
-    @State private var signIn: Task<Void, Never>?
+    @State private var hasCLI = GeminiCLISetup.isInstalled
     @State private var isSignedIn = GeminiCLIProvider.isSignedIn
+    @State private var signIn: Task<Void, Never>?
     @State private var problem: String?
 
     var body: some View {
-        if GeminiCLISetup.isInstalled {
-            Divider()
-            VStack(alignment: .leading, spacing: 8) {
-                Text(verbatim: L("Or use the Gemini CLI you already have")).font(.headline)
-                if isSignedIn {
-                    ConnectedBanner(
-                        text: L("The Gemini CLI is signed in with your Google account."))
-                } else if signIn != nil {
+        VStack(alignment: .leading, spacing: 18) {
+            SetupStep(
+                number: 1, title: L("Get Gemini CLI"), state: step(done: hasCLI, previousDone: true)
+            ) {
+                StepNote(
+                    text: L(
+                        "Gemini CLI is Google's official tool for using Gemini with your Google account. Momo downloads it into its own folder."
+                    ))
+                ToolDownloadButton(tool: .gemini, megabytes: 37) { hasCLI = true }
+            }
+            SetupStep(
+                number: 2, title: L("Sign in with Google"),
+                state: step(done: isSignedIn, previousDone: hasCLI)
+            ) {
+                StepNote(
+                    text: L(
+                        "Your browser opens so you can sign in. Momo never sees your password."))
+                if signIn != nil {
                     HStack(spacing: 8) {
                         ProgressView().controlSize(.small)
                         Text(verbatim: L("Finish signing in in your browser…"))
                         Spacer()
-                        Button(L("Cancel")) {
-                            signIn?.cancel()
-                            signIn = nil
-                        }
-                        .controlSize(.small)
+                        Button(L("Cancel")) { stopSignIn() }.controlSize(.small)
                     }
                 } else {
-                    StepNote(text: L("Sign in with your Google account in the browser."))
                     Button(L("Sign in with Google")) { start() }
+                        .buttonStyle(.borderedProminent)
                 }
                 if let problem { ProblemBanner(text: problem) }
             }
+            if isSignedIn {
+                ConnectedBanner(
+                    text: L(
+                        "Gemini is connected with your Google account. With Google AI Pro or Ultra you get higher limits. There are no extra charges."
+                    ))
+            }
         }
+        .task {
+            while !Task.isCancelled {
+                hasCLI = GeminiCLISetup.isInstalled
+                let signedIn = GeminiCLIProvider.isSignedIn
+                if signedIn && !isSignedIn { model.enableBrain("gemini-cli") }
+                isSignedIn = signedIn
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+        .onDisappear { stopSignIn() }
     }
 
     private func start() {
         problem = nil
         signIn = Task {
             do {
-                for try await line in GeminiCLISetup.signIn() {
-                    if let page = firstWebAddress(in: line), page.host()?.contains("google") == true
-                    {
-                        NSWorkspace.shared.open(page)
-                    }
-                }
+                for try await _ in GeminiCLISetup.signIn() {}
             } catch {
                 if !Task.isCancelled { problem = L("Signing in didn't finish. Try again.") }
             }
             signIn = nil
             isSignedIn = GeminiCLIProvider.isSignedIn
             if isSignedIn { model.enableBrain("gemini-cli") }
+        }
+    }
+
+    private func stopSignIn() {
+        signIn?.cancel()
+        signIn = nil
+    }
+}
+
+/// Downloads one of the official command line tools, with progress.
+private struct ToolDownloadButton: View {
+    var tool: ManagedTool
+    var megabytes: Int
+    var installed: () -> Void
+    @State private var progress: Double?
+    @State private var download: Task<Void, Never>?
+    @State private var problem: String?
+
+    var body: some View {
+        if let progress {
+            VStack(alignment: .leading, spacing: 6) {
+                ProgressView(value: progress)
+                HStack {
+                    Text(
+                        verbatim: progress < 1
+                            ? String(format: L("Downloading… %lld%%"), Int(progress * 100))
+                            : L("Checking and setting up…")
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    Spacer()
+                    Button(L("Cancel")) { download?.cancel() }.controlSize(.small)
+                }
+            }
+        } else {
+            Button(String(format: L("Download for Me (%lld MB)"), megabytes)) { start() }
+                .buttonStyle(.borderedProminent)
+        }
+        if let problem { ProblemBanner(text: problem) }
+    }
+
+    private func start() {
+        problem = nil
+        progress = 0
+        download = Task {
+            do {
+                try await ToolInstaller.install(tool) { value in
+                    Task { @MainActor in
+                        if progress != nil { progress = value }
+                    }
+                }
+                installed()
+            } catch {
+                if !Task.isCancelled {
+                    problem = String(
+                        format: L("The download didn't work: %@"), error.localizedDescription)
+                }
+            }
+            progress = nil
         }
     }
 }

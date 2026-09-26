@@ -2,8 +2,9 @@ import Foundation
 import MomoKit
 
 // Helpers that let people connect a brain from Settings without ever opening Terminal. Momo
-// never downloads or installs other software: it finds apps the user installed, starts their
-// own sign-in flows and talks to their local APIs.
+// finds apps the user installed, starts their own sign-in flows and talks to their local APIs.
+// The only software it downloads are the official Codex and Gemini command line tools (see
+// `ToolInstaller`), so people can use their subscriptions.
 
 /// The result of trying an API key.
 public enum KeyCheck: Equatable, Sendable {
@@ -207,7 +208,8 @@ public enum CodexSetup {
         "ChatGPT.app/Contents/Resources/codex", "Codex.app/Contents/Resources/codex",
     ]
 
-    /// The Codex command line tool, or the copy inside the ChatGPT app.
+    /// The Codex command line tool, the copy inside the ChatGPT app, or the one Momo
+    /// downloaded.
     public static func locate() -> URL? {
         if let command = CommandLocator.locate("codex") { return command }
         for path in bundledPaths {
@@ -218,7 +220,7 @@ public enum CodexSetup {
                 }
             }
         }
-        return nil
+        return ManagedTool.codex.installed
     }
 
     /// Whether the ChatGPT app is installed.
@@ -258,25 +260,138 @@ public enum CodexSetup {
     }
 }
 
-/// Gemini through the user's Google account and the Gemini CLI, when it is installed.
+/// Gemini through the user's Google account (including Google AI Pro and Ultra plans) and the
+/// Gemini CLI.
 public enum GeminiCLISetup {
-    /// Whether the Gemini CLI is installed.
-    public static var isInstalled: Bool {
-        CommandLocator.locate("gemini") != nil
+    /// The Gemini CLI the user installed, or the one Momo downloaded.
+    public static func locate() -> URL? {
+        CommandLocator.locate("gemini") ?? ManagedTool.gemini.installed
     }
 
-    /// Starts the Gemini CLI's Google sign-in by asking it a tiny question with Google login
-    /// selected; the CLI opens the browser. Finishes when the CLI has answered.
+    /// Whether the Gemini CLI is available.
+    public static var isInstalled: Bool {
+        locate() != nil
+    }
+
+    /// Signs in with Google through the CLI's Agent Client Protocol mode, the same way code
+    /// editors do: the CLI opens the browser and the stream finishes once the user signed in.
+    /// Cancelling the stream stops the sign-in.
     public static func signIn() -> AsyncThrowingStream<String, any Error> {
-        guard let executable = CommandLocator.locate("gemini") else {
+        guard let executable = locate() else {
             return AsyncThrowingStream {
                 $0.finish(throwing: ProviderError("The Gemini CLI was not found."))
             }
         }
-        return CommandRunner.lines(
-            executable: executable, arguments: ["-p", "Reply with OK."], input: nil,
-            workingDirectory: FileManager.default.temporaryDirectory,
-            environment: ["GOOGLE_GENAI_USE_GCA": "true"])
+        return ACPSignIn.run(executable: executable, method: "oauth-personal")
+    }
+}
+
+/// Just enough of the Agent Client Protocol (JSON-RPC over standard input and output) to
+/// start an agent's own sign-in.
+enum ACPSignIn {
+    static func run(executable: URL, method: String) -> AsyncThrowingStream<String, any Error> {
+        AsyncThrowingStream { continuation in
+            let process = Process()
+            process.executableURL = executable
+            process.arguments = ["--acp"]
+            var environment = ProcessInfo.processInfo.environment
+            environment["PATH"] = CommandLocator.searchPath
+            environment["NO_COLOR"] = "1"
+            process.environment = environment
+            process.currentDirectoryURL = FileManager.default.temporaryDirectory
+            let input = Pipe()
+            let output = Pipe()
+            process.standardInput = input
+            process.standardOutput = output
+            process.standardError = FileHandle.nullDevice
+
+            let finished = LockedValue(false)
+            let buffer = LockedValue(Data())
+            @Sendable func finish(_ error: (any Error)?) {
+                let first = finished.withLock { done -> Bool in
+                    defer { done = true }
+                    return !done
+                }
+                guard first else { return }
+                if let error { continuation.finish(throwing: error) } else { continuation.finish() }
+                if process.isRunning { process.terminate() }
+            }
+            @Sendable func send(_ message: JSONValue) {
+                input.fileHandleForWriting.write(Data((message.jsonString + "\n").utf8))
+            }
+
+            output.fileHandleForReading.readabilityHandler = { handle in
+                let chunk = handle.availableData
+                guard !chunk.isEmpty else { return }
+                let lines: [String] = buffer.withLock { data in
+                    data.append(chunk)
+                    var lines: [String] = []
+                    while let newline = data.firstIndex(of: UInt8(ascii: "\n")) {
+                        lines.append(
+                            String(decoding: data[data.startIndex..<newline], as: UTF8.self))
+                        data.removeSubrange(data.startIndex...newline)
+                    }
+                    return lines
+                }
+                for line in lines {
+                    guard let message = try? JSONValue.parse(line) else {
+                        continuation.yield(line)
+                        continue
+                    }
+                    switch reply(to: message) {
+                    case .initialized:
+                        send([
+                            "jsonrpc": "2.0", "id": 2, "method": "authenticate",
+                            "params": ["methodId": .string(method)],
+                        ])
+                    case .signedIn:
+                        finish(nil)
+                    case .failed(let reason):
+                        finish(ProviderError(reason))
+                    case .other:
+                        continuation.yield(line)
+                    }
+                }
+            }
+            process.terminationHandler = { _ in
+                output.fileHandleForReading.readabilityHandler = nil
+                finish(ProviderError("The sign-in stopped before it finished."))
+            }
+            do {
+                try process.run()
+                send([
+                    "jsonrpc": "2.0", "id": 1, "method": "initialize",
+                    "params": [
+                        "protocolVersion": 1,
+                        "clientCapabilities": [
+                            "fs": ["readTextFile": false, "writeTextFile": false]
+                        ],
+                    ],
+                ])
+            } catch {
+                finish(error)
+            }
+            continuation.onTermination = { _ in
+                if process.isRunning { process.terminate() }
+            }
+        }
+    }
+
+    enum Reply: Equatable {
+        case initialized, signedIn, failed(String), other
+    }
+
+    /// What a message from the agent means for the sign-in.
+    static func reply(to message: JSONValue) -> Reply {
+        guard let id = message["id"]?.intValue, message["method"] == nil else { return .other }
+        if let error = message["error"] {
+            return .failed(error["message"]?.stringValue ?? "The sign-in failed.")
+        }
+        switch id {
+        case 1: return .initialized
+        case 2: return .signedIn
+        default: return .other
+        }
     }
 }
 
