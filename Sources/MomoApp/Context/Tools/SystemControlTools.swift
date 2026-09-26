@@ -226,7 +226,7 @@ enum SystemControlTools {
         }
         if interface.rssiValue() != 0 {
             return
-                "Wi-Fi: connected (macOS only shares the network name with apps that have Location access)."
+                "Wi-Fi: connected (macOS only shares the network name with apps that have Location access, which the user can allow in Momo Settings → Permissions)."
         }
         return "Wi-Fi: on, not connected."
     }

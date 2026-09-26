@@ -101,6 +101,20 @@ struct AssistantTests {
         #expect(await assistant.history.last?.text == reply)
     }
 
+    @Test("reports the permission a tool was missing")
+    func missingPermission() async throws {
+        let tool = ClosureTool(ToolDefinition(name: "contacts", description: "Contacts")) { _ in
+            throw PermissionRequired(.contacts, "Momo can't read Contacts.")
+        }
+        var provider = local
+        provider.callsTool = ToolCall(id: "1", name: "contacts", arguments: "{}")
+        let events = try await run(
+            Assistant(), "find Ayşe", configuration([provider], toolbox: Toolbox([tool])))
+        #expect(
+            events.contains(
+                .toolFinished(name: "contacts", succeeded: false, missingPermission: .contacts)))
+    }
+
     @Test("falls back to the local brain when the user declines remote use")
     func consentUseLocal() async throws {
         let remote = FakeProvider(

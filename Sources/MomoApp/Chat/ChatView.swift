@@ -602,9 +602,16 @@ struct MessageRow: View {
     }
 }
 
-/// A tool Momo is using, or one that failed.
+extension EnvironmentValues {
+    /// Opens Settings on the Permissions pane, highlighting a permission if given.
+    @Entry var openPermissions: (MacPermission?) -> Void = { _ in }
+}
+
+/// A tool Momo is using, or one that failed. A tool that failed for lack of a macOS
+/// permission offers to open that permission in Settings.
 struct ToolActivityRow: View {
     var activity: ToolActivity
+    @Environment(\.openPermissions) private var openPermissions
 
     var body: some View {
         HStack(spacing: 6) {
@@ -617,6 +624,20 @@ struct ToolActivityRow: View {
                 Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.danger)
             }
             Text(verbatim: activity.label)
+            if activity.state == .failed, let permission = activity.missingPermission {
+                Button {
+                    openPermissions(permission)
+                } label: {
+                    Label(L("Open Permissions"), systemImage: "lock.open.fill")
+                        .labelStyle(.titleAndIcon)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Theme.accent.opacity(0.18), in: Capsule())
+                        .foregroundStyle(Theme.accent)
+                }
+                .buttonStyle(.plain)
+                .help(String(format: L("Allow %@ in Settings"), permission.title))
+            }
         }
         .font(.system(size: 11.5, weight: .medium))
         .foregroundStyle(Theme.secondaryText)

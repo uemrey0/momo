@@ -21,6 +21,14 @@ final class CalendarService: @unchecked Sendable {
         (try? await store.requestFullAccessToEvents()) ?? false
     }
 
+    /// Makes sure Momo has full calendar access, asking the first time.
+    func ensureAccess() async throws {
+        if !isAuthorized && !hasBeenAsked { await requestAccess() }
+        guard isAuthorized else {
+            throw PermissionRequired(.calendars, "Momo can't use the calendar: access is off.")
+        }
+    }
+
     /// Events overlapping the period, sorted by start date.
     func events(from start: Date, to end: Date) -> [EKEvent] {
         guard isAuthorized else { return [] }
@@ -29,7 +37,9 @@ final class CalendarService: @unchecked Sendable {
     }
 
     func addEvent(title: String, start: Date, end: Date, notes: String?) throws -> EKEvent {
-        guard isAuthorized else { throw ToolError("Calendar access is not allowed.") }
+        guard isAuthorized else {
+            throw PermissionRequired(.calendars, "Momo can't use the calendar: access is off.")
+        }
         let event = EKEvent(eventStore: store)
         event.title = title
         event.startDate = start

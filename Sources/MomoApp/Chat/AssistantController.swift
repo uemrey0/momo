@@ -106,6 +106,8 @@ struct ToolActivity: Identifiable, Equatable {
     var state: State
     /// The label the tool describes itself with, if it has one.
     var customLabel: String?
+    /// The macOS permission the tool was missing, when that is why it failed.
+    var missingPermission: MacPermission?
 
     var label: String { customLabel ?? ToolActivity.label(for: toolName) }
 
@@ -495,7 +497,7 @@ final class AssistantController {
                                 toolName: name, state: .running,
                                 customLabel: activityLabels[name]))
                     }
-                case .toolFinished(let name, let succeeded):
+                case .toolFinished(let name, let succeeded, let permission):
                     update { answer in
                         guard
                             let activity = answer.activities.lastIndex(where: {
@@ -503,6 +505,7 @@ final class AssistantController {
                             })
                         else { return }
                         answer.activities[activity].state = succeeded ? .succeeded : .failed
+                        answer.activities[activity].missingPermission = permission
                     }
                     if succeeded, ["add_task", "complete_task", "log_habit"].contains(name) {
                         character?.celebrate()
@@ -558,7 +561,9 @@ final class AssistantController {
                 read: L("Reading a web page", comment: "Tool activity")))
         return Assistant.Configuration(
             providers: providers,
-            toolbox: Toolbox(StoreTools.all(store: store) + webTools + systemTools()),
+            toolbox: Toolbox(
+                preferences.abilities.apply(
+                    to: StoreTools.all(store: store) + webTools + systemTools())),
             policy: preferences.brains.policy,
             masksPersonalData: preferences.brains.masksPersonalData,
             systemPrompt: SystemPrompt.make(

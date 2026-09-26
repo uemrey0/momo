@@ -16,6 +16,7 @@ final class AppModel {
     let notes: NotesModel
     let panelState = PanelState()
     let calendar = CalendarService()
+    let permissions = PermissionCenter()
     let focus: FocusController
     let connections: MCPConnections
     let updates: UpdateChecker
@@ -67,7 +68,8 @@ final class AppModel {
         let panel = ChatPanelController(
             assistant: assistant, today: today, notes: notes, meetings: meetings,
             state: panelState, voice: voice, character: character,
-            openSettings: { [weak self] in self?.openSettings($0) })
+            openSettings: { [weak self] in self?.openSettings($0) },
+            openPermissions: { [weak self] in self?.openPermissions($0) })
         chatPanel = panel
         meetings.showMeetings = { [weak panel] in panel?.show(tab: .meetings) }
         panel.hasMeetingQuestion = { [weak meetings] in
@@ -179,6 +181,13 @@ final class AppModel {
     /// Opens Settings, on `pane` if given.
     func openSettings(_ pane: SettingsPane? = nil) {
         if let pane { settingsNavigation.pane = pane }
+        chatPanel?.hide()
+        settingsWindow.show()
+    }
+
+    /// Opens Settings on the Permissions pane, highlighting `permission` if given.
+    func openPermissions(_ permission: MacPermission? = nil) {
+        settingsNavigation.show(.permissions, highlighting: permission?.anchor)
         chatPanel?.hide()
         settingsWindow.show()
     }

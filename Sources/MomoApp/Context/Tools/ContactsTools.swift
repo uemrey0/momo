@@ -55,9 +55,7 @@ enum ContactsTools {
         default:
             break
         }
-        throw ToolError(
-            "Momo can't read Contacts yet. The user can allow it in System Settings → Privacy & Security → Contacts."
-        )
+        throw PermissionRequired(.contacts, "Momo can't read Contacts: access is off.")
     }
 
     /// "Ayşe Yılmaz (Acme) — phone: mobile +90 555 …; email: work ayse@…"

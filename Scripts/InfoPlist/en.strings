@@ -7,3 +7,5 @@
 "NSRemindersFullAccessUsageDescription" = "Momo reads and adds reminders in the Reminders app when you ask it to.";
 "NSRemindersUsageDescription" = "Momo reads and adds reminders in the Reminders app when you ask it to.";
 "NSContactsUsageDescription" = "Momo looks up people in your contacts when you ask it to message or email someone.";
+"NSLocationUsageDescription" = "Momo uses your location only to tell you the name of the Wi-Fi network you're on, when you ask.";
+"NSLocationWhenInUseUsageDescription" = "Momo uses your location only to tell you the name of the Wi-Fi network you're on, when you ask.";

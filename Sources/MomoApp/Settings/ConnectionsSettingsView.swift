@@ -17,6 +17,7 @@ struct ConnectionsSettingsView: View {
         Form {
             Section {
                 MCPSetupView()
+                    .settingsAnchor("connections.agents")
             } header: {
                 Text(verbatim: L("Use Momo from Claude, Codex and other agents"))
             }
@@ -57,6 +58,7 @@ struct ConnectionsSettingsView: View {
                         .disabled(name.isEmpty || command.isEmpty)
                 }
                 .textFieldStyle(.roundedBorder)
+                .settingsAnchor("connections.servers")
             } header: {
                 Text(verbatim: L("MCP servers Momo can use"))
             } footer: {
@@ -125,6 +127,7 @@ struct WebSearchSection: View {
                 }
                 .disabled(key == storedKey)
             }
+            .settingsAnchor("connections.webSearch")
             if let url = URL(string: "https://api-dashboard.search.brave.com/") {
                 Link(L("Get a Brave Search API key"), destination: url).font(.caption)
             }
@@ -141,27 +144,36 @@ struct WebSearchSection: View {
     }
 }
 
-/// Calendar access and the things Momo reacts to.
+/// The things Momo reacts to, with a pointer to Permissions when calendar access is off.
 struct ReactionsSection: View {
     @Bindable var settings: AppSettings
     var calendar: CalendarService
-    @State private var calendarAllowed = false
+    var openPermissions: (MacPermission?) -> Void
+    @State private var calendarAllowed = true
 
     var body: some View {
         Section {
-            HStack {
+            VStack(alignment: .leading, spacing: 4) {
                 Toggle(L("Remind me before meetings"), isOn: $settings.preferences.reactsToCalendar)
-                Spacer()
-                if !calendarAllowed {
-                    Button(L("Allow calendar access")) {
-                        Task { calendarAllowed = await calendar.requestAccess() }
+                if settings.preferences.reactsToCalendar && !calendarAllowed {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(verbatim: L("Calendar access is off."))
+                            .foregroundStyle(.secondary)
+                        Button(L("Open Permissions")) { openPermissions(.calendars) }
+                            .buttonStyle(.link)
                     }
-                    .controlSize(.small)
+                    .font(.caption)
                 }
             }
+            .settingsAnchor("reactions.calendar")
             Toggle(L("Dance along when music plays"), isOn: $settings.preferences.reactsToMusic)
+                .settingsAnchor("reactions.music")
             Toggle(L("Worry when the battery is low"), isOn: $settings.preferences.reactsToBattery)
+                .settingsAnchor("reactions.battery")
             Toggle(L("Yawn when it gets very late"), isOn: $settings.preferences.reactsToLateNight)
+                .settingsAnchor("reactions.lateNight")
         } header: {
             Text(verbatim: L("Reactions"))
         } footer: {
@@ -171,5 +183,10 @@ struct ReactionsSection: View {
                 ))
         }
         .onAppear { calendarAllowed = calendar.isAuthorized }
+        .onReceive(
+            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+        ) { _ in
+            calendarAllowed = calendar.isAuthorized
+        }
     }
 }

@@ -12,6 +12,8 @@ struct PanelView: View {
     @Bindable var state: PanelState
     var voice: VoiceController? = nil
     var openSettings: (SettingsPane?) -> Void
+    /// Opens the Permissions pane, highlighting a permission if given.
+    var openPermissions: (MacPermission?) -> Void = { _ in }
     var close: () -> Void
     /// Called with the height the panel would like, header included.
     var resize: (CGFloat) -> Void = { _ in }
@@ -34,6 +36,7 @@ struct PanelView: View {
                             assistant: assistant, state: state, voice: voice,
                             setUpAI: { openSettings(.ai) }
                         )
+                        .environment(\.openPermissions, openPermissions)
                         .transition(tabTransition)
                     }
                 case .today:

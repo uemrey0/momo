@@ -25,7 +25,7 @@ enum ContextTools {
 
     /// How the user can let Momo read the selection.
     static let accessibilityHint =
-        "Momo can't read the selected text or window title without Accessibility access. The user can allow Momo in System Settings → Privacy & Security → Accessibility, or from Momo Settings → Privacy."
+        "Momo can't read the selected text or window title without Accessibility access. The user can allow it in Momo Settings → Permissions."
 
     static func all() -> [any MomoTool] {
         [getContext()]
@@ -44,6 +44,8 @@ enum ContextTools {
                 return (app.localizedName ?? "an app", app.bundleIdentifier, app.processIdentifier)
             }
             var lines: [String] = []
+            var needsAccessibility = false
+            var foundTab = false
             if let (name, bundleIdentifier, processID) = front {
                 lines.append("Front app: \(name)")
                 if processID == ProcessInfo.processInfo.processIdentifier {
@@ -60,14 +62,21 @@ enum ContextTools {
                         lines.append("Selected text: none")
                     }
                 } else {
-                    lines.append(accessibilityHint)
+                    needsAccessibility = true
                 }
                 if let tab = await browserTab(frontmost: bundleIdentifier) {
                     lines.append(tab)
+                    foundTab = true
                 }
             } else {
                 lines.append("No app is in front.")
             }
+            // With a browser tab there is still something useful to answer with.
+            if needsAccessibility && !foundTab {
+                lines.append("Momo can't read the selected text or window title.")
+                throw PermissionRequired(.accessibility, lines.joined(separator: "\n"))
+            }
+            if needsAccessibility { lines.append(accessibilityHint) }
             return lines.joined(separator: "\n")
         }
     }

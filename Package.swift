@@ -36,5 +36,6 @@ let package = Package(
         .testTarget(name: "MomoVoiceTests", dependencies: ["MomoVoice"]),
         .testTarget(name: "MomoLiveProtocolTests", dependencies: ["MomoLiveProtocol"]),
         .testTarget(name: "MomoMCPTests", dependencies: ["MomoMCP", "MomoKit"]),
+        .testTarget(name: "MomoAppTests", dependencies: ["MomoApp", "MomoKit"]),
     ]
 )

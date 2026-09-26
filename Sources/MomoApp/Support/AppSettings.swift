@@ -68,6 +68,8 @@ struct Preferences: Codable, Equatable {
     /// The language meetings are usually held in, as an ISO 639-1 code; empty follows the
     /// system language.
     var meetingLanguage = ""
+    /// Tool groups the user turned off or wants Momo to ask about first.
+    var abilities = AbilitySettings()
 
     init() {}
 
@@ -103,6 +105,7 @@ struct Preferences: Codable, Equatable {
         offersMeetingNotes = value(.offersMeetingNotes, defaults.offersMeetingNotes)
         keepsMeetingAudio = value(.keepsMeetingAudio, defaults.keepsMeetingAudio)
         meetingLanguage = value(.meetingLanguage, defaults.meetingLanguage)
+        abilities = value(.abilities, defaults.abilities)
     }
 }
 

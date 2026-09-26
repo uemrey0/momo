@@ -21,6 +21,38 @@ struct ToolboxTests {
         #expect(!result.isError)
     }
 
+    @Test("marks results of tools that miss a permission")
+    func missingPermission() async {
+        let calendar = ClosureTool(ToolDefinition(name: "calendar", description: "Calendar")) {
+            _ in throw PermissionRequired(.calendars, "Calendar access is off.")
+        }
+        let result = await Toolbox([calendar]).execute(
+            ToolCall(id: "1", name: "calendar", arguments: "{}"))
+        #expect(result.isError)
+        #expect(result.missingPermission == .calendars)
+        #expect(result.output.contains("Calendar access is off."))
+        #expect(result.output.contains("Momo Settings → Permissions"))
+    }
+
+    @Test("asks before running a tool wrapped to always confirm")
+    func confirmingTool() async {
+        let wrapped = ConfirmingTool(echo, label: "Echo something")
+        #expect(wrapped.definition.requiresConfirmation)
+        #expect(wrapped.definition.name == "echo")
+        #expect(wrapped.summary(for: .object([:])) == "Echo something")
+        let declined = await Toolbox([wrapped]).execute(
+            ToolCall(id: "1", name: "echo", arguments: #"{"text":"hi"}"#),
+            confirm: { request in
+                #expect(request.summary.hasPrefix("Echo something: "))
+                return false
+            })
+        #expect(declined.isError)
+        let approved = await Toolbox([wrapped]).execute(
+            ToolCall(id: "2", name: "echo", arguments: #"{"text":"hi"}"#),
+            confirm: { _ in true })
+        #expect(approved.output == "hi")
+    }
+
     @Test("keeps the label a tool describes itself with")
     func keepsActivityLabels() {
         let labelled = ClosureTool(

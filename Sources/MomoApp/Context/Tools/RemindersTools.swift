@@ -37,9 +37,7 @@ final class RemindersService: @unchecked Sendable {
         default:
             break
         }
-        throw ToolError(
-            "Momo can't use Reminders yet. The user can allow it in System Settings → Privacy & Security → Reminders."
-        )
+        throw PermissionRequired(.reminders, "Momo can't use Reminders: access is off.")
     }
 
     /// The names of the user's reminder lists.

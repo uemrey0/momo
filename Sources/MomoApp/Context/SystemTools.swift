@@ -25,9 +25,7 @@ enum SystemTools {
                     "start": JSONSchema.string("Optional first day, ISO 8601; defaults to today"),
                 ]))
         ) { arguments in
-            guard calendar.isAuthorized else {
-                return "Calendar access is off. The user can allow it in Momo Settings → General."
-            }
+            try await calendar.ensureAccess()
             let days = min(14, max(1, arguments["days"]?.intValue ?? 1))
             let base =
                 arguments["start"]?.stringValue.flatMap { FlexibleDate.parse($0) } ?? Date()
@@ -59,9 +57,7 @@ enum SystemTools {
                 return String(format: L("Add “%@” to your calendar at %@"), title, start)
             }
         ) { arguments in
-            guard calendar.isAuthorized else {
-                return "Calendar access is off. The user can allow it in Momo Settings → General."
-            }
+            try await calendar.ensureAccess()
             guard let title = arguments["title"]?.stringValue,
                 let start = arguments["start"]?.stringValue.flatMap({ FlexibleDate.parse($0) })
             else {
