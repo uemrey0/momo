@@ -22,12 +22,16 @@ public struct CodexProvider: ChatProvider {
         self.workingDirectory = workingDirectory
     }
 
+    /// Codex's home folder: `CODEX_HOME`, or `~/.codex`.
+    static var home: URL {
+        URL(
+            fileURLWithPath: ProcessInfo.processInfo.environment["CODEX_HOME"]
+                ?? (NSHomeDirectory() as NSString).appendingPathComponent(".codex"),
+            isDirectory: true)
+    }
+
     public static var isSignedIn: Bool {
-        let home =
-            ProcessInfo.processInfo.environment["CODEX_HOME"]
-            ?? (NSHomeDirectory() as NSString).appendingPathComponent(".codex")
-        return FileManager.default.fileExists(
-            atPath: (home as NSString).appendingPathComponent("auth.json"))
+        FileManager.default.fileExists(atPath: home.appendingPathComponent("auth.json").path)
     }
 
     public func availability() async -> ProviderAvailability {
@@ -93,6 +97,15 @@ public struct CodexProvider: ChatProvider {
                     imagesVisible: images != nil)
                 var parser = CodexEventParser(
                     bridgedServer: bridge.map { _ in ToolBridge.serverName })
+                // Codex saves the images it draws in its home folder without mentioning them in
+                // its events, so each turn's folder is watched for new ones.
+                var generated = CodexGeneratedImages(home: Self.home)
+                func drawnImages(_ thread: String?) -> [ChatEvent] {
+                    guard let thread else { return [] }
+                    return generated.newImages(thread: thread).map {
+                        .artifact(ChatArtifact(url: $0))
+                    }
+                }
                 do {
                     for try await line in CommandRunner.lines(
                         executable: executable,
@@ -101,7 +114,9 @@ public struct CodexProvider: ChatProvider {
                         input: prompt, workingDirectory: workingDirectory)
                     {
                         for event in try parser.consume(line) { continuation.yield(event) }
+                        for image in drawnImages(parser.threadID) { continuation.yield(image) }
                     }
+                    for image in drawnImages(parser.threadID) { continuation.yield(image) }
                     continuation.finish()
                 } catch let failure as CommandRunner.Failure {
                     continuation.finish(
@@ -176,12 +191,46 @@ extension CodexProvider {
     }
 }
 
+/// Finds the images Codex saves under `generated_images/<thread>` in its home folder.
+struct CodexGeneratedImages {
+    let home: URL
+    private var seen: Set<String> = []
+
+    init(home: URL) {
+        self.home = home
+    }
+
+    /// Images in the thread's folder that were not reported yet, oldest first.
+    mutating func newImages(thread: String) -> [URL] {
+        let folder = home.appendingPathComponent("generated_images", isDirectory: true)
+            .appendingPathComponent(thread, isDirectory: true)
+        let files =
+            (try? FileManager.default.contentsOfDirectory(
+                at: folder, includingPropertiesForKeys: [.contentModificationDateKey],
+                options: [.skipsHiddenFiles])) ?? []
+        let images =
+            files
+            .filter { ChatArtifact(url: $0).kind == .image && !seen.contains($0.path) }
+            .sorted { lhs, rhs in
+                let date: (URL) -> Date = {
+                    (try? $0.resourceValues(forKeys: [.contentModificationDateKey])
+                        .contentModificationDate) ?? .distantPast
+                }
+                return date(lhs) < date(rhs)
+            }
+        seen.formUnion(images.map(\.path))
+        return images
+    }
+}
+
 /// Reads the JSON Lines events of `codex exec --json`.
 struct CodexEventParser {
     /// The MCP server whose calls the ``ToolBridge`` already reports; their events are
     /// skipped so each call shows once.
     var bridgedServer: String?
     private(set) var lastError: String?
+    /// The id of the Codex thread, which names the folder its generated images go to.
+    private(set) var threadID: String?
     private var messageCount = 0
     private var startedSearches: Set<String> = []
 
@@ -195,6 +244,18 @@ struct CodexEventParser {
         }
         let item = event["item"]
         switch (type, item?["type"]?.stringValue) {
+        case ("thread.started", _):
+            threadID = event["thread_id"]?.stringValue
+            return []
+        case ("item.started", "command_execution"):
+            return [.toolStarted(Self.command(item))]
+        case ("item.completed", "command_execution"):
+            let call = Self.command(item)
+            let failed = item?["status"]?.stringValue == "failed"
+            return [
+                .toolFinished(
+                    ToolResult(callID: call.id, name: call.name, output: "", isError: failed))
+            ]
         case ("item.completed", "agent_message"):
             guard let text = item?["text"]?.stringValue, !text.isEmpty else { return [] }
             defer { messageCount += 1 }
@@ -244,6 +305,31 @@ struct CodexEventParser {
             id: item?["id"]?.stringValue ?? ShortID.make(),
             name: item?["tool"]?.stringValue ?? "tool",
             arguments: item?["arguments"]?.jsonString ?? "{}")
+    }
+
+    /// A shell command Codex ran, shown as a step. Reading one of Codex's own skill files is
+    /// shown as getting ready, with the skill's name, rather than as a raw command.
+    static func command(_ item: JSONValue?) -> ToolCall {
+        let id = item?["id"]?.stringValue ?? ShortID.make()
+        var command = item?["command"]?.stringValue ?? ""
+        // `/bin/zsh -lc '…'` wraps every command; show what runs inside.
+        if let open = command.firstIndex(of: "'"), let close = command.lastIndex(of: "'"),
+            open < close, command.hasPrefix("/bin/")
+        {
+            command = String(command[command.index(after: open)..<close])
+        }
+        let parts = command.split(separator: "/")
+        if let skills = parts.firstIndex(of: "skills"), command.hasSuffix("SKILL.md"),
+            parts.count > skills + 2
+        {
+            let skill = String(parts[parts.count - 2])
+            return ToolCall(
+                id: id, name: "codex_skill",
+                arguments: (["name": .string(skill)] as JSONValue).jsonString)
+        }
+        return ToolCall(
+            id: id, name: "run_command",
+            arguments: (["command": .string(command)] as JSONValue).jsonString)
     }
 
     private static func webSearch(_ item: JSONValue?) -> ToolCall {

@@ -69,7 +69,8 @@ final class AppModel {
             assistant: assistant, today: today, notes: notes, meetings: meetings,
             state: panelState, voice: voice, character: character,
             openSettings: { [weak self] in self?.openSettings($0) },
-            openPermissions: { [weak self] in self?.openPermissions($0) })
+            openPermissions: { [weak self] in self?.openPermissions($0) },
+            requestPermission: { [weak self] in self?.requestPermission($0) })
         chatPanel = panel
         meetings.showMeetings = { [weak panel] in panel?.show(tab: .meetings) }
         panel.hasMeetingQuestion = { [weak meetings] in
@@ -190,6 +191,15 @@ final class AppModel {
         settingsNavigation.show(.permissions, highlighting: permission?.anchor)
         chatPanel?.hide()
         settingsWindow.show()
+    }
+
+    /// Asks macOS for `permission` when it hasn't asked yet; otherwise opens its page in System
+    /// Settings, where the user can turn it on.
+    func requestPermission(_ permission: MacPermission) {
+        Task {
+            await permissions.refresh()
+            await permissions.request(permission)
+        }
     }
 
     /// Whether at least one brain is ready to answer. `nil` until the brains were checked.

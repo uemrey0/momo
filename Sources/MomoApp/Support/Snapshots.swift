@@ -134,22 +134,88 @@
                         startPoint: .topLeading, endPoint: .bottomTrailing))
             }
 
+            let now = Date()
+            func step(
+                _ name: String, _ detail: String? = nil, _ state: ToolActivity.State = .succeeded,
+                seconds: TimeInterval = 1.2, permission: MacPermission? = nil
+            ) -> ToolActivity {
+                var activity = ToolActivity(toolName: name, state: state, detail: detail)
+                activity.startedAt = now
+                activity.finishedAt = state == .running ? nil : now.addingTimeInterval(seconds)
+                activity.missingPermission = permission
+                return activity
+            }
+            func reply(
+                _ parts: [Any], artifacts: [ChatArtifact] = [], streaming: Bool = false,
+                seconds: TimeInterval = 9
+            ) -> ChatMessage {
+                var message = ChatMessage(role: .assistant, text: "", isStreaming: streaming)
+                message.date = now.addingTimeInterval(-seconds)
+                for part in parts {
+                    if let text = part as? String { message.appendText(text) }
+                    if let activity = part as? ToolActivity { message.appendStep(activity) }
+                }
+                message.artifacts = artifacts
+                message.finishedAt = streaming ? nil : now
+                return message
+            }
+
+            // A finished answer with its work folded away, and a picture Momo drew.
+            let picture = Self.samplePicture()
             assistant.messages = [
                 ChatMessage(role: .user, text: "Remind me to call Ayşe tomorrow at 3"),
-                ChatMessage(
-                    role: .assistant,
-                    text: "Done! I'll remind you **tomorrow at 15:00** to call Ayşe.",
-                    brainName: "Apple Intelligence", brainKind: .local,
-                    activities: [ToolActivity(toolName: "add_task", state: .succeeded)]),
-                ChatMessage(
-                    role: .user,
-                    text: "Now review this 30-page rental contract and list the risky clauses"),
-                ChatMessage(
-                    role: .assistant, text: "", brainName: "ChatGPT (Codex)",
-                    brainKind: .subscription,
-                    isStreaming: true),
+                reply(
+                    [
+                        step("add_task", "Call Ayşe", seconds: 0.4),
+                        "Done! I'll remind you **tomorrow at 15:00** to call Ayşe.",
+                    ], seconds: 2),
+                ChatMessage(role: .user, text: "Draw Momo relaxing on a beach at sunset"),
+                reply(
+                    [
+                        "Let me paint that for you.",
+                        step("generate_image", "Momo relaxing on a beach at sunset", seconds: 7.8),
+                        "Here's Momo, soaking up the last of the sun. 🌅",
+                    ], artifacts: picture.map { [ChatArtifact(url: $0, kind: .image)] } ?? [],
+                    seconds: 11),
             ]
             save(panel(), "panel-chat", folder)
+
+            // Momo at work: what it is doing now, and the steps so far.
+            assistant.messages = [
+                ChatMessage(
+                    role: .user,
+                    text:
+                        "Find this week's weather for Istanbul and add a reminder for the rainy day"
+                ),
+                reply(
+                    [
+                        "I'll check the forecast first.",
+                        step("get_weather", "Istanbul", seconds: 0.9),
+                        step("web_search", "İstanbul hafta sonu yağmur", seconds: 1.6),
+                        "Thursday looks rainy, so I'll set the reminder for Wednesday evening.",
+                        step("add_task", "Take an umbrella", .running),
+                    ], streaming: true, seconds: 6),
+            ]
+            save(panel(), "panel-chat-working", folder)
+
+            // Problems, explained with the way out.
+            assistant.messages = [
+                ChatMessage(role: .user, text: "What's on my calendar today?"),
+                reply(
+                    [
+                        step(
+                            "calendar_events", "Today", .failed, seconds: 0.2,
+                            permission: .calendars),
+                        "I can't see your calendar yet.",
+                    ], seconds: 1),
+                ChatMessage(role: .user, text: "Summarise the news"),
+                ChatMessage(
+                    role: .error,
+                    text: "Rate limit or quota reached (429). Try again shortly.",
+                    issue: ChatIssue(
+                        message: "Rate limit or quota reached (429). Try again shortly.")),
+            ]
+            save(panel(), "panel-chat-help", folder)
 
             let characters = LazyVGrid(
                 columns: Array(repeating: GridItem(.fixed(250), spacing: 0), count: 4), spacing: 0
@@ -278,10 +344,43 @@
             renderer.scale = 1
             guard let image = renderer.nsImage, let tiff = image.tiffRepresentation,
                 let bitmap = NSBitmapImageRep(data: tiff),
-                let png = bitmap.representation(using: .png, properties: [:])
+                let png = bitmap.representation(
+                    using: NSBitmapImageRep.FileType.png, properties: [:])
             else { return }
             try? png.write(to: url)
             print("Icon written to \(url.path)")
+        }
+
+        /// A small picture for the sample answer: Momo on a sunset beach, drawn with SwiftUI.
+        static func samplePicture() -> URL? {
+            let face = settle(FaceEngine(), pointer: SIMD2(0, 200))
+            let layout = FaceLayout(topInset: 0, capWidth: 0, scale: 1.3)
+            let scene = ZStack(alignment: .bottom) {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.98, green: 0.55, blue: 0.4),
+                        Color(red: 0.99, green: 0.78, blue: 0.5),
+                        Color(red: 0.45, green: 0.72, blue: 0.9),
+                    ], startPoint: .top, endPoint: .bottom)
+                Circle().fill(Color(red: 1, green: 0.9, blue: 0.6)).frame(width: 150)
+                    .offset(y: -150)
+                Rectangle().fill(Color(red: 0.97, green: 0.87, blue: 0.66)).frame(height: 130)
+                Canvas { context, _ in FaceRenderer.draw(face, in: &context, layout: layout) }
+                    .frame(width: layout.canvasSize.width, height: layout.canvasSize.height)
+                    .offset(y: -70)
+            }
+            .frame(width: 720, height: 480)
+            let renderer = ImageRenderer(content: scene)
+            renderer.scale = 1
+            guard let image = renderer.nsImage, let tiff = image.tiffRepresentation,
+                let bitmap = NSBitmapImageRep(data: tiff),
+                let png = bitmap.representation(
+                    using: NSBitmapImageRep.FileType.png, properties: [:])
+            else { return nil }
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(
+                "momo-sample-beach.png")
+            try? png.write(to: url)
+            return url
         }
 
         static func save(

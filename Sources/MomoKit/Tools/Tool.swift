@@ -40,6 +40,29 @@ public struct ToolCall: Sendable, Hashable, Identifiable {
     }
 }
 
+extension ToolCall {
+    /// Argument names that best describe what a call works on, in order of preference.
+    static let describingArguments = [
+        "query", "title", "text", "path", "url", "name", "command", "prompt", "city", "app",
+        "request", "search", "to", "recipient",
+    ]
+
+    /// A short, readable hint of what the call works on, such as a search query or a file
+    /// name, for showing next to the step. `nil` when the arguments hold nothing readable.
+    public var briefDetail: String? {
+        guard let arguments = try? JSONValue.parse(arguments), case .object(let fields) = arguments
+        else { return nil }
+        let value =
+            Self.describingArguments.lazy.compactMap { fields[$0]?.stringValue }.first
+            ?? fields.keys.sorted().lazy.compactMap { fields[$0]?.stringValue }.first
+        guard
+            let text = value?.split(whereSeparator: \.isNewline).first
+                .map({ $0.trimmingCharacters(in: .whitespaces) }), !text.isEmpty
+        else { return nil }
+        return text.count > 60 ? String(text.prefix(59)) + "…" : text
+    }
+}
+
 /// The outcome of running a tool.
 public struct ToolResult: Sendable, Hashable {
     public var callID: String
@@ -49,6 +72,8 @@ public struct ToolResult: Sendable, Hashable {
     public var isError: Bool
     /// The macOS permission the tool was missing, when that is why it failed.
     public var missingPermission: MacPermission?
+    /// Files the tool made, such as a generated image, for showing in the chat.
+    public var files: [URL] = []
 
     public init(
         callID: String, name: String, output: String, isError: Bool = false,
@@ -80,12 +105,31 @@ public protocol MomoTool: Sendable {
     /// Runs the tool and returns text for the model.
     func run(arguments: JSONValue) async throws -> String
 
+    /// Runs the tool and returns text for the model with any files it made. Tools that make
+    /// files implement this; the default wraps ``run(arguments:)``.
+    func reply(arguments: JSONValue) async throws -> ToolReply
+
     /// A short, human-readable description of what a call will do, shown when asking the
     /// user for confirmation.
     func summary(for arguments: JSONValue) -> String
 }
 
+/// What a tool returns: text for the model and the files it made.
+public struct ToolReply: Sendable, Hashable {
+    public var text: String
+    public var files: [URL]
+
+    public init(text: String, files: [URL] = []) {
+        self.text = text
+        self.files = files
+    }
+}
+
 extension MomoTool {
+    public func reply(arguments: JSONValue) async throws -> ToolReply {
+        ToolReply(text: try await run(arguments: arguments))
+    }
+
     public func summary(for arguments: JSONValue) -> String {
         "\(definition.name) \(arguments.jsonString)"
     }
@@ -174,8 +218,10 @@ public struct Toolbox: Sendable {
             }
         }
         do {
-            let output = try await tool.run(arguments: arguments)
-            return ToolResult(callID: call.id, name: call.name, output: output)
+            let reply = try await tool.reply(arguments: arguments)
+            var result = ToolResult(callID: call.id, name: call.name, output: reply.text)
+            result.files = reply.files
+            return result
         } catch let error as PermissionRequired {
             return ToolResult(
                 callID: call.id, name: call.name, output: "Error: \(error.localizedDescription)",
@@ -191,7 +237,7 @@ public struct Toolbox: Sendable {
 /// A tool built from a closure, handy for small tools and tests.
 public struct ClosureTool: MomoTool {
     public let definition: ToolDefinition
-    private let action: @Sendable (JSONValue) async throws -> String
+    private let action: @Sendable (JSONValue) async throws -> ToolReply
     private let describe: @Sendable (JSONValue) -> String
 
     public init(
@@ -200,11 +246,33 @@ public struct ClosureTool: MomoTool {
         run: @escaping @Sendable (JSONValue) async throws -> String
     ) {
         self.definition = definition
-        self.action = run
+        self.action = { ToolReply(text: try await run($0)) }
         self.describe = summary
     }
 
+    private init(
+        definition: ToolDefinition, describe: @escaping @Sendable (JSONValue) -> String,
+        action: @escaping @Sendable (JSONValue) async throws -> ToolReply
+    ) {
+        self.definition = definition
+        self.action = action
+        self.describe = describe
+    }
+
+    /// A tool that can return files along with its text.
+    public static func makingFiles(
+        _ definition: ToolDefinition,
+        summary: @escaping @Sendable (JSONValue) -> String = { $0.jsonString },
+        reply: @escaping @Sendable (JSONValue) async throws -> ToolReply
+    ) -> ClosureTool {
+        ClosureTool(definition: definition, describe: summary, action: reply)
+    }
+
     public func run(arguments: JSONValue) async throws -> String {
+        try await action(arguments).text
+    }
+
+    public func reply(arguments: JSONValue) async throws -> ToolReply {
         try await action(arguments)
     }
 
@@ -231,6 +299,10 @@ public struct ConfirmingTool: MomoTool {
 
     public func run(arguments: JSONValue) async throws -> String {
         try await base.run(arguments: arguments)
+    }
+
+    public func reply(arguments: JSONValue) async throws -> ToolReply {
+        try await base.reply(arguments: arguments)
     }
 
     public func summary(for arguments: JSONValue) -> String {
