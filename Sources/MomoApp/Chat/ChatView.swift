@@ -73,10 +73,11 @@ struct ChatView: View {
         .animation(Theme.spring, value: assistant.messages.isEmpty)
         .animation(Theme.spring, value: assistant.attachmentNotice)
         .onChange(of: state.focusRequest, initial: true) { isComposerFocused = true }
-        .onDrop(of: DropLoader.types, isTargeted: $isDropTargeted) { providers in
-            DropLoader.load(providers) { [assistant] item in assistant.attach([item]) }
-            return true
-        }
+        .modifier(
+            AttachmentDropTarget(isTargeted: $isDropTargeted, isEnabled: !snapshotMode) {
+                [assistant] item in assistant.attach([item])
+            }
+        )
         .overlay { if isDropTargeted { DropHighlight() } }
         .animation(Theme.quickSpring, value: isDropTargeted)
         .onAppear { installPasteMonitor() }
@@ -713,5 +714,24 @@ struct ConfirmationCard: View {
         }
         .padding(12)
         .background(Theme.cardStrong, in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+/// Accepts files and images dropped on the chat. Left out of snapshots, because image
+/// rendering can't draw drop targets and shows a placeholder instead of the chat.
+private struct AttachmentDropTarget: ViewModifier {
+    @Binding var isTargeted: Bool
+    var isEnabled: Bool
+    var attach: @MainActor @Sendable (DroppedItem) -> Void
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.onDrop(of: DropLoader.types, isTargeted: $isTargeted) { providers in
+                DropLoader.load(providers, deliver: attach)
+                return true
+            }
+        } else {
+            content
+        }
     }
 }
