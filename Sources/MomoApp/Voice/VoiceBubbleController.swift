@@ -1,6 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 import MomoBrain
+import MomoVoice
 import SwiftUI
 
 /// A borderless panel for the caption bubble. Like the character's panel it never becomes key
@@ -162,7 +163,9 @@ struct VoiceBubbleView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let prompt = assistant.consentPrompt {
+            if let request = voice.realtimeConsent {
+                realtimeConsent(request)
+            } else if let prompt = assistant.consentPrompt {
                 consent(prompt)
             } else if let prompt = assistant.confirmationPrompt {
                 confirmation(prompt)
@@ -195,6 +198,7 @@ struct VoiceBubbleView: View {
         .help(L("Open the chat"))
         .animation(Theme.quickSpring, value: voice.isListening)
         .animation(Theme.quickSpring, value: voice.liveState)
+        .animation(Theme.quickSpring, value: voice.isRealtimeWorking)
     }
 
     // MARK: - Caption
@@ -202,7 +206,9 @@ struct VoiceBubbleView: View {
     @ViewBuilder
     private var caption: some View {
         let transcript = voice.session?.transcript ?? ""
-        if voice.isListening || voice.isTranscribing || reply == nil {
+        if voice.isRealtime {
+            realtimeCaption(transcript: transcript)
+        } else if voice.isListening || voice.isTranscribing || reply == nil {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 statusIcon
                 Text(verbatim: transcript.isEmpty ? statusText : transcript)
@@ -241,6 +247,63 @@ struct VoiceBubbleView: View {
         }
     }
 
+    /// The caption of a cloud realtime conversation: what the user said, then what the model
+    /// says, or what Momo's assistant is doing for it.
+    @ViewBuilder
+    private func realtimeCaption(transcript: String) -> some View {
+        let reply = voice.realtimeReply.trimmingCharacters(in: .whitespacesAndNewlines)
+        if voice.isRealtimeWorking || !reply.isEmpty {
+            if !transcript.isEmpty {
+                Text(verbatim: transcript)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Theme.tertiaryText)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+            }
+            if voice.isRealtimeWorking && !voice.isSpeaking {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "gearshape.2")
+                        .foregroundStyle(Theme.accent)
+                        .symbolEffect(.pulse, isActive: true)
+                        .frame(width: 16)
+                    Text(verbatim: voice.realtimeActivity ?? L("Working on it…"))
+                        .font(.system(size: 13.5, weight: .medium))
+                        .foregroundStyle(Theme.secondaryText)
+                        .lineLimit(2)
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "waveform")
+                        .foregroundStyle(Theme.accent)
+                        .symbolEffect(.variableColor.iterative, isActive: voice.isSpeaking)
+                    Text(verbatim: reply)
+                        .font(.system(size: 13.5))
+                        .foregroundStyle(.white)
+                        .lineLimit(6)
+                        .truncationMode(.head)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            if voice.isListeningForFollowUp {
+                Label(L("Listening for a follow-up…"), systemImage: "mic")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.secondaryText)
+                    .scaleEffect(1 + voice.level * 0.08, anchor: .leading)
+                    .animation(.easeOut(duration: 0.08), value: voice.level)
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                statusIcon
+                Text(verbatim: transcript.isEmpty ? statusText : transcript)
+                    .font(.system(size: 13.5, weight: .medium))
+                    .foregroundStyle(transcript.isEmpty ? Theme.secondaryText : .white)
+                    .lineLimit(4)
+                    .truncationMode(.head)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     private func replyText(_ reply: ChatMessage) -> String {
         let text = reply.text.trimmingCharacters(in: .whitespacesAndNewlines)
         if !text.isEmpty { return text }
@@ -264,6 +327,32 @@ struct VoiceBubbleView: View {
     }
 
     // MARK: - Questions
+
+    /// Asks before the first cloud realtime conversation with a provider: the audio leaves
+    /// the Mac.
+    private func realtimeConsent(_ request: RealtimeConsentRequest) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "waveform.badge.mic").foregroundStyle(Theme.accent)
+                Text(verbatim: String(format: L("Talk live with %@?"), request.providerName))
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+            }
+            Text(verbatim: RealtimeVoicePrivacy.localizedNotice)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 6) {
+                Button(L("Allow")) { voice.answerRealtimeConsent(true) }
+                    .buttonStyle(.borderedProminent)
+                Button(L("Stay on this Mac")) { voice.answerRealtimeConsent(false) }
+                Spacer()
+                Button(L("Cancel")) { voice.cancelVoiceSession() }
+                    .buttonStyle(.borderless)
+            }
+            .controlSize(.small)
+        }
+    }
 
     private func consent(_ prompt: ConsentPrompt) -> some View {
         VStack(alignment: .leading, spacing: 8) {

@@ -159,3 +159,12 @@ enum CloudRealtimeSetup {
             voice: voice(preferences), language: language, tools: [MomoRealtimeAgent.askMomo])
     }
 }
+
+extension RealtimeVoicePrivacy {
+    /// ``notice`` in the user's language, for the consent prompt in the bubble and Settings.
+    static var localizedNotice: String {
+        L(
+            "Live voice with a cloud model streams your microphone audio to the provider while the conversation is open, and sends Momo's answers there to be spoken. The audio leaves your Mac and uses your own API key."
+        )
+    }
+}
