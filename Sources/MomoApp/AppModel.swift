@@ -19,6 +19,7 @@ final class AppModel {
     let focus: FocusController
     let connections: MCPConnections
     let updates: UpdateChecker
+    @ObservationIgnored let routines: RoutineScheduler
     @ObservationIgnored private var context: ContextMonitor?
     @ObservationIgnored private(set) var chatPanel: ChatPanelController?
     @ObservationIgnored private(set) var voice: VoiceController?
@@ -38,6 +39,7 @@ final class AppModel {
         focus = FocusController(character: character)
         connections = MCPConnections(settings: settings)
         updates = UpdateChecker(settings: settings)
+        routines = RoutineScheduler(store: store, assistant: assistant)
     }
 
     func start() {
@@ -93,6 +95,10 @@ final class AppModel {
         }
         context.start()
         self.context = context
+        routines.notify = { [weak context] id, title, body in
+            context?.notifyOpeningChat(id: id, title: title, body: body)
+        }
+        routines.start()
         focus.onFinish = { [weak self] _ in self?.character.simulate(.taskCompleted) }
 
         updates.checkIfDue()

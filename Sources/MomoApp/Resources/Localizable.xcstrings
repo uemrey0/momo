@@ -203,6 +203,16 @@
         }
       }
     },
+    "Adding a routine" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rutin ekleniyor"
+          }
+        }
+      }
+    },
     "Adding a task" : {
       "localizations" : {
         "tr" : {
@@ -614,6 +624,16 @@
         }
       }
     },
+    "Checking your routines" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rutinlerine bakıyorum"
+          }
+        }
+      }
+    },
     "Checking your tasks" : {
       "localizations" : {
         "tr" : {
@@ -910,6 +930,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not siliniyor"
+          }
+        }
+      }
+    },
+    "Deleting a routine" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rutin siliniyor"
           }
         }
       }
@@ -1875,6 +1905,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo'nun düşünmek için bir beyne ihtiyacı var"
+          }
+        }
+      }
+    },
+    "Momo needs your answer to finish this routine." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun bu rutini bitirmesi için cevabın gerekiyor."
           }
         }
       }
@@ -3451,6 +3491,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not güncelleniyor"
+          }
+        }
+      }
+    },
+    "Updating a routine" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rutin güncelleniyor"
           }
         }
       }
