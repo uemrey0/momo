@@ -12,6 +12,7 @@ let package = Package(
         .library(name: "MomoBrain", targets: ["MomoBrain"]),
         .library(name: "MomoVoice", targets: ["MomoVoice"]),
         .library(name: "MomoMCP", targets: ["MomoMCP"]),
+        .library(name: "MomoLiveProtocol", targets: ["MomoLiveProtocol"]),
         .executable(name: "momo-mcp", targets: ["momo-mcp"]),
     ],
     targets: [
@@ -19,17 +20,21 @@ let package = Package(
         .target(name: "MomoKit"),
         .target(name: "MomoBrain", dependencies: ["MomoKit", "MomoMCP"]),
         .target(name: "MomoVoice"),
+        .target(name: "MomoLiveProtocol"),
         .target(name: "MomoMCP", dependencies: ["MomoKit"]),
         .executableTarget(name: "momo-mcp", dependencies: ["MomoMCP", "MomoKit"]),
         .executableTarget(
             name: "MomoApp",
-            dependencies: ["MomoFace", "MomoKit", "MomoBrain", "MomoVoice", "MomoMCP"],
+            dependencies: [
+                "MomoFace", "MomoKit", "MomoBrain", "MomoVoice", "MomoMCP", "MomoLiveProtocol",
+            ],
             resources: [.process("Resources")]
         ),
         .testTarget(name: "MomoFaceTests", dependencies: ["MomoFace"]),
         .testTarget(name: "MomoKitTests", dependencies: ["MomoKit"]),
         .testTarget(name: "MomoBrainTests", dependencies: ["MomoBrain", "MomoKit", "MomoMCP"]),
         .testTarget(name: "MomoVoiceTests", dependencies: ["MomoVoice"]),
+        .testTarget(name: "MomoLiveProtocolTests", dependencies: ["MomoLiveProtocol"]),
         .testTarget(name: "MomoMCPTests", dependencies: ["MomoMCP", "MomoKit"]),
     ]
 )
