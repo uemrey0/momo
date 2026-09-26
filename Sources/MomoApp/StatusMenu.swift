@@ -19,6 +19,11 @@ struct StatusMenu: View {
 
         Divider()
 
+        if let update = model.updates.availableUpdate {
+            Button(String(format: L("Update to Momo %@…"), update.version)) {
+                model.updates.openReleasePage()
+            }
+        }
         Button(L("Settings…")) { model.openSettings() }
             .keyboardShortcut(",")
         Button(L("About Momo")) {
