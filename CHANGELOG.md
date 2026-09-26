@@ -17,6 +17,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   browser; Ollama downloads a model with a progress bar, sized for your Mac; API keys are
   spotted when you copy them and checked with the provider before they are saved.
 - Momo can add itself to Claude Desktop, Claude Code and Codex with one click.
+- Google Gemini now uses your Google account (and Google AI Pro or Ultra) instead of an API
+  key, so there are no extra charges. Momo downloads Google's official Gemini CLI, checks it
+  against the published checksum and starts the Google sign-in. The Gemini API with a key is
+  a separate option. ChatGPT can likewise download the official Codex tool when the ChatGPT
+  app isn't installed.
 
 - Momo no longer hides in the notch and pops back out on its own, which was distracting.
   Idle behaviours now play every 8–18 seconds instead of every 4–8, quiet ones far more often

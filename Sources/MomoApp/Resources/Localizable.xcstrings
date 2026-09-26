@@ -71,16 +71,6 @@
         }
       }
     },
-    "A free key from your Google account." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Google hesabından ücretsiz bir anahtar."
-          }
-        }
-      }
-    },
     "A tiny, living companion for your Mac. Free and open source." : {
       "localizations" : {
         "tr" : {
@@ -544,6 +534,16 @@
         }
       }
     },
+    "Checking and setting up…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrol ediliyor ve hazırlanıyor…"
+          }
+        }
+      }
+    },
     "Checking the key…" : {
       "localizations" : {
         "tr" : {
@@ -670,6 +670,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kapat"
+          }
+        }
+      }
+    },
+    "Codex is OpenAI's official tool for using your ChatGPT plan. Momo downloads it into its own folder. If you have the ChatGPT app or Codex already, Momo finds it on its own." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex, ChatGPT planını kullanmak için OpenAI'ın resmi aracı. Momo onu kendi klasörüne indirir. ChatGPT uygulaması ya da Codex zaten varsa Momo onu kendisi bulur."
           }
         }
       }
@@ -925,16 +935,6 @@
         }
       }
     },
-    "Download ChatGPT for Mac" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mac için ChatGPT'yi indir"
-          }
-        }
-      }
-    },
     "Download LM Studio" : {
       "localizations" : {
         "tr" : {
@@ -995,6 +995,16 @@
         }
       }
     },
+    "Download for Me (%lld MB)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benim İçin İndir (%lld MB)"
+          }
+        }
+      }
+    },
     "Download one of these. They work well with Momo and speak many languages." : {
       "localizations" : {
         "tr" : {
@@ -1011,6 +1021,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ indiriliyor…"
+          }
+        }
+      }
+    },
+    "Downloading… %lld%%" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İndiriliyor… %%%lld"
           }
         }
       }
@@ -1166,6 +1186,36 @@
         }
       }
     },
+    "Gemini API" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemini API"
+          }
+        }
+      }
+    },
+    "Gemini CLI is Google's official tool for using Gemini with your Google account. Momo downloads it into its own folder." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemini CLI, Gemini'yi Google hesabınla kullanmak için Google'ın resmi aracı. Momo onu kendi klasörüne indirir."
+          }
+        }
+      }
+    },
+    "Gemini is connected with your Google account. With Google AI Pro or Ultra you get higher limits. There are no extra charges." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemini Google hesabınla bağlandı. Google AI Pro veya Ultra ile daha yüksek limitler alırsın. Ek ücret yok."
+          }
+        }
+      }
+    },
     "General" : {
       "localizations" : {
         "tr" : {
@@ -1176,22 +1226,32 @@
         }
       }
     },
+    "Get Codex" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex'i edin"
+          }
+        }
+      }
+    },
+    "Get Gemini CLI" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemini CLI'ı edin"
+          }
+        }
+      }
+    },
     "Get an API key" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "API anahtarı al"
-          }
-        }
-      }
-    },
-    "Get the ChatGPT app" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ChatGPT uygulamasını edin"
           }
         }
       }
@@ -1232,6 +1292,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Google Gemini (API anahtarı)"
+          }
+        }
+      }
+    },
+    "Google's models, with an API key." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google'ın modelleri, API anahtarıyla."
           }
         }
       }
@@ -1709,16 +1779,6 @@
         }
       }
     },
-    "Momo borrows the plan you already have. It asks before sending anything." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Momo zaten sahip olduğun planı ödünç alır. Bir şey göndermeden önce sorar."
-          }
-        }
-      }
-    },
     "Momo falls asleep when you step away and wakes up when you're back." : {
       "localizations" : {
         "tr" : {
@@ -1785,16 +1845,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo Mac'inde %@ ile düşünüyor. Hiçbir şey bu Mac'ten çıkmaz."
-          }
-        }
-      }
-    },
-    "Momo uses the Codex engine that comes with the ChatGPT app for Mac. If you already use the Codex app or command line tool, Momo finds it too." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Momo, Mac için ChatGPT uygulamasıyla gelen Codex motorunu kullanır. Codex uygulamasını ya da komut satırı aracını zaten kullanıyorsan Momo onu da bulur."
           }
         }
       }
@@ -2149,16 +2199,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ya da başka birini indir:"
-          }
-        }
-      }
-    },
-    "Or use the Gemini CLI you already have" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ya da zaten sahip olduğun Gemini CLI'ı kullan"
           }
         }
       }
@@ -2808,12 +2848,12 @@
         }
       }
     },
-    "Sign in with Google and choose “Create API key”. It's free for everyday use." : {
+    "Sign in with Google and choose “Create API key”." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Google ile giriş yap ve “Create API key”i seç. Günlük kullanım için ücretsiz."
+            "value" : "Google ile giriş yap ve “Create API key”i seç."
           }
         }
       }
@@ -2838,12 +2878,12 @@
         }
       }
     },
-    "Sign in with your Google account in the browser." : {
+    "Sign in with your Google account." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tarayıcıda Google hesabınla giriş yap."
+            "value" : "Google hesabınla giriş yap."
           }
         }
       }
@@ -3153,12 +3193,12 @@
         }
       }
     },
-    "The Gemini CLI is signed in with your Google account." : {
+    "The download didn't work: %@" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gemini CLI, Google hesabınla giriş yapmış."
+            "value" : "İndirme başarısız oldu: %@"
           }
         }
       }
@@ -3351,6 +3391,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaten sahip olduğun bir hesabı kullan"
+          }
+        }
+      }
+    },
+    "Uses the plan you already pay for, with no extra charges. Momo asks before sending anything." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaten ödediğin planı kullanır, ek ücret yok. Momo bir şey göndermeden önce sorar."
           }
         }
       }

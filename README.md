@@ -78,9 +78,9 @@ option, press **Connect** and follow the steps. None of them need Terminal.
 | Apple Intelligence | macOS 26 with Apple Intelligence turned on. Nothing to install. |
 | Ollama | The free [Ollama](https://ollama.com) app. Momo downloads a model for you. |
 | LM Studio | The free [LM Studio](https://lmstudio.ai) app with its server switched on |
-| ChatGPT plan | The [ChatGPT app for Mac](https://openai.com/chatgpt/download/) (or the Codex CLI); sign in from Momo |
-| Google Gemini | A free key from Google AI Studio, or the Gemini CLI if you have it |
-| Claude, OpenAI, OpenRouter | An API key; copy it and Momo picks it up and checks it |
+| ChatGPT plan | Sign in with ChatGPT. Momo uses the ChatGPT app's Codex or downloads the official Codex tool. |
+| Google account | Sign in with Google. Momo downloads Google's official Gemini CLI. No API key, no extra charges. |
+| Claude, OpenAI, Gemini API, OpenRouter | An API key; copy it and Momo picks it up and checks it |
 
 Claude subscriptions can't be used by third-party apps. To use your Claude plan with Momo,
 connect Momo to Claude instead (below).

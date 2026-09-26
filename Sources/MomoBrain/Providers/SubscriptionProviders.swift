@@ -134,8 +134,9 @@ struct CodexEventParser {
     }
 }
 
-/// Uses the user's Google account through the official Gemini CLI, which the user installs
-/// and signs in to themselves.
+/// Uses the user's Google account (and their Google AI plan, if they have one) through the
+/// official Gemini CLI, signed in with Google. It never uses a Gemini API key, which would be
+/// billed separately.
 public struct GeminiCLIProvider: ChatProvider {
     public let info = ProviderInfo(id: "gemini-cli", name: "Gemini (CLI)", kind: .subscription)
     public let model: String?
@@ -148,17 +149,13 @@ public struct GeminiCLIProvider: ChatProvider {
 
     public static var isSignedIn: Bool {
         let folder = (NSHomeDirectory() as NSString).appendingPathComponent(".gemini")
-        let environment = ProcessInfo.processInfo.environment
-        return environment["GEMINI_API_KEY"] != nil
-            || FileManager.default.fileExists(
-                atPath: (folder as NSString).appendingPathComponent("oauth_creds.json"))
-            || FileManager.default.fileExists(
-                atPath: (folder as NSString).appendingPathComponent("google_accounts.json"))
+        return FileManager.default.fileExists(
+            atPath: (folder as NSString).appendingPathComponent("oauth_creds.json"))
     }
 
     public func availability() async -> ProviderAvailability {
-        guard CommandLocator.locate("gemini") != nil else {
-            return .unavailable("Use a free Google AI key instead, in Settings → AI.")
+        guard GeminiCLISetup.isInstalled else {
+            return .unavailable("Connect Google Gemini in Settings → AI.")
         }
         guard Self.isSignedIn else {
             return .unavailable("Sign in with Google in Settings → AI.")
@@ -173,7 +170,7 @@ public struct GeminiCLIProvider: ChatProvider {
     {
         AsyncThrowingStream { continuation in
             let task = Task {
-                guard let executable = CommandLocator.locate("gemini") else {
+                guard let executable = GeminiCLISetup.locate() else {
                     continuation.finish(throwing: ProviderError("The Gemini CLI is not installed."))
                     return
                 }
@@ -181,9 +178,11 @@ public struct GeminiCLIProvider: ChatProvider {
                 if let model { arguments += ["-m", model] }
                 var output = ""
                 do {
+                    // Always use the Google sign-in, never an API key from the environment.
                     for try await line in CommandRunner.lines(
                         executable: executable, arguments: arguments,
-                        input: CLIPrompt.make(request), workingDirectory: workingDirectory)
+                        input: CLIPrompt.make(request), workingDirectory: workingDirectory,
+                        environment: ["GOOGLE_GENAI_USE_GCA": "true", "GEMINI_API_KEY": ""])
                     {
                         output += line + "\n"
                     }
