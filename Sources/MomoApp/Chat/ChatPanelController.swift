@@ -163,7 +163,9 @@ final class ChatPanelController {
 
     /// Hides when the user clicks elsewhere, unless Momo is waiting for an answer.
     private func hideIfIdle() {
-        guard assistant.consentPrompt == nil, assistant.confirmationPrompt == nil else { return }
+        guard assistant.consentPrompt == nil, assistant.confirmationPrompt == nil,
+            !assistant.isChoosingFiles
+        else { return }
         hide()
     }
 
