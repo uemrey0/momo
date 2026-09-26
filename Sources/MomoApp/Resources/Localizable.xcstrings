@@ -71,6 +71,16 @@
         }
       }
     },
+    "%d seconds" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d saniye"
+          }
+        }
+      }
+    },
     "%lld actions" : {
       "localizations" : {
         "tr" : {
@@ -503,6 +513,16 @@
         }
       }
     },
+    "Apple (built in)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple (yerleşik)"
+          }
+        }
+      }
+    },
     "Apple Intelligence is on. Momo uses it for quick, private answers." : {
       "localizations" : {
         "tr" : {
@@ -579,6 +599,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bir kez sor"
+          }
+        }
+      }
+    },
+    "Asking the engine for its models…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motordan modelleri isteniyor…"
           }
         }
       }
@@ -750,6 +780,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS'te yerleşik. Kurulacak bir şey yok."
+          }
+        }
+      }
+    },
+    "Bye for now!" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Şimdilik hoşça kal!"
           }
         }
       }
@@ -1070,6 +1110,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kapat"
+          }
+        }
+      }
+    },
+    "Cloud realtime" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulutta gerçek zamanlı"
+          }
+        }
+      }
+    },
+    "Cloud realtime voices aren't available yet, so Momo used Apple's built-in engine." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulutta gerçek zamanlı sesler henüz kullanılamıyor, bu yüzden Momo Apple'ın yerleşik motorunu kullandı."
           }
         }
       }
@@ -1465,6 +1525,16 @@
         }
       }
     },
+    "Don't wait" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bekleme"
+          }
+        }
+      }
+    },
     "Done" : {
       "localizations" : {
         "tr" : {
@@ -1491,6 +1561,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "İndir"
+          }
+        }
+      }
+    },
+    "Download All" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tümünü İndir"
           }
         }
       }
@@ -1625,12 +1705,32 @@
         }
       }
     },
+    "Echo cancellation" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yankı engelleme"
+          }
+        }
+      }
+    },
     "Edit…" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Düzenle…"
+          }
+        }
+      }
+    },
+    "Engine" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motor"
           }
         }
       }
@@ -2301,6 +2401,26 @@
         }
       }
     },
+    "Let me check." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir bakayım."
+          }
+        }
+      }
+    },
+    "Let me see." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hemen bakıyorum."
+          }
+        }
+      }
+    },
     "Let's give me a brain!" : {
       "localizations" : {
         "tr" : {
@@ -2317,6 +2437,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apache Lisansı 2.0 ile lisanslanmıştır."
+          }
+        }
+      }
+    },
+    "Listen for a follow-up" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devamını dinle"
           }
         }
       }
@@ -2342,6 +2472,36 @@
         }
       }
     },
+    "Listening and speaking stay on this Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinleme ve konuşma bu Mac'te kalır."
+          }
+        }
+      }
+    },
+    "Listening for a follow-up…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devamını dinliyorum…"
+          }
+        }
+      }
+    },
+    "Listening stays on this Mac; with an OpenAI voice, each sentence Momo says is sent to OpenAI." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinleme bu Mac'te kalır; OpenAI sesiyle, Momo'nun söylediği her cümle OpenAI'a gönderilir."
+          }
+        }
+      }
+    },
     "Listening…" : {
       "localizations" : {
         "tr" : {
@@ -2358,6 +2518,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dinliyorum… göndermek için bırak"
+          }
+        }
+      }
+    },
+    "Live conversation" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canlı sohbet"
           }
         }
       }
@@ -2500,6 +2670,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yönet"
+          }
+        }
+      }
+    },
+    "Many languages" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Birçok dil"
           }
         }
       }
@@ -2799,12 +2979,32 @@
         }
       }
     },
+    "Momo talks with you like a person: it starts answering while it still thinks, you can interrupt it at any time, and it keeps listening for a follow-up. Say “thanks, that's all” or press Esc to finish." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo seninle bir insan gibi konuşur: daha düşünürken yanıtlamaya başlar, sözünü istediğin an kesebilirsin ve devamını dinlemeye devam eder. Bitirmek için “teşekkürler, bu kadar” de ya da Esc'ye bas."
+          }
+        }
+      }
+    },
     "Momo thinks with %@ on your Mac. Nothing leaves this Mac." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo Mac'inde %@ ile düşünüyor. Hiçbir şey bu Mac'ten çıkmaz."
+          }
+        }
+      }
+    },
+    "Momo transcribes what you say, sends it when you pause and reads the whole answer aloud once it has arrived." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo söylediklerini yazıya döker, durakladığında gönderir ve yanıtın tamamı geldiğinde sesli okur."
           }
         }
       }
@@ -2921,6 +3121,16 @@
         }
       }
     },
+    "Needed" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerekli"
+          }
+        }
+      }
+    },
     "New" : {
       "localizations" : {
         "tr" : {
@@ -2968,6 +3178,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aramanla eşleşen bir sohbet yok."
+          }
+        }
+      }
+    },
+    "No models listed." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listelenen model yok."
           }
         }
       }
@@ -3123,12 +3343,32 @@
         }
       }
     },
+    "On it." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hemen hallediyorum."
+          }
+        }
+      }
+    },
     "On this Mac" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bu Mac'te"
+          }
+        }
+      }
+    },
+    "One moment." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir saniye."
           }
         }
       }
@@ -3289,6 +3529,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Açık sorular"
+          }
+        }
+      }
+    },
+    "Open source on-device" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak, cihazda"
+          }
+        }
+      }
+    },
+    "Open source voice models" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak ses modelleri"
           }
         }
       }
@@ -3750,6 +4010,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hazır"
+          }
+        }
+      }
+    },
+    "Ready for your language" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dilin için hazır"
           }
         }
       }
@@ -4580,6 +4850,26 @@
         }
       }
     },
+    "Sorry, that didn't work." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Üzgünüm, olmadı."
+          }
+        }
+      }
+    },
+    "Sorry, was that a yes or a no?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pardon, evet mi dedin hayır mı?"
+          }
+        }
+      }
+    },
     "Speak" : {
       "localizations" : {
         "tr" : {
@@ -4902,6 +5192,16 @@
         }
       }
     },
+    "Talk to you later!" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sonra görüşürüz!"
+          }
+        }
+      }
+    },
     "Task Completed" : {
       "comment" : "Simulated event",
       "localizations" : {
@@ -5019,6 +5319,56 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo not alırken toplantının sesi kısa parçalar halinde API anahtarınla bu hizmete gönderilir ve her parça Gizlilik bölümünde listelenir. Ya da Momo her şeyi bu Mac'te yazıya dökebilir."
+          }
+        }
+      }
+    },
+    "The open source engine isn't included in this build of Momo." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak motor, Momo'nun bu sürümünde yok."
+          }
+        }
+      }
+    },
+    "The open source engine needs macOS 15 or later on a Mac with Apple silicon." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak motor, Apple çipli bir Mac'te macOS 15 veya sonrasını gerektirir."
+          }
+        }
+      }
+    },
+    "The open source engine recognises speech, detects when you finish, cancels echo and speaks entirely on this Mac. Its models are downloaded once, only when you press Download. Without them, Momo uses Apple's built-in engine." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak motor konuşmayı tanır, sözünü ne zaman bitirdiğini anlar, yankıyı engeller ve tamamen bu Mac'te konuşur. Modelleri yalnızca İndir'e bastığında bir kez indirilir. Onlar olmadan Momo Apple'ın yerleşik motorunu kullanır."
+          }
+        }
+      }
+    },
+    "The open source voice engine couldn't start, so Momo used Apple's built-in one. %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak ses motoru başlatılamadı, bu yüzden Momo Apple'ın yerleşik motorunu kullandı. %@"
+          }
+        }
+      }
+    },
+    "The open source voice engine isn't ready (download its models in Settings), so Momo used Apple's built-in one." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak ses motoru hazır değil (modellerini Ayarlar'dan indir), bu yüzden Momo Apple'ın yerleşik motorunu kullandı."
           }
         }
       }
@@ -5225,6 +5575,16 @@
         }
       }
     },
+    "Turn detection" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sıra algılama"
+          }
+        }
+      }
+    },
     "Turned off" : {
       "localizations" : {
         "tr" : {
@@ -5411,6 +5771,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ses"
+          }
+        }
+      }
+    },
+    "Voice activity" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses etkinliği"
           }
         }
       }
@@ -5731,6 +6101,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verilerin şurada duruyor: %@."
+          }
+        }
+      }
+    },
+    "Your language needs %@ of models." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dilin için %@ model gerekiyor."
           }
         }
       }

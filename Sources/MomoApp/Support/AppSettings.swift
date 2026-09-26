@@ -58,6 +58,13 @@ struct Preferences: Codable, Equatable {
     var pushToTalk = false
     /// Open the chat panel for spoken requests instead of answering in the caption bubble.
     var opensChatForSpokenRequests = false
+    /// Talk with Momo in a live conversation: replies are spoken while they stream, the user
+    /// can interrupt, and Momo keeps listening for a follow-up.
+    var liveConversation = true
+    /// The engine for live conversations.
+    var liveEngine = LiveEngineChoice.automatic
+    /// How long Momo listens for a follow-up after answering, in seconds; 0 ends at once.
+    var liveFollowUpSeconds = 8.0
     var mcpServers: [MCPServerConfiguration] = []
     var checksForUpdates = true
     var hidesFromScreenCapture = true
@@ -97,6 +104,9 @@ struct Preferences: Codable, Equatable {
         pushToTalk = value(.pushToTalk, defaults.pushToTalk)
         opensChatForSpokenRequests = value(
             .opensChatForSpokenRequests, defaults.opensChatForSpokenRequests)
+        liveConversation = value(.liveConversation, defaults.liveConversation)
+        liveEngine = value(.liveEngine, defaults.liveEngine)
+        liveFollowUpSeconds = value(.liveFollowUpSeconds, defaults.liveFollowUpSeconds)
         mcpServers = value(.mcpServers, defaults.mcpServers)
         checksForUpdates = value(.checksForUpdates, defaults.checksForUpdates)
         hidesFromScreenCapture = value(.hidesFromScreenCapture, defaults.hidesFromScreenCapture)
@@ -157,6 +167,19 @@ final class AppSettings {
     static var mcpServerPath: String? {
         let path = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/momo-mcp").path
         return FileManager.default.isExecutableFile(atPath: path) ? path : nil
+    }
+
+    /// The `momo-voice` helper for open source live conversations: the bundled one, or in a
+    /// development build the one next to the app's executable. `nil` when it is missing.
+    static var liveVoiceHelperPath: String? {
+        let bundled = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/momo-voice")
+            .path
+        if FileManager.default.isExecutableFile(atPath: bundled) { return bundled }
+        guard
+            let sibling = Bundle.main.executableURL?.deletingLastPathComponent()
+                .appendingPathComponent("momo-voice").path
+        else { return nil }
+        return FileManager.default.isExecutableFile(atPath: sibling) ? sibling : nil
     }
 
     /// The `momo-mcp` that CLI brains launch to reach the app's tool bridge: the bundled one,

@@ -194,6 +194,7 @@ struct VoiceBubbleView: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .help(L("Open the chat"))
         .animation(Theme.quickSpring, value: voice.isListening)
+        .animation(Theme.quickSpring, value: voice.liveState)
     }
 
     // MARK: - Caption
@@ -230,6 +231,13 @@ struct VoiceBubbleView: View {
                     .truncationMode(.head)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if voice.isListeningForFollowUp {
+                Label(L("Listening for a follow-up…"), systemImage: "mic")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.secondaryText)
+                    .scaleEffect(1 + voice.level * 0.08, anchor: .leading)
+                    .animation(.easeOut(duration: 0.08), value: voice.level)
+            }
         }
     }
 
@@ -240,7 +248,7 @@ struct VoiceBubbleView: View {
     }
 
     private var statusText: String {
-        if voice.isListening {
+        if voice.showsListening {
             return voice.isHoldingToTalk ? L("Listening… let go to send") : L("Listening…")
         }
         if voice.isTranscribing { return L("Writing down what you said…") }
@@ -248,9 +256,9 @@ struct VoiceBubbleView: View {
     }
 
     private var statusIcon: some View {
-        Image(systemName: voice.isListening ? "mic.fill" : "ellipsis")
-            .foregroundStyle(voice.isListening ? Theme.danger : Theme.secondaryText)
-            .scaleEffect(voice.isListening ? 1 + voice.level * 0.35 : 1)
+        Image(systemName: voice.showsListening ? "mic.fill" : "ellipsis")
+            .foregroundStyle(voice.showsListening ? Theme.danger : Theme.secondaryText)
+            .scaleEffect(voice.showsListening ? 1 + voice.level * 0.35 : 1)
             .animation(.easeOut(duration: 0.08), value: voice.level)
             .frame(width: 16)
     }
