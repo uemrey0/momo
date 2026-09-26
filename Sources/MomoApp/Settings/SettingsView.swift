@@ -4,10 +4,10 @@ import SwiftUI
 
 /// The sections of the Settings window, in sidebar order.
 enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
-    case ai, abilities, character, voice, meetings, reactions, routines, connections, permissions,
-        privacy,
-        general,
-        about
+    case ai, abilities, voice, meetings, routines
+    case character, reactions
+    case connections, permissions, privacy
+    case general, about
 
     var id: String { rawValue }
 
@@ -100,6 +100,31 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
+/// A group of panes in the sidebar.
+enum SettingsSidebarSection: CaseIterable, Identifiable {
+    case assistant, momo, access, app
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .assistant: L("Assistant", comment: "Settings sidebar section")
+        case .momo: L("Momo", comment: "Settings sidebar section")
+        case .access: L("Access & privacy", comment: "Settings sidebar section")
+        case .app: L("App", comment: "Settings sidebar section")
+        }
+    }
+
+    var panes: [SettingsPane] {
+        switch self {
+        case .assistant: [.ai, .abilities, .voice, .meetings, .routines]
+        case .momo: [.character, .reactions]
+        case .access: [.connections, .permissions, .privacy]
+        case .app: [.general, .about]
+        }
+    }
+}
+
 /// Which Settings pane is showing, so other parts of the app can open a specific one.
 @MainActor
 @Observable
@@ -142,9 +167,18 @@ struct SettingsView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: selection) {
-                ForEach(SettingsPane.allCases.filter { $0.matches(search) }) { pane in
-                    NavigationLink(value: pane) {
-                        SettingsPaneLabel(pane: pane, badge: badge(for: pane))
+                ForEach(SettingsSidebarSection.allCases) { section in
+                    let panes = section.panes.filter { $0.matches(search) }
+                    if !panes.isEmpty {
+                        Section {
+                            ForEach(panes) { pane in
+                                NavigationLink(value: pane) {
+                                    SettingsPaneLabel(pane: pane, badge: badge(for: pane))
+                                }
+                            }
+                        } header: {
+                            Text(verbatim: section.title)
+                        }
                     }
                 }
             }

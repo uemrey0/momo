@@ -253,6 +253,16 @@
         }
       }
     },
+    "Access & privacy" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erişim ve gizlilik"
+          }
+        }
+      }
+    },
     "Accessibility" : {
       "localizations" : {
         "tr" : {
@@ -553,6 +563,16 @@
         }
       }
     },
+    "App" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uygulama"
+          }
+        }
+      }
+    },
     "Apple Intelligence is on. Momo uses it for quick, private answers." : {
       "localizations" : {
         "tr" : {
@@ -629,6 +649,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bir kez sor"
+          }
+        }
+      }
+    },
+    "Assistant" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asistan"
           }
         }
       }
