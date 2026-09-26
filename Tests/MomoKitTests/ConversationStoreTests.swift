@@ -33,6 +33,14 @@ struct ConversationStoreTests {
         let title = conversation([long]).title
         #expect(title.count == Conversation.titleLength)
         #expect(title.hasSuffix("…"))
+        let attachmentsOnly = Conversation(messages: [
+            ConversationMessage(
+                role: .user, text: " ",
+                attachments: [
+                    .init(name: "shot.png", isImage: true), .init(name: "notes.md", isImage: false),
+                ])
+        ])
+        #expect(attachmentsOnly.title == "shot.png, notes.md")
     }
 
     @Test("saves, reloads in another instance and lists the newest first")
@@ -113,6 +121,7 @@ struct ConversationStoreTests {
         let decoded = try decoder.decode([Conversation].self, from: Data(json.utf8))
         #expect(decoded.first?.messages.first?.toolRecords == [])
         #expect(decoded.first?.messages.first?.activities == [])
+        #expect(decoded.first?.messages.first?.attachments == [])
     }
 }
 

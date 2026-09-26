@@ -9,7 +9,8 @@ import MomoKit
 /// every tool Momo has (store, system and the user's MCP servers) with Momo's confirmations
 /// and masking. Without a bridge it falls back to the standalone Momo MCP server.
 public struct CodexProvider: ChatProvider {
-    public let info = ProviderInfo(id: "codex", name: "ChatGPT (Codex)", kind: .subscription)
+    public let info = ProviderInfo(
+        id: "codex", name: "ChatGPT (Codex)", kind: .subscription, supportsImages: true)
     public let model: String?
     /// Path to the `momo-mcp` executable, which Codex launches to reach Momo's tools.
     public let mcpServerPath: String?
@@ -79,13 +80,18 @@ public struct CodexProvider: ChatProvider {
                     tools: request.tools, relayPath: mcpServerPath, runTool: runTool,
                     report: { continuation.yield($0) })
                 defer { bridge?.stop() }
+                let images = Self.writeImages(of: request)
+                defer { if let images { try? FileManager.default.removeItem(at: images.folder) } }
                 let prompt = CLIPrompt.make(
-                    request, hasTools: bridge != nil || mcpServerPath != nil)
+                    request, hasTools: bridge != nil || mcpServerPath != nil,
+                    imagesVisible: images != nil)
                 var parser = CodexEventParser(
                     bridgedServer: bridge.map { _ in ToolBridge.serverName })
                 do {
                     for try await line in CommandRunner.lines(
-                        executable: executable, arguments: arguments(bridge: bridge?.launch),
+                        executable: executable,
+                        arguments: Self.adding(
+                            images: images?.paths ?? [], to: arguments(bridge: bridge?.launch)),
                         input: prompt, workingDirectory: workingDirectory)
                     {
                         for event in try parser.consume(line) { continuation.yield(event) }
@@ -124,6 +130,43 @@ public struct CodexProvider: ChatProvider {
     /// A TOML array of strings.
     static func tomlArray(_ values: [String]) -> String {
         "[" + values.map(tomlString).joined(separator: ", ") + "]"
+    }
+}
+
+// MARK: - Images
+
+extension CodexProvider {
+    /// Writes the latest turn's images to a private temporary folder for `codex exec -i`.
+    /// `nil` when there are none or they could not be written.
+    static func writeImages(of request: ChatRequest) -> (folder: URL, paths: [String])? {
+        let images = request.turns.last?.images ?? []
+        guard !images.isEmpty else { return nil }
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("momo-images-\(UUID().uuidString)", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(
+                at: folder, withIntermediateDirectories: true,
+                attributes: [.posixPermissions: 0o700])
+            let paths = try images.enumerated().map { index, image in
+                let suffix = image.mimeType == "image/png" ? "png" : "jpg"
+                let url = folder.appendingPathComponent("image-\(index + 1).\(suffix)")
+                try image.data.write(to: url, options: [.atomic])
+                return url.path
+            }
+            return (folder, paths)
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            return nil
+        }
+    }
+
+    /// Adds `-i` with the image paths right after `exec`, where a following option ends the
+    /// list, so it can't swallow the prompt argument.
+    static func adding(images paths: [String], to arguments: [String]) -> [String] {
+        guard !paths.isEmpty, let exec = arguments.firstIndex(of: "exec") else { return arguments }
+        var arguments = arguments
+        arguments.insert(contentsOf: ["-i", paths.joined(separator: ",")], at: exec + 1)
+        return arguments
     }
 }
 
@@ -494,9 +537,12 @@ struct GeminiStreamParser {
 
 /// Builds single-shot prompts for CLI agents and explains their failures.
 enum CLIPrompt {
-    /// - Parameter hasTools: Whether the CLI can reach Momo's tools through the `momo` MCP
-    ///   server.
-    static func make(_ request: ChatRequest, hasTools: Bool = false) -> String {
+    /// - Parameters:
+    ///   - hasTools: Whether the CLI can reach Momo's tools through the `momo` MCP server.
+    ///   - imagesVisible: Whether the CLI receives the attached images itself.
+    static func make(
+        _ request: ChatRequest, hasTools: Bool = false, imagesVisible: Bool = false
+    ) -> String {
         let bridge =
             hasTools
             ? """
@@ -516,7 +562,8 @@ enum CLIPrompt {
 
             \(bridge)
 
-            \(PromptFlattener.prompt(for: request.turns, budget: 60_000))
+            \(PromptFlattener.prompt(
+                for: request.turns, budget: 60_000, imagesVisible: imagesVisible))
             """
     }
 

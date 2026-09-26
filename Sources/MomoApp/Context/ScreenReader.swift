@@ -17,6 +17,27 @@ enum ScreenReader {
 
     /// Captures the main display and returns the text on it, top to bottom.
     static func readScreen() async throws -> String {
+        let image = try await captureScreen(scale: 2)
+        let text = try await recognizeText(in: image)
+        let app = await MainActor.run { NSWorkspace.shared.frontmostApplication?.localizedName }
+        var header = "Screen text"
+        if let app { header += " (front app: \(app))" }
+        guard !text.isEmpty else { return "\(header): nothing readable is on the screen." }
+        return "\(header):\n\(text.prefix(12_000))"
+    }
+
+    /// A screenshot of the main display, without Momo's windows, as PNG data.
+    static func screenshot() async throws -> Data {
+        let image = try await captureScreen(scale: 1)
+        guard let data = ImageData.encode(image, as: .png) else {
+            throw ToolError("The screenshot could not be saved.")
+        }
+        return data
+    }
+
+    /// Captures the main display at `scale` times its size in points, leaving out Momo's
+    /// own windows. Asks for Screen Recording permission the first time.
+    private static func captureScreen(scale: Int) async throws -> CGImage {
         guard hasPermission else {
             requestPermission()
             throw ToolError(
@@ -40,18 +61,11 @@ enum ScreenReader {
         }
         let filter = SCContentFilter(display: display, excludingWindows: ownWindows)
         let configuration = SCStreamConfiguration()
-        configuration.width = display.width * 2
-        configuration.height = display.height * 2
+        configuration.width = display.width * scale
+        configuration.height = display.height * scale
         configuration.showsCursor = false
-        let image = try await SCScreenshotManager.captureImage(
+        return try await SCScreenshotManager.captureImage(
             contentFilter: filter, configuration: configuration)
-
-        let text = try await recognizeText(in: image)
-        let app = await MainActor.run { NSWorkspace.shared.frontmostApplication?.localizedName }
-        var header = "Screen text"
-        if let app { header += " (front app: \(app))" }
-        guard !text.isEmpty else { return "\(header): nothing readable is on the screen." }
-        return "\(header):\n\(text.prefix(12_000))"
     }
 
     /// Runs Vision text recognition off the main thread.

@@ -14,6 +14,8 @@ struct ChatView: View {
     @State private var messagesHeight: CGFloat = 0
     @State private var welcomeHeight: CGFloat = 0
     @State private var footerHeight: CGFloat = 0
+    @State private var isDropTargeted = false
+    @State private var pasteMonitor: Any?
 
     /// Whether the brains were checked and none of them can answer yet.
     private var needsAISetup: Bool {
@@ -52,6 +54,10 @@ struct ChatView: View {
                     ConfirmationCard(prompt: prompt) { assistant.answerConfirmation($0) }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                if let notice = assistant.attachmentNotice {
+                    AttachmentNotice(text: notice) { assistant.attachmentNotice = nil }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
                 composer
             }
             .padding(.horizontal, 12)
@@ -65,7 +71,52 @@ struct ChatView: View {
         .animation(Theme.spring, value: assistant.consentPrompt)
         .animation(Theme.spring, value: assistant.confirmationPrompt)
         .animation(Theme.spring, value: assistant.messages.isEmpty)
+        .animation(Theme.spring, value: assistant.attachmentNotice)
         .onChange(of: state.focusRequest, initial: true) { isComposerFocused = true }
+        .onDrop(of: DropLoader.types, isTargeted: $isDropTargeted) { providers in
+            DropLoader.load(providers) { [assistant] item in assistant.attach([item]) }
+            return true
+        }
+        .overlay { if isDropTargeted { DropHighlight() } }
+        .animation(Theme.quickSpring, value: isDropTargeted)
+        .onAppear { installPasteMonitor() }
+        .onDisappear {
+            if let pasteMonitor { NSEvent.removeMonitor(pasteMonitor) }
+            pasteMonitor = nil
+        }
+    }
+
+    /// Pasting files or a picture into the panel attaches them; text pastes as usual.
+    private func installPasteMonitor() {
+        guard pasteMonitor == nil, !snapshotMode else { return }
+        pasteMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [assistant] event in
+            guard event.window is ChatWindow,
+                event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+                event.charactersIgnoringModifiers == "v"
+            else { return event }
+            let items = DropLoader.pastedItems()
+            guard !items.isEmpty else { return event }
+            withAnimation(Theme.spring) { assistant.attach(items) }
+            return nil
+        }
+    }
+
+    /// Lets the user pick files to attach. The panel stays open while the picker shows.
+    private func chooseFiles() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.message = L("Choose files or images to send to Momo")
+        panel.prompt = L("Attach")
+        // Above the chat panel, which floats above normal windows.
+        panel.level = NSWindow.Level(rawValue: NSWindow.Level.mainMenu.rawValue + 3)
+        assistant.isChoosingFiles = true
+        NSApp.activate()
+        let response = panel.runModal()
+        assistant.isChoosingFiles = false
+        NSApp.windows.first { $0 is ChatWindow }?.makeKey()
+        if response == .OK { assistant.attach(fileURLs: panel.urls) }
+        state.focusRequest += 1
     }
 
     private var messages: some View {
@@ -118,10 +169,41 @@ struct ChatView: View {
 
     private var canSend: Bool {
         !assistant.draft.trimmingCharacters(in: .whitespaces).isEmpty
+            || !assistant.pendingAttachments.isEmpty
     }
 
     private var composer: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if !assistant.pendingAttachments.isEmpty {
+                AttachmentStrip(attachments: assistant.pendingAttachments) { id in
+                    withAnimation(Theme.quickSpring) { assistant.removeAttachment(id: id) }
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+            composerRow
+        }
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(
+                    isComposerFocused ? Theme.accent.opacity(0.45) : Color.white.opacity(0.07))
+        )
+        .animation(Theme.quickSpring, value: isComposerFocused)
+        .animation(Theme.quickSpring, value: assistant.isBusy)
+        .animation(Theme.spring, value: assistant.pendingAttachments)
+    }
+
+    private var composerRow: some View {
         HStack(alignment: .bottom, spacing: 6) {
+            if !snapshotMode {
+                AttachMenu(chooseFiles: chooseFiles) {
+                    assistant.attachScreenshot()
+                }
+                .padding(.leading, 4)
+                .padding(.bottom, 3)
+            }
             Group {
                 if snapshotMode {
                     Text(verbatim: L("Ask Momo anything…"))
@@ -142,7 +224,7 @@ struct ChatView: View {
             }
             .font(.system(size: 13.5))
             .padding(.vertical, 10)
-            .padding(.leading, 14)
+            .padding(.leading, snapshotMode ? 14 : 0)
 
             if let voice, !assistant.isBusy {
                 MicrophoneButton(voice: voice)
@@ -185,14 +267,6 @@ struct ChatView: View {
                 .animation(Theme.quickSpring, value: canSend)
             }
         }
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(
-                    isComposerFocused ? Theme.accent.opacity(0.45) : Color.white.opacity(0.07))
-        )
-        .animation(Theme.quickSpring, value: isComposerFocused)
-        .animation(Theme.quickSpring, value: assistant.isBusy)
     }
 
     private func send() {
@@ -377,17 +451,26 @@ struct MessageRow: View {
         case .user:
             HStack {
                 Spacer(minLength: 56)
-                Text(verbatim: message.text)
-                    .font(.system(size: 13.5))
-                    .foregroundStyle(.black.opacity(0.85))
-                    .textSelection(.enabled)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 8)
-                    .background(
-                        Theme.userBubble,
-                        in: UnevenRoundedRectangle(
-                            topLeadingRadius: 18, bottomLeadingRadius: 18, bottomTrailingRadius: 6,
-                            topTrailingRadius: 18, style: .continuous))
+                VStack(alignment: .trailing, spacing: 5) {
+                    if !message.attachments.isEmpty || !message.savedAttachments.isEmpty {
+                        SentAttachments(
+                            attachments: message.attachments, saved: message.savedAttachments)
+                    }
+                    if !message.text.isEmpty {
+                        Text(verbatim: message.text)
+                            .font(.system(size: 13.5))
+                            .foregroundStyle(.black.opacity(0.85))
+                            .textSelection(.enabled)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 8)
+                            .background(
+                                Theme.userBubble,
+                                in: UnevenRoundedRectangle(
+                                    topLeadingRadius: 18, bottomLeadingRadius: 18,
+                                    bottomTrailingRadius: 6, topTrailingRadius: 18,
+                                    style: .continuous))
+                    }
+                }
             }
         case .assistant:
             HStack(alignment: .bottom, spacing: 8) {
@@ -579,6 +662,12 @@ struct ConsentCard: View {
                             "Personal details like emails, phone numbers and IDs will be hidden first."
                         )
                         : L("Your message will be sent as written."))
+                    + (prompt.sendsImages
+                        ? " "
+                            + L(
+                                "The attached image will be sent too; details in it can't be hidden."
+                            )
+                        : "")
             )
             .font(.system(size: 12))
             .foregroundStyle(Theme.secondaryText)

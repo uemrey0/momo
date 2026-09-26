@@ -59,6 +59,36 @@ struct BrainRouterTests {
                 == .use(codex, reason: .userChoice, needsConsent: true))
     }
 
+    @Test("prefers brains that can see when a message has images")
+    func images() {
+        let seeing = BrainCandidate(
+            id: "claude", name: "Claude", kind: .apiKey, supportsImages: true)
+        let seeingLocal = BrainCandidate(
+            id: "llava", name: "LLaVA", kind: .local, supportsImages: true)
+        let router = BrainRouter()
+        #expect(
+            router.route(
+                text: "What is this?", candidates: [local, codex, seeing], hasImages: true)
+                == .use(seeing, reason: .imageAttached, needsConsent: true))
+        #expect(
+            router.route(
+                text: "What is this?", candidates: [local, seeingLocal, seeing], hasImages: true)
+                == .use(seeingLocal, reason: .simpleRequest(difficulty: 1), needsConsent: false))
+        // Without a brain that can see, routing is unchanged; the image becomes a note.
+        #expect(
+            router.route(text: "Hi there", candidates: [local, codex], hasImages: true)
+                == router.route(text: "Hi there", candidates: [local, codex]))
+        // The user's pick and local-only mode still win.
+        #expect(
+            router.route(
+                text: "x", candidates: [local, seeing], forcedBrainID: "apple", hasImages: true)
+                == .use(local, reason: .userChoice, needsConsent: false))
+        #expect(
+            BrainRouter(policy: RoutingPolicy(localOnly: true)).route(
+                text: "x", candidates: [local, seeing], hasImages: true)
+                == .use(local, reason: .privacyLock, needsConsent: false))
+    }
+
     @Test("estimates difficulty across languages")
     func difficulty() {
         #expect(DifficultyEstimator.estimate("Yarın saat 3'te toplantıyı hatırlat") == 1)

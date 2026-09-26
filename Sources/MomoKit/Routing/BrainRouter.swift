@@ -20,16 +20,19 @@ public struct BrainCandidate: Sendable, Hashable, Identifiable {
     public var isAvailable: Bool
     /// Roughly how much text the brain handles well, in characters.
     public var comfortableLength: Int
+    /// Whether the brain can look at attached images.
+    public var supportsImages: Bool
 
     public init(
         id: String, name: String, kind: BrainKind, isAvailable: Bool = true,
-        comfortableLength: Int = 100_000
+        comfortableLength: Int = 100_000, supportsImages: Bool = false
     ) {
         self.id = id
         self.name = name
         self.kind = kind
         self.isAvailable = isAvailable
         self.comfortableLength = comfortableLength
+        self.supportsImages = supportsImages
     }
 }
 
@@ -59,6 +62,8 @@ public enum RoutingReason: Sendable, Equatable {
     case tooLongForLocal
     case noLocalBrain
     case onlyOption
+    /// The message has an image, and only a remote brain can see it.
+    case imageAttached
 }
 
 public enum RoutingDecision: Sendable, Equatable {
@@ -79,9 +84,10 @@ public struct BrainRouter: Sendable {
     ///   - candidates: Brains in the user's order of preference.
     ///   - forcedBrainID: A brain the user explicitly picked for this conversation.
     ///   - remoteApproved: The user already approved remote use in this conversation.
+    ///   - hasImages: The message has images, so brains that can see them are preferred.
     public func route(
         text: String, candidates: [BrainCandidate], forcedBrainID: String? = nil,
-        remoteApproved: Bool = false
+        remoteApproved: Bool = false, hasImages: Bool = false
     ) -> RoutingDecision {
         let available = candidates.filter(\.isAvailable)
         let locals = available.filter { $0.kind == .local }
@@ -95,6 +101,20 @@ public struct BrainRouter: Sendable {
             !(policy.localOnly && forced.kind.isRemote)
         {
             return .use(forced, reason: .userChoice, needsConsent: consent(for: forced))
+        }
+
+        if hasImages {
+            let seeing = available.filter {
+                $0.supportsImages && !(policy.localOnly && $0.kind.isRemote)
+            }
+            if seeing.contains(where: { $0.kind == .local }) {
+                // Route as usual among the brains that can see the image.
+                return route(
+                    text: text, candidates: seeing, remoteApproved: remoteApproved)
+            }
+            if let remote = seeing.first {
+                return .use(remote, reason: .imageAttached, needsConsent: consent(for: remote))
+            }
         }
 
         if policy.localOnly {

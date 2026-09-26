@@ -181,10 +181,15 @@ public enum AppleIntelligence {
 /// Turns a conversation into a single prompt for models without chat history support,
 /// keeping the most recent turns within a character budget.
 public enum PromptFlattener {
-    public static func prompt(for turns: [ChatTurn], budget: Int) -> String {
+    /// - Parameter imagesVisible: The latest turn's images are passed to the model some other
+    ///   way, so they are not described as invisible.
+    public static func prompt(
+        for turns: [ChatTurn], budget: Int, imagesVisible: Bool = false
+    ) -> String {
         guard let latest = turns.last else { return "" }
+        let message = latest.context(imagesVisible: imagesVisible)
         var history: [String] = []
-        var used = latest.text.count
+        var used = message.count
         for turn in turns.dropLast().reversed() {
             let speaker = turn.role == .user ? "User" : "Momo"
             let line = "\(speaker): \(turn.contextText)"
@@ -192,13 +197,13 @@ public enum PromptFlattener {
             history.insert(line, at: 0)
             used += line.count
         }
-        guard !history.isEmpty else { return latest.text }
+        guard !history.isEmpty else { return message }
         return """
             Conversation so far:
             \(history.joined(separator: "\n"))
 
             User's new message:
-            \(latest.text)
+            \(message)
             """
     }
 }

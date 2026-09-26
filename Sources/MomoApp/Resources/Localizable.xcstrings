@@ -21,6 +21,16 @@
         }
       }
     },
+    "%@ can't see images, so it only got their names." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ görselleri göremiyor, bu yüzden yalnızca adlarını aldı."
+          }
+        }
+      }
+    },
     "%@ is connected with your key." : {
       "localizations" : {
         "tr" : {
@@ -117,6 +127,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld günlük seri"
+          }
+        }
+      }
+    },
+    "A message can have up to %d attachments." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir mesaja en fazla %d ek eklenebilir."
           }
         }
       }
@@ -473,6 +493,46 @@
         }
       }
     },
+    "Attach" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekle"
+          }
+        }
+      }
+    },
+    "Attach files or a screenshot" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dosya ya da ekran görüntüsü ekle"
+          }
+        }
+      }
+    },
+    "Attach files…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dosya ekle…"
+          }
+        }
+      }
+    },
+    "Attach screenshot" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran görüntüsü ekle"
+          }
+        }
+      }
+    },
     "Automatic" : {
       "localizations" : {
         "tr" : {
@@ -814,6 +874,16 @@
         }
       }
     },
+    "Choose files or images to send to Momo" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'ya göndermek için dosya ya da görsel seç"
+          }
+        }
+      }
+    },
     "Choose which model Momo thinks with. The recommended one is a great place to start." : {
       "localizations" : {
         "tr" : {
@@ -1094,6 +1164,16 @@
         }
       }
     },
+    "Couldn't read “%@”. Momo can attach images, PDFs, and text or Word documents." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” okunamadı. Momo görselleri, PDF'leri, metin ve Word belgelerini ekleyebilir."
+          }
+        }
+      }
+    },
     "Create a key" : {
       "localizations" : {
         "tr" : {
@@ -1200,6 +1280,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Görev siliniyor"
+          }
+        }
+      }
+    },
+    "Dismiss" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kapat"
           }
         }
       }
@@ -1371,6 +1461,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uyuklamadan önce bekle"
+          }
+        }
+      }
+    },
+    "Drop to attach" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eklemek için bırak"
           }
         }
       }
@@ -2943,6 +3043,16 @@
         }
       }
     },
+    "Pasted image" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapıştırılan görsel"
+          }
+        }
+      }
+    },
     "Pay as you go with an API key" : {
       "localizations" : {
         "tr" : {
@@ -3284,6 +3394,16 @@
         }
       }
     },
+    "Remove %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kaldır"
+          }
+        }
+      }
+    },
     "Repeats daily" : {
       "localizations" : {
         "tr" : {
@@ -3593,6 +3713,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ekranı okuma"
+          }
+        }
+      }
+    },
+    "Screenshot %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran görüntüsü %@"
           }
         }
       }
@@ -4243,12 +4373,32 @@
         }
       }
     },
+    "That picture couldn't be read." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu görsel okunamadı."
+          }
+        }
+      }
+    },
     "The OpenAI voice failed, so Momo used a system voice. %@" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "OpenAI sesi başarısız oldu, bu yüzden Momo bir sistem sesi kullandı. %@"
+          }
+        }
+      }
+    },
+    "The attached image will be sent too; details in it can't be hidden." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eklenen görsel de gönderilecek; içindeki ayrıntılar gizlenemez."
           }
         }
       }
@@ -4279,6 +4429,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "İndirme durdu: %@"
+          }
+        }
+      }
+    },
+    "The screenshot didn't work. Try again." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran görüntüsü alınamadı. Tekrar dene."
           }
         }
       }
@@ -4370,6 +4530,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Başlık"
+          }
+        }
+      }
+    },
+    "To attach screenshots, allow Momo in System Settings → Privacy & Security → Screen Recording." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran görüntüsü eklemek için Sistem Ayarları → Gizlilik ve Güvenlik → Ekran Kaydı'nda Momo'ya izin ver."
           }
         }
       }
@@ -4871,6 +5041,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verilerin şurada duruyor: %@."
+          }
+        }
+      }
+    },
+    "Your message has an image, and my on-device brain can't see images." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesajında bir görsel var ve cihazdaki beynim görselleri göremiyor."
           }
         }
       }

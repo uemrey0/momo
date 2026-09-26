@@ -112,9 +112,10 @@ public actor Assistant {
         generation += 1
     }
 
-    /// Answers `message`, streaming events. The reply is added to the history when done.
+    /// Answers `message` with its `attachments`, streaming events. The reply is added to the
+    /// history when done.
     public func reply(
-        to message: String, configuration: Configuration,
+        to message: String, attachments: [ChatAttachment] = [], configuration: Configuration,
         consent: @escaping RemoteConsentHandler,
         confirm: @escaping ToolConfirmationHandler
     ) -> AsyncThrowingStream<AssistantEvent, any Error> {
@@ -122,7 +123,8 @@ public actor Assistant {
             let task = Task {
                 do {
                     try await self.run(
-                        message, configuration: configuration, consent: consent,
+                        ChatTurn(role: .user, text: message, attachments: attachments),
+                        configuration: configuration, consent: consent,
                         confirm: confirm, continuation: continuation)
                     continuation.finish()
                 } catch {
@@ -134,13 +136,13 @@ public actor Assistant {
     }
 
     private func run(
-        _ message: String, configuration: Configuration, consent: RemoteConsentHandler,
+        _ message: ChatTurn, configuration: Configuration, consent: RemoteConsentHandler,
         confirm: @escaping ToolConfirmationHandler,
         continuation: AsyncThrowingStream<AssistantEvent, any Error>.Continuation
     ) async throws {
         generation += 1
         let replyGeneration = generation
-        let turns = history + [ChatTurn(role: .user, text: message)]
+        let turns = history + [message]
         let provider = try await choose(
             for: turns, configuration: configuration, consent: consent)
         guard let (provider, reason) = provider else { return }
@@ -240,7 +242,8 @@ public actor Assistant {
                     BrainCandidate(
                         id: provider.info.id, name: provider.info.name, kind: provider.info.kind,
                         isAvailable: availability.isReady,
-                        comfortableLength: provider.info.comfortableLength))
+                        comfortableLength: provider.info.comfortableLength,
+                        supportsImages: provider.info.supportsImages))
                 if case .unavailable(let reason) = availability {
                     reasons[provider.info.name] = reason
                 }
@@ -251,7 +254,7 @@ public actor Assistant {
         let router = BrainRouter(policy: configuration.policy)
         switch router.route(
             text: text, candidates: candidates, forcedBrainID: forcedProviderID,
-            remoteApproved: remoteApproved)
+            remoteApproved: remoteApproved, hasImages: turns.last?.hasImages ?? false)
         {
         case .unavailable(let reason):
             let details = reasons.map { "\($0.key): \($0.value)" }.sorted().joined(separator: "\n")

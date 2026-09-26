@@ -22,6 +22,10 @@ struct ChatMessage: Identifiable, Equatable {
     /// What the tools of an answer were asked and returned, kept for follow-up questions.
     var toolRecords: [ToolRecord] = []
     var date = Date()
+    /// Files and images the user attached, sent along with the message.
+    var attachments: [ChatAttachment] = []
+    /// Attachments of a reopened conversation: only their names were saved.
+    var savedAttachments: [ConversationMessage.AttachmentInfo] = []
 }
 
 extension ChatMessage {
@@ -45,7 +49,8 @@ extension ChatMessage {
                     }
                 return ToolActivity(toolName: activity.toolName, state: state)
             },
-            toolRecords: stored.toolRecords, date: stored.date)
+            toolRecords: stored.toolRecords, date: stored.date,
+            savedAttachments: stored.attachments)
     }
 
     /// The message as it is saved. A tool still running when it was saved counts as failed.
@@ -66,13 +71,22 @@ extension ChatMessage {
                     }
                 return ConversationMessage.Activity(toolName: activity.toolName, state: state)
             },
-            toolRecords: toolRecords)
+            toolRecords: toolRecords,
+            attachments: savedAttachments
+                + attachments.map { .init(name: $0.name, isImage: $0.isImage) })
     }
 
     /// The message as history for a brain; errors are never sent.
     var turn: ChatTurn? {
         switch role {
-        case .user: ChatTurn(role: .user, text: text)
+        case .user:
+            ChatTurn(
+                role: .user,
+                text: savedAttachments.isEmpty
+                    ? text
+                    : text + "\n\n(Attached earlier, no longer available: "
+                        + savedAttachments.map(\.name).joined(separator: ", ") + ")",
+                attachments: attachments)
         case .assistant: ChatTurn(role: .assistant, text: text, toolRecords: toolRecords)
         case .error: nil
         }
@@ -138,6 +152,8 @@ struct ConsentPrompt: Identifiable, Equatable {
     var brain: ProviderInfo
     var reason: RoutingReason
     var masksData: Bool
+    /// The message has images the brain will see; they can't be masked.
+    var sendsImages = false
 
     var explanation: String {
         switch reason {
@@ -149,6 +165,8 @@ struct ConsentPrompt: Identifiable, Equatable {
             L("I don't have an on-device brain available right now.")
         case .userChoice:
             L("You picked this brain for our conversation.")
+        case .imageAttached:
+            L("Your message has an image, and my on-device brain can't see images.")
         default:
             L("This request would go to a remote brain.")
         }
@@ -191,6 +209,14 @@ final class AssistantController {
     private(set) var confirmationPrompt: ConfirmationPrompt?
     private(set) var providerStatuses: [ProviderStatus] = []
     private(set) var outboundLog: [OutboundRecord] = []
+    /// Files and images waiting to be sent with the next message.
+    var pendingAttachments: [ChatAttachment] = []
+    /// A short note about attachments, such as a file that couldn't be read.
+    var attachmentNotice: String?
+    /// Whether the user is choosing files, so the panel stays open meanwhile.
+    @ObservationIgnored var isChoosingFiles = false
+    /// Whether the message being answered has images.
+    @ObservationIgnored private var sendingImages = false
     /// A brain the user picked for this conversation, or `nil` for automatic routing.
     var forcedProviderID: String? {
         didSet {
@@ -252,14 +278,18 @@ final class AssistantController {
 
     func send(_ text: String? = nil) {
         let message = (text ?? draft).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !message.isEmpty, !isBusy else { return }
+        let attachments = pendingAttachments
+        guard !message.isEmpty || !attachments.isEmpty, !isBusy else { return }
         draft = ""
-        messages.append(ChatMessage(role: .user, text: message))
+        pendingAttachments = []
+        attachmentNotice = nil
+        sendingImages = attachments.contains(where: \.isImage)
+        messages.append(ChatMessage(role: .user, text: message, attachments: attachments))
         isBusy = true
         character?.showWorking()
         let run = UUID()
         currentRun = run
-        task = Task { _ = await self.run(message, id: run) }
+        task = Task { _ = await self.run(message, attachments: attachments, id: run) }
     }
 
     /// Answers `text` in the chat conversation without opening the panel or speaking, for
@@ -272,11 +302,12 @@ final class AssistantController {
         messages.append(ChatMessage(role: .user, text: message))
         isBusy = true
         isInBackground = true
+        sendingImages = false
         character?.showWorking()
         let run = UUID()
         currentRun = run
         task = Task {
-            let reply = await self.run(message, id: run)
+            let reply = await self.run(message, attachments: [], id: run)
             // A stopped run must not clear the flag of a newer background request.
             if currentRun == nil || currentRun == run { isInBackground = false }
             completion(reply)
@@ -377,7 +408,9 @@ final class AssistantController {
 
     /// Answers `message` and returns the reply, or `nil` when there was none or the reply was
     /// stopped or replaced.
-    private func run(_ message: String, id run: UUID) async -> String? {
+    private func run(
+        _ message: String, attachments: [ChatAttachment], id run: UUID
+    ) async -> String? {
         await historyUpdate?.value
         let configuration = await makeConfiguration(for: message)
         guard currentRun == run else { return nil }
@@ -397,7 +430,7 @@ final class AssistantController {
         }
         do {
             let stream = await assistant.reply(
-                to: message, configuration: configuration,
+                to: message, attachments: attachments, configuration: configuration,
                 consent: { [weak self] brain, reason, masked in
                     await self?.askConsent(brain: brain, reason: reason, masked: masked) ?? .cancel
                 },
@@ -414,7 +447,17 @@ final class AssistantController {
                     messages.append(answer)
                     replyID = answer.id
                     character?.showBrain(brain.kind)
-                    if brain.kind.isRemote { record(brain: brain, message: message, configuration) }
+                    if brain.kind.isRemote {
+                        // Attached documents leave the Mac too, so they count.
+                        let sent = ChatTurn(role: .user, text: message, attachments: attachments)
+                            .context(imagesVisible: brain.supportsImages)
+                        record(brain: brain, message: sent, configuration)
+                    }
+                    if sendingImages && !brain.supportsImages {
+                        attachmentNotice = String(
+                            format: L("%@ can't see images, so it only got their names."),
+                            brain.name)
+                    }
                 case .text(let chunk):
                     if reply.isEmpty { character?.showSpeaking() }
                     reply += chunk
@@ -508,7 +551,9 @@ final class AssistantController {
         if isInBackground { onAttentionNeeded?() }
         return await withCheckedContinuation { continuation in
             consentContinuation = continuation
-            consentPrompt = ConsentPrompt(brain: brain, reason: reason, masksData: masked)
+            consentPrompt = ConsentPrompt(
+                brain: brain, reason: reason, masksData: masked,
+                sendsImages: sendingImages && brain.supportsImages)
             onPrompt?()
         }
     }
