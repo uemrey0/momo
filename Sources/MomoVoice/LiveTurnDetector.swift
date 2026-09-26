@@ -73,6 +73,9 @@ public struct LiveTurnDetector: Sendable {
         public var maximumPause: TimeInterval
         /// How long to wait for words after speech before treating it as noise.
         public var transcriptWait: TimeInterval
+        /// How much longer than ``maximumPause`` unchanged words may wait while the input
+        /// never gets quiet (background noise), before the turn ends anyway.
+        public var stallGrace: TimeInterval
         /// Whether pauses end turns. Off for push to talk, where the user ends them.
         public var endsTurnsOnPause: Bool
 
@@ -81,7 +84,8 @@ public struct LiveTurnDetector: Sendable {
             minimumSpeech: TimeInterval = 0.15, bargeInThreshold: Double = 0.45,
             bargeInMinimumSpeech: TimeInterval = 0.3, completePause: TimeInterval = 0.6,
             neutralPause: TimeInterval = 0.85, maximumPause: TimeInterval = 1.4,
-            transcriptWait: TimeInterval = 1.5, endsTurnsOnPause: Bool = true
+            transcriptWait: TimeInterval = 1.5, stallGrace: TimeInterval = 1.0,
+            endsTurnsOnPause: Bool = true
         ) {
             self.speechThreshold = speechThreshold
             self.silenceThreshold = silenceThreshold
@@ -92,6 +96,7 @@ public struct LiveTurnDetector: Sendable {
             self.neutralPause = neutralPause
             self.maximumPause = maximumPause
             self.transcriptWait = transcriptWait
+            self.stallGrace = stallGrace
             self.endsTurnsOnPause = endsTurnsOnPause
         }
 
@@ -124,14 +129,22 @@ public struct LiveTurnDetector: Sendable {
 
     private var loudSince: TimeInterval?
     private var quietSince: TimeInterval?
+    private var transcriptChangedAt: TimeInterval?
 
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
     }
 
-    /// Notes the words recognised so far in this turn.
-    public mutating func update(transcript: String) {
+    /// Notes the words recognised so far in this turn, at `time`. Words count as speech even
+    /// when the voice was too soft for the level threshold, so this may report
+    /// ``Event/speechStarted``.
+    public mutating func update(transcript: String, at time: TimeInterval) -> Event {
+        if transcript != self.transcript { transcriptChangedAt = time }
         self.transcript = transcript
+        let hasWords = !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        guard hasWords, !hasSpeech else { return .none }
+        hasSpeech = true
+        return .speechStarted
     }
 
     /// Feeds one input level measured at `time` (seconds, any monotonic clock).
@@ -160,6 +173,14 @@ public struct LiveTurnDetector: Sendable {
         if level < configuration.silenceThreshold || (isOutputActive && !hasSpeech) {
             loudSince = nil
         }
+        if configuration.endsTurnsOnPause, hasSpeech, let changed = transcriptChangedAt,
+            !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            time - changed >= configuration.maximumPause + configuration.stallGrace
+        {
+            // The words stopped changing but the room never got quiet (a fan, music).
+            reset()
+            return .endOfTurn
+        }
         guard level < configuration.silenceThreshold, hasSpeech else { return .none }
         let since = quietSince ?? time
         quietSince = since
@@ -182,6 +203,7 @@ public struct LiveTurnDetector: Sendable {
         transcript = ""
         loudSince = nil
         quietSince = nil
+        transcriptChangedAt = nil
     }
 }
 

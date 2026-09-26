@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Testing
 
@@ -136,13 +137,13 @@ struct TurnDetectionTests {
         var detector = LiveTurnDetector()
         var events = run(&detector, Array(repeating: 0.6, count: 10))
         #expect(events.map(\.1) == [.speechStarted])
-        detector.update(transcript: "What time is it?")
+        _ = detector.update(transcript: "What time is it?", at: 0.5)
         events = run(&detector, Array(repeating: 0.05, count: 40), start: 0.5)
         let completeEnd = try #require(events.first { $0.1 == .endOfTurn }?.0)
         #expect(completeEnd - 0.5 >= 0.6 && completeEnd - 0.5 < 0.7)
 
         _ = run(&detector, Array(repeating: 0.6, count: 10), start: 10)
-        detector.update(transcript: "Add eggs and")
+        _ = detector.update(transcript: "Add eggs and", at: 10.5)
         events = run(&detector, Array(repeating: 0.05, count: 60), start: 10.5)
         let trailingEnd = try #require(events.first { $0.1 == .endOfTurn }?.0)
         #expect(trailingEnd - 10.5 >= 1.4)
@@ -169,11 +170,22 @@ struct TurnDetectionTests {
         #expect(events.first.map { $0.0 - 5 } ?? 0 >= 0.3)
     }
 
+    @Test("words count as speech, and unchanged words end a turn in a noisy room")
+    func softAndNoisy() {
+        var detector = LiveTurnDetector()
+        #expect(detector.update(transcript: "turn on the lights", at: 1) == .speechStarted)
+        #expect(detector.hasSpeech)
+        // The room stays at 0.25: never loud enough for speech, never quiet enough to end.
+        let events = run(&detector, Array(repeating: 0.25, count: 60), start: 1)
+        let end = events.first { $0.1 == .endOfTurn }?.0 ?? 0
+        #expect(end >= 1 + 2.4 && end < 1 + 2.6)
+    }
+
     @Test("push to talk never ends a turn on a pause")
     func pushToTalk() {
         var detector = LiveTurnDetector(configuration: .init(endsTurnsOnPause: false))
         _ = run(&detector, Array(repeating: 0.6, count: 6))
-        detector.update(transcript: "Hello there.")
+        _ = detector.update(transcript: "Hello there.", at: 0.3)
         #expect(run(&detector, Array(repeating: 0.05, count: 100), start: 0.3).isEmpty)
     }
 }
@@ -227,5 +239,72 @@ struct LiveEngineSelectionTests {
                 == .init(kind: .cloudRealtime))
         #expect(LiveEngineChoice.cloudRealtime.isRemote)
         #expect(!LiveEngineChoice.openSource.isRemote)
+    }
+}
+
+@Suite("Apple live engine plumbing")
+struct AppleLiveEngineTests {
+    func buffer(
+        channels: AVAudioChannelCount, frames: Int, value: (Int, Int) -> Float
+    )
+        throws -> AVAudioPCMBuffer
+    {
+        let format = try #require(
+            AVAudioFormat(
+                commonFormat: .pcmFormatFloat32, sampleRate: 48_000, channels: channels,
+                interleaved: false))
+        let buffer = try #require(
+            AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)))
+        buffer.frameLength = AVAudioFrameCount(frames)
+        let data = try #require(buffer.floatChannelData)
+        for channel in 0..<Int(channels) {
+            for frame in 0..<frames { data[channel][frame] = value(channel, frame) }
+        }
+        return buffer
+    }
+
+    @Test("keeps the first channel of voice-processed input")
+    func mono() throws {
+        let input = try buffer(channels: 2, frames: 8) { channel, frame in
+            Float(channel * 100 + frame)
+        }
+        let mono = try #require(LiveInputRouter.mono(input))
+        #expect(mono.format.channelCount == 1)
+        #expect(mono.frameLength == 8)
+        #expect(mono.floatChannelData?[0][5] == 5)
+    }
+
+    @Test("replays the last half second to a new target for barge-in")
+    func preroll() throws {
+        let router = LiveInputRouter()
+        for _ in 0..<40 {
+            router.receive(try buffer(channels: 1, frames: 1024) { _, _ in 0.1 })
+        }
+        let received = Counter()
+        router.setTarget({ buffer in received.add(Int(buffer.frameLength)) }, withPreroll: true)
+        #expect(received.value >= 24_000 - 1024 && received.value <= 24_000)
+        router.setTarget({ buffer in received.add(Int(buffer.frameLength)) }, withPreroll: false)
+        #expect(received.value <= 24_000)
+    }
+
+    @Test("a caller sending whole sentences is not kept waiting")
+    func wholeSentences() {
+        var splitter = SpeechSentenceSplitter()
+        #expect(splitter.append("Hello there.").isEmpty)
+        #expect(splitter.flushIfComplete() == ["Hello there."])
+        #expect(splitter.append("And then").isEmpty)
+        #expect(splitter.flushIfComplete().isEmpty)
+    }
+}
+
+/// Counts from any thread.
+final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var total = 0
+
+    var value: Int { lock.withLock { total } }
+
+    func add(_ amount: Int) {
+        lock.withLock { total += amount }
     }
 }

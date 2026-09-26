@@ -569,8 +569,3 @@ final class VoiceController {
         startWakeWordIfEnabled()
     }
 }
-
-extension OpenAISpeechRequest {
-    /// The name shown in the privacy log.
-    var displayName: String { "OpenAI \(model) (\(voice))" }
-}

@@ -37,6 +37,16 @@ public struct SpeechSentenceSplitter: Sendable {
         return sentences
     }
 
+    /// Flushes when the text so far ends like a finished sentence, for callers that send
+    /// whole sentences and should not wait for the next one to start.
+    public mutating func flushIfComplete() -> [String] {
+        guard !isInCodeBlock,
+            let last = buffer.trimmingCharacters(in: .whitespacesAndNewlines).last,
+            Self.terminators.contains(last)
+        else { return [] }
+        return flush()
+    }
+
     /// Forgets everything, for a new reply.
     public mutating func reset() {
         buffer = ""
