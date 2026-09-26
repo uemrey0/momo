@@ -94,11 +94,11 @@
                     Calendar.current.date(byAdding: .day, value: -offset, to: Date()) ?? Date()
                 _ = try? await store.logHabit("Drink 2 litres of water", on: day)
             }
-            try? await store.addHabit(name: "Read 20 pages")
-            try? await store.addNote(
+            _ = try? await store.addHabit(name: "Read 20 pages")
+            _ = try? await store.addNote(
                 title: "Wi-Fi at the office",
                 body: "Network: Momo-Guest\nPassword is on the fridge.")
-            try? await store.addNote(
+            _ = try? await store.addNote(
                 title: "Gift ideas", body: "Mum: a nice teapot. Emre: a mechanical keyboard.")
 
             let settings = AppSettings(
