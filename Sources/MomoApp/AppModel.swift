@@ -24,6 +24,7 @@ final class AppModel {
     @ObservationIgnored private(set) var voice: VoiceController?
     @ObservationIgnored private var hotKeys: [GlobalHotKey] = []
     @ObservationIgnored private var onboarding: OnboardingWindowController?
+    @ObservationIgnored private lazy var settingsWindow = SettingsWindowController(model: self)
 
     init() {
         settings = AppSettings()
@@ -110,8 +111,7 @@ final class AppModel {
 
     func openSettings() {
         chatPanel?.hide()
-        NSApp.activate()
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        settingsWindow.show()
     }
 
     func showOnboarding() {

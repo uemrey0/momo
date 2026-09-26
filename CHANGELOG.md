@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Settings did not open from the menu or the panel on macOS 14 and later. Settings now has
+  its own window, and Momo shows a Dock icon while Settings or the welcome tour is open so
+  they always come to the front.
+
 ## [0.1.0] - 2026-09-26
 
 The first release: a living companion in the notch that works with the brain you already have.

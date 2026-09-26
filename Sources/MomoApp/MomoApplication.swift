@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The app entry point. Momo lives in the notch and the menu bar; its only regular window is
-/// Settings.
+/// The app entry point. Momo lives in the notch and the menu bar; its Settings and welcome
+/// windows are managed by AppKit controllers (see `SettingsWindowController`).
 @main
 struct MomoApplication: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -12,9 +12,6 @@ struct MomoApplication: App {
         } label: {
             Image(systemName: "face.smiling")
                 .accessibilityLabel(Text("Momo", bundle: .module))
-        }
-        Settings {
-            SettingsView(model: appDelegate.model)
         }
     }
 }
@@ -31,5 +28,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if Snapshots.renderIfRequested() || HeadlessAsk.runIfRequested() { return }
         #endif
         model.start()
+        #if DEBUG
+            if CommandLine.arguments.contains("--show-settings") { model.openSettings() }
+        #endif
     }
 }

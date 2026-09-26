@@ -26,7 +26,6 @@ struct SettingsView: View {
                 .tabItem { Label(L("About"), systemImage: "info.circle") }
         }
         .frame(width: 620, height: 560)
-        .onAppear { NSApp.activate() }
     }
 }
 
