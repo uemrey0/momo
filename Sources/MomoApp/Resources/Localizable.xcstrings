@@ -1763,6 +1763,16 @@
         }
       }
     },
+    "Looking at what you're doing" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne yaptığına bakıyorum"
+          }
+        }
+      }
+    },
     "Looking at your calendar" : {
       "localizations" : {
         "tr" : {
@@ -3007,6 +3017,16 @@
         }
       }
     },
+    "Selected text" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seçili metin"
+          }
+        }
+      }
+    },
     "Send" : {
       "localizations" : {
         "tr" : {
@@ -3881,6 +3901,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kim cevap versin"
+          }
+        }
+      }
+    },
+    "With Accessibility access, Momo can read the text you select when you ask about “this”." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erişilebilirlik izniyle Momo, “bu” diye sorduğunda seçtiğin metni okuyabilir."
           }
         }
       }
