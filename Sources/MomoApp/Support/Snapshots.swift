@@ -81,18 +81,18 @@
             let store = MomoStore(
                 fileURL: FileManager.default.temporaryDirectory
                     .appendingPathComponent("momo-snapshot-\(UUID().uuidString).json"))
-            try? await store.addTask(
+            _ = try? await store.addTask(
                 title: "Send the invoice to Deniz", dueDate: Date().addingTimeInterval(3 * 3600))
-            try? await store.addTask(
+            _ = try? await store.addTask(
                 title: "Book the dentist", remindAt: Date().addingTimeInterval(26 * 3600))
-            try? await store.addTask(title: "Water the plants")
+            _ = try? await store.addTask(title: "Water the plants")
             if let done = try? await store.addTask(title: "Morning run") {
-                try? await store.completeTask(done.id)
+                _ = try? await store.completeTask(done.id)
             }
             for offset in 0..<5 {
                 let day =
                     Calendar.current.date(byAdding: .day, value: -offset, to: Date()) ?? Date()
-                try? await store.logHabit("Drink 2 litres of water", on: day)
+                _ = try? await store.logHabit("Drink 2 litres of water", on: day)
             }
             try? await store.addHabit(name: "Read 20 pages")
             try? await store.addNote(
