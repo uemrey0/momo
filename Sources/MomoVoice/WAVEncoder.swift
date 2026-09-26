@@ -29,6 +29,48 @@ public enum WAVEncoder {
         return data
     }
 
+    /// Decodes a 16-bit PCM WAV file (as written by ``encode(samples:sampleRate:)``) into its
+    /// samples and sample rate, mixing channels down to mono. Returns `nil` for anything else.
+    public static func decode(_ data: Data) -> (samples: [Float], sampleRate: Int)? {
+        let bytes = [UInt8](data)
+        func uint32(_ offset: Int) -> Int {
+            Int(bytes[offset]) | Int(bytes[offset + 1]) << 8 | Int(bytes[offset + 2]) << 16
+                | Int(bytes[offset + 3]) << 24
+        }
+        func uint16(_ offset: Int) -> Int { Int(bytes[offset]) | Int(bytes[offset + 1]) << 8 }
+        guard bytes.count >= 12, bytes[0..<4] == [0x52, 0x49, 0x46, 0x46],
+            bytes[8..<12] == [0x57, 0x41, 0x56, 0x45]
+        else { return nil }
+        var offset = 12
+        var channels = 1
+        var sampleRate = 0
+        var bitsPerSample = 0
+        while offset + 8 <= bytes.count {
+            let id = String(decoding: bytes[offset..<(offset + 4)], as: UTF8.self)
+            let size = uint32(offset + 4)
+            let body = offset + 8
+            if id == "fmt ", body + 16 <= bytes.count {
+                guard uint16(body) == 1 else { return nil }
+                channels = max(1, uint16(body + 2))
+                sampleRate = uint32(body + 4)
+                bitsPerSample = uint16(body + 14)
+            } else if id == "data" {
+                guard bitsPerSample == 16, sampleRate > 0 else { return nil }
+                let end = min(bytes.count, body + size)
+                let mono = samples(fromPCM16: Data(bytes[body..<end]))
+                guard channels > 1 else { return (mono, sampleRate) }
+                let frames = mono.count / channels
+                let mixed = (0..<frames).map { frame in
+                    (0..<channels).reduce(Float(0)) { $0 + mono[frame * channels + $1] }
+                        / Float(channels)
+                }
+                return (mixed, sampleRate)
+            }
+            offset = body + size + size % 2
+        }
+        return nil
+    }
+
     /// Decodes raw 16-bit little-endian PCM (OpenAI's `pcm` speech format) into samples from
     /// -1 to 1. A trailing odd byte is ignored.
     public static func samples(fromPCM16 data: Data) -> [Float] {
