@@ -16,6 +16,9 @@ public protocol LiveVoiceBackend: Sendable {
     func downloadModels(ids: [String]) async
     /// Deletes downloaded models.
     func deleteModels(ids: [String]) async throws
+    /// Loads and warms up the models a session with `configuration` needs, without opening
+    /// the microphone.
+    func prepare(_ configuration: LiveSessionConfiguration) async throws
     /// Opens the microphone and starts a session; reports `listening` when it runs.
     func start(_ configuration: LiveSessionConfiguration) async throws
     /// Ends the session and releases the audio devices; reports `stopped`.
@@ -87,6 +90,13 @@ public actor LiveVoiceServer {
                 try await backend.deleteModels(ids: ids)
             } catch {
                 emit(.error(message: "Could not delete models: \(error)", isFatal: false))
+            }
+        case .prepare(let configuration):
+            do {
+                try await backend.prepare(configuration)
+                emit(.prepared)
+            } catch {
+                emit(.error(message: String(describing: error), isFatal: false))
             }
         case .start(let configuration):
             if isSessionRunning { await backend.stop() }

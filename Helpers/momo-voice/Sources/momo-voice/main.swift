@@ -16,6 +16,7 @@ let usage = """
            momo-voice --listen [--locale L] [--levels]
                                            Print what the microphone hears until Ctrl-C.
            momo-voice --list-models [L]     List the models, marking the ones L needs.
+           momo-voice --prepare [L]         Load and warm up the models L needs.
            momo-voice --download ID...      Download models (see --list-models).
            momo-voice --delete ID...        Delete downloaded models.
     Models are kept in ~/Library/Application Support/Momo/Models.
@@ -151,6 +152,20 @@ func runListModels(locale: String) {
     }
 }
 
+func runPrepare(locale: String) {
+    let engine = VoiceEngine { _ in }
+    Task {
+        do {
+            try await engine.prepare(LiveSessionConfiguration(locale: locale))
+            printLine("Prepared \(locale)")
+            exit(0)
+        } catch {
+            printLine("error: \(error)")
+            exit(1)
+        }
+    }
+}
+
 func runDownload(ids: [String]) {
     let engine = VoiceEngine { event in
         switch event {
@@ -196,6 +211,8 @@ case "--listen":
         showsLevels: arguments.contains("--levels"))
 case "--list-models":
     runListModels(locale: values(after: "--list-models", in: arguments).first ?? "en-US")
+case "--prepare":
+    runPrepare(locale: values(after: "--prepare", in: arguments).first ?? "en-US")
 case "--download":
     runDownload(ids: values(after: "--download", in: arguments))
 case "--delete":

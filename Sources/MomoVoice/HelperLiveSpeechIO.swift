@@ -161,7 +161,7 @@ public final class HelperLiveSpeechIO: LiveSpeechIO {
 
     private func handle(_ event: LiveVoiceEvent) {
         switch event {
-        case .ready, .models, .downloadProgress, .downloadFinished, .downloadFailed:
+        case .ready, .models, .downloadProgress, .downloadFinished, .downloadFailed, .prepared:
             break
         case .listening:
             finishStart(.success(()))

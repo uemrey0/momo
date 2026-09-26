@@ -35,6 +35,11 @@ final class FakeBackend: LiveVoiceBackend {
         if ids.contains("locked") { throw CocoaError(.fileWriteNoPermission) }
     }
 
+    func prepare(_ configuration: LiveSessionConfiguration) async throws {
+        record("prepare \(configuration.locale)")
+        if failsToStart { throw ModelSelectionError.unsupportedLanguage(configuration.locale) }
+    }
+
     func start(_ configuration: LiveSessionConfiguration) async throws {
         record("start \(configuration.locale)")
         if failsToStart { throw ModelSelectionError.unsupportedLanguage(configuration.locale) }
@@ -142,6 +147,27 @@ struct LiveVoiceServerTests {
         #expect(log.all.last == .stopped)
         if case .error(_, let isFatal) = log.all.first {
             #expect(isFatal)
+        } else {
+            Issue.record("no error")
+        }
+    }
+
+    @Test("prepares models without a session and reports the outcome")
+    func prepares() async {
+        let log = EventLog()
+        let backend = FakeBackend(emit: log.append)
+        let server = LiveVoiceServer(backend: backend, emit: log.append)
+        _ = await server.handle(.prepare(LiveSessionConfiguration(locale: "tr-TR")))
+        #expect(backend.calls.withLock { $0 } == ["prepare tr-TR"])
+        #expect(log.all == [.prepared])
+
+        let failing = EventLog()
+        let broken = LiveVoiceServer(
+            backend: FakeBackend(failsToStart: true, emit: failing.append), emit: failing.append)
+        _ = await broken.handle(.prepare(LiveSessionConfiguration(locale: "xx")))
+        #expect(failing.all.count == 1)
+        if case .error(_, let isFatal) = failing.all.first {
+            #expect(!isFatal)
         } else {
             Issue.record("no error")
         }

@@ -81,14 +81,31 @@ public actor VoiceEngine: LiveVoiceBackend {
 
     // MARK: Session
 
-    public func start(_ configuration: LiveSessionConfiguration) async throws {
-        await stop(reportStopped: false)
+    /// Loads and warms up the models of a session, without opening the microphone, so the
+    /// Core ML compilation a new helper build needs happens before the user waits on it.
+    public func prepare(_ configuration: LiveSessionConfiguration) async throws {
         let startedAt = Date()
         let plan = try ModelSelection.plan(for: configuration)
+        try checkDownloaded(plan)
+        _ = try await loaded.vad(store: store)
+        _ = try await loaded.turnDetector(store: store)
+        _ = try await loaded.recognizer(store: store)
+        _ = try await loaded.synthesizer(for: plan.output, store: store)
+        Log.info("Prepared in \(Int(Date().timeIntervalSince(startedAt) * 1000)) ms")
+    }
+
+    private func checkDownloaded(_ plan: VoicePlan) throws {
         let missing = plan.requiredModelIDs.filter { id in
             ModelCatalog.model(id: id).map { !store.isDownloaded($0) } ?? true
         }
         guard missing.isEmpty else { throw VoiceEngineError.modelsMissing(missing) }
+    }
+
+    public func start(_ configuration: LiveSessionConfiguration) async throws {
+        await stop(reportStopped: false)
+        let startedAt = Date()
+        let plan = try ModelSelection.plan(for: configuration)
+        try checkDownloaded(plan)
         try await Self.requestMicrophoneAccess()
 
         let vad = try await loaded.vad(store: store)

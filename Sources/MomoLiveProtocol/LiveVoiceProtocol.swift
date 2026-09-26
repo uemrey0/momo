@@ -99,6 +99,11 @@ public enum LiveVoiceCommand: Codable, Sendable, Hashable {
     case downloadModels(ids: [String])
     /// Deletes downloaded models.
     case deleteModels(ids: [String])
+    /// Loads and warms up the models a session with this configuration needs, without
+    /// opening the microphone, and answers with ``LiveVoiceEvent/prepared``, or a non-fatal
+    /// ``LiveVoiceEvent/error(message:isFatal:)``. The first load of a new helper build
+    /// compiles its models, which can take much longer than a normal start.
+    case prepare(LiveSessionConfiguration)
     /// Starts listening with the microphone.
     case start(LiveSessionConfiguration)
     /// Stops listening and speaking and releases the audio devices.
@@ -125,6 +130,8 @@ public enum LiveVoiceEvent: Codable, Sendable, Hashable {
     case downloadProgress(id: String, fraction: Double)
     case downloadFinished(id: String)
     case downloadFailed(id: String, message: String)
+    /// The models of a ``LiveVoiceCommand/prepare(_:)`` are loaded and warm.
+    case prepared
     /// The session runs and the microphone is open.
     case listening
     /// The microphone level, 0...1, a few times a second.
