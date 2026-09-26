@@ -60,7 +60,7 @@ flowchart LR
 | `MomoFace`  | Library    | Character engine, SwiftUI renderer, character packs                    | nothing           |
 | `MomoKit`   | Library    | Store, tools, JSON values, personal data masking, brain router, versions | nothing         |
 | `MomoBrain` | Library    | Providers, CLI bridges, the assistant, system prompt, brain settings   | MomoKit           |
-| `MomoVoice` | Library    | Speech recognition, speech synthesis, wake word                        | nothing           |
+| `MomoVoice` | Library    | Dictation engines, cloud transcription, speech synthesis, wake word    | nothing           |
 | `MomoMCP`   | Library    | MCP server and client                                                  | MomoKit           |
 | `momo-mcp`  | Executable | Serves Momo's store over stdio MCP; shipped inside the app bundle      | MomoMCP, MomoKit  |
 | `MomoApp`   | Executable | The app: notch, panel, settings, voice, context, system tools          | everything        |
@@ -109,6 +109,23 @@ In the app, `CharacterController` hosts the face in a borderless `NSPanel` above
 sized to the hardware notch (`NotchGeometry`), and lets clicks through everywhere except the
 body. Moods come from three places, in order of priority: the conversation (thinking,
 speaking), the mood the user picked, and the ambient mood (music, focus).
+
+## Voice
+
+`MomoVoice` hides every speech engine behind small interfaces, so the app only picks one:
+
+| Type | What it does |
+| ---- | ------------ |
+| `DictationEngine` | Live dictation with partial and final transcripts and the input level. |
+| `SpeechRecognizer` | Apple Speech (`SFSpeechRecognizer`); works everywhere, the fallback. |
+| `AnalyzerDictationEngine` | Apple `SpeechAnalyzer` with the `SpeechTranscriber` module (macOS 26); installs the language's model through `AssetInventory`. |
+| `CloudDictationEngine` | Records, ends the utterance with `VoiceActivityDetector`, and sends WAV to an `AudioTranscriptionService`; falls back to Apple Speech on the recording. |
+| `AudioTranscriptionService` | Transcribes a recorded clip into text and timed segments: `OpenAITranscriptionService` (including `gpt-4o-transcribe-diarize` speaker labels) and `GeminiTranscriptionService`. Reusable for long recordings in chunks. |
+| `SpeechSynthesizer`, `CloudSpeechSynthesizer` | Mac voices, or OpenAI voices streamed as PCM with the mouth following the output level. |
+
+`DictationEngineSelector` turns the user's choice into an engine (cloud engines only with a
+key). The wake word always uses Apple Speech on the Mac. Cloud requests use the keys of the
+OpenAI and Gemini brains and are listed in the privacy log.
 
 ## Data and privacy
 
