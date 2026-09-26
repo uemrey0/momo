@@ -92,11 +92,19 @@ inherently Mac-specific, and are covered by Swift Testing suites.
 | `AppleIntelligenceProvider` | local | Foundation Models (macOS 26); tools bridged with dynamic schemas |
 | `OpenAICompatibleProvider` | local or API key | Chat Completions streaming with function calling: Ollama, LM Studio, OpenAI, Gemini, OpenRouter |
 | `AnthropicProvider` | API key | Messages API streaming; replays thinking and tool use blocks; handles refusals |
-| `CodexProvider` | subscription | `codex exec --json` in a read-only sandbox, with `momo-mcp` offered for tools |
-| `GeminiCLIProvider` | subscription | `gemini --output-format json` |
+| `CodexProvider` | subscription | `codex exec --json` in a read-only sandbox with its own web search; Momo's tools through the tool bridge |
+| `GeminiCLIProvider` | subscription | `gemini --output-format stream-json` with its own Google Search; Momo's tools through the tool bridge |
 
 Every provider implements `ChatProvider`: `availability()` and
 `respond(to:runTool:) -> AsyncThrowingStream<ChatEvent, Error>`.
+
+CLI brains get every tool through the **tool bridge**: for one answer, the app serves the
+request's toolbox over MCP on a private Unix socket (`MCPSocketServer`, in a fresh `0700`
+directory, same-user peers only). The CLI launches `momo-mcp --bridge <socket>`, which relays
+its stdio to that socket, and each call runs through the assistant's `ToolRunner`, so
+confirmation, masking and the character's reactions apply as for every other brain. Codex gets
+the bridge through `-c mcp_servers.momo...`; Gemini CLI through a generated settings file in
+Momo's CLI workspace that trusts the Momo server and excludes the CLI's file and shell tools.
 
 ## The character
 

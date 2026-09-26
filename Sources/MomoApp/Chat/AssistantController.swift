@@ -256,7 +256,7 @@ final class AssistantController {
         let preferences = settings.preferences
         let providers = BrainCatalog.providers(
             settings: preferences.brains, keys: settings.keys,
-            mcpServerPath: AppSettings.mcpServerPath, workingDirectory: AppSettings.cliWorkspace)
+            mcpServerPath: AppSettings.bridgeRelayPath, workingDirectory: AppSettings.cliWorkspace)
         let memories = await store.memories()
         return Assistant.Configuration(
             providers: providers,
@@ -309,7 +309,7 @@ final class AssistantController {
     func refreshProviders() async {
         let providers = BrainCatalog.providers(
             settings: settings.preferences.brains, keys: settings.keys,
-            mcpServerPath: AppSettings.mcpServerPath, workingDirectory: AppSettings.cliWorkspace)
+            mcpServerPath: AppSettings.bridgeRelayPath, workingDirectory: AppSettings.cliWorkspace)
         var statuses: [ProviderStatus] = []
         for provider in providers {
             statuses.append(

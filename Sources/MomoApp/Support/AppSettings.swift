@@ -120,4 +120,15 @@ final class AppSettings {
         let path = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/momo-mcp").path
         return FileManager.default.isExecutableFile(atPath: path) ? path : nil
     }
+
+    /// The `momo-mcp` that CLI brains launch to reach the app's tool bridge: the bundled one,
+    /// or in a development build the one built next to the app's executable.
+    static var bridgeRelayPath: String? {
+        if let bundled = mcpServerPath { return bundled }
+        guard
+            let sibling = Bundle.main.executableURL?.deletingLastPathComponent()
+                .appendingPathComponent("momo-mcp").path
+        else { return nil }
+        return FileManager.default.isExecutableFile(atPath: sibling) ? sibling : nil
+    }
 }

@@ -131,7 +131,8 @@ public enum BrainCatalog {
                 workingDirectory: workingDirectory)
         case "gemini-cli":
             return GeminiCLIProvider(
-                model: settings.geminiCLIModel, workingDirectory: workingDirectory)
+                model: settings.geminiCLIModel, mcpServerPath: mcpServerPath,
+                workingDirectory: workingDirectory)
         case "anthropic":
             return key().map {
                 AnthropicProvider(apiKey: $0, model: settings.anthropicModel, session: session)

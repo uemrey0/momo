@@ -4,12 +4,14 @@ import MomoKit
 /// Uses the user's ChatGPT plan through Codex: the official Codex CLI or the copy that comes
 /// with the ChatGPT app. Codex handles sign-in; Momo never sees the credentials.
 ///
-/// Runs `codex exec --json` in a read-only sandbox. When the Momo MCP server is available,
-/// Codex can use Momo's tasks, notes and memory tools through it.
+/// Runs `codex exec --json` in a read-only sandbox, with Codex's own web search. While it
+/// answers, the app serves the request's tools through a ``ToolBridge``, so Codex can use
+/// every tool Momo has (store, system and the user's MCP servers) with Momo's confirmations
+/// and masking. Without a bridge it falls back to the standalone Momo MCP server.
 public struct CodexProvider: ChatProvider {
     public let info = ProviderInfo(id: "codex", name: "ChatGPT (Codex)", kind: .subscription)
     public let model: String?
-    /// Path to the `momo-mcp` executable, offered to Codex as an MCP server.
+    /// Path to the `momo-mcp` executable, which Codex launches to reach Momo's tools.
     public let mcpServerPath: String?
     private let workingDirectory: URL
 
@@ -37,13 +39,26 @@ public struct CodexProvider: ChatProvider {
         return .ready
     }
 
-    func arguments() -> [String] {
+    /// How long Codex waits for one Momo tool call: long enough for the user to answer a
+    /// confirmation question.
+    static let toolTimeoutSeconds = 600
+
+    func arguments(bridge: MCPLaunch? = nil) -> [String] {
         var arguments = [
             "exec", "--json", "--skip-git-repo-check", "--ephemeral", "--sandbox", "read-only",
+            // Codex's own web search, for current information.
+            "-c", #"web_search="live""#,
         ]
         if let model { arguments += ["-m", model] }
-        if let mcpServerPath {
-            arguments += ["-c", "mcp_servers.momo.command=\(Self.tomlString(mcpServerPath))"]
+        let server = "mcp_servers.\(ToolBridge.serverName)"
+        if let bridge {
+            arguments += [
+                "-c", "\(server).command=\(Self.tomlString(bridge.command))",
+                "-c", "\(server).args=\(Self.tomlArray(bridge.arguments))",
+                "-c", "\(server).tool_timeout_sec=\(Self.toolTimeoutSeconds)",
+            ]
+        } else if let mcpServerPath {
+            arguments += ["-c", "\(server).command=\(Self.tomlString(mcpServerPath))"]
         }
         arguments.append("-")
         return arguments
@@ -60,12 +75,18 @@ public struct CodexProvider: ChatProvider {
                     continuation.finish(throwing: ProviderError("Codex was not found."))
                     return
                 }
-                let prompt = CLIPrompt.make(request)
-                var parser = CodexEventParser()
+                let bridge = ToolBridge.start(
+                    tools: request.tools, relayPath: mcpServerPath, runTool: runTool,
+                    report: { continuation.yield($0) })
+                defer { bridge?.stop() }
+                let prompt = CLIPrompt.make(
+                    request, hasTools: bridge != nil || mcpServerPath != nil)
+                var parser = CodexEventParser(
+                    bridgedServer: bridge.map { _ in ToolBridge.serverName })
                 do {
                     for try await line in CommandRunner.lines(
-                        executable: executable, arguments: arguments(), input: prompt,
-                        workingDirectory: workingDirectory)
+                        executable: executable, arguments: arguments(bridge: bridge?.launch),
+                        input: prompt, workingDirectory: workingDirectory)
                     {
                         for event in try parser.consume(line) { continuation.yield(event) }
                     }
@@ -82,17 +103,42 @@ public struct CodexProvider: ChatProvider {
         }
     }
 
+    /// A TOML basic string, with backslashes, quotes and control characters escaped.
     static func tomlString(_ value: String) -> String {
-        "\""
-            + value.replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        var escaped = "\""
+        for scalar in value.unicodeScalars {
+            switch scalar {
+            case "\\": escaped += "\\\\"
+            case "\"": escaped += "\\\""
+            case "\n": escaped += "\\n"
+            case "\t": escaped += "\\t"
+            case "\r": escaped += "\\r"
+            case _ where scalar.value < 0x20 || scalar.value == 0x7F:
+                escaped += String(format: "\\u%04X", scalar.value)
+            default: escaped.unicodeScalars.append(scalar)
+            }
+        }
+        return escaped + "\""
+    }
+
+    /// A TOML array of strings.
+    static func tomlArray(_ values: [String]) -> String {
+        "[" + values.map(tomlString).joined(separator: ", ") + "]"
     }
 }
 
 /// Reads the JSON Lines events of `codex exec --json`.
 struct CodexEventParser {
+    /// The MCP server whose calls the ``ToolBridge`` already reports; their events are
+    /// skipped so each call shows once.
+    var bridgedServer: String?
     private(set) var lastError: String?
     private var messageCount = 0
+    private var startedSearches: Set<String> = []
+
+    init(bridgedServer: String? = nil) {
+        self.bridgedServer = bridgedServer
+    }
 
     mutating func consume(_ line: String) throws -> [ChatEvent] {
         guard let event = try? JSONValue.parse(line), let type = event["type"]?.stringValue else {
@@ -105,8 +151,10 @@ struct CodexEventParser {
             defer { messageCount += 1 }
             return [.text(messageCount == 0 ? text : "\n\n" + text)]
         case ("item.started", "mcp_tool_call"):
+            guard !isBridged(item) else { return [] }
             return [.toolStarted(Self.toolCall(item))]
         case ("item.completed", "mcp_tool_call"):
+            guard !isBridged(item) else { return [] }
             let call = Self.toolCall(item)
             let failed = item?["status"]?.stringValue == "failed"
             return [
@@ -115,6 +163,17 @@ struct CodexEventParser {
                         callID: call.id, name: call.name,
                         output: item?["result"]?.jsonString ?? "", isError: failed))
             ]
+        case ("item.started", "web_search"):
+            let id = item?["id"]?.stringValue ?? ""
+            startedSearches.insert(id)
+            return [.toolStarted(Self.webSearch(item))]
+        case ("item.completed", "web_search"):
+            let id = item?["id"]?.stringValue ?? ""
+            let call = Self.webSearch(item)
+            let finished = ChatEvent.toolFinished(
+                ToolResult(callID: call.id, name: call.name, output: ""))
+            // Some versions only report the finished search.
+            return startedSearches.remove(id) == nil ? [.toolStarted(call), finished] : [finished]
         case ("turn.failed", _):
             lastError = event["error"]?["message"]?.stringValue ?? "Codex could not finish."
             throw ProviderError(lastError ?? "")
@@ -126,24 +185,43 @@ struct CodexEventParser {
         }
     }
 
+    private func isBridged(_ item: JSONValue?) -> Bool {
+        guard let bridgedServer else { return false }
+        return item?["server"]?.stringValue == bridgedServer
+    }
+
     private static func toolCall(_ item: JSONValue?) -> ToolCall {
         ToolCall(
             id: item?["id"]?.stringValue ?? ShortID.make(),
             name: item?["tool"]?.stringValue ?? "tool",
             arguments: item?["arguments"]?.jsonString ?? "{}")
     }
+
+    private static func webSearch(_ item: JSONValue?) -> ToolCall {
+        let query = item?["query"]?.stringValue ?? ""
+        return ToolCall(
+            id: item?["id"]?.stringValue ?? ShortID.make(), name: "web_search",
+            arguments: (["query": .string(query)] as JSONValue).jsonString)
+    }
 }
 
 /// Uses the user's Google account (and their Google AI plan, if they have one) through the
 /// official Gemini CLI, signed in with Google. It never uses a Gemini API key, which would be
 /// billed separately.
+///
+/// Momo's tools reach the CLI through a ``ToolBridge`` described in a generated settings file
+/// (see ``GeminiCLIProvider/settings(bridge:)``). The CLI's own file and shell tools are
+/// excluded; its Google web search stays available.
 public struct GeminiCLIProvider: ChatProvider {
     public let info = ProviderInfo(id: "gemini-cli", name: "Gemini (CLI)", kind: .subscription)
     public let model: String?
+    /// Path to the `momo-mcp` executable, which the CLI launches to reach Momo's tools.
+    public let mcpServerPath: String?
     private let workingDirectory: URL
 
-    public init(model: String? = nil, workingDirectory: URL) {
+    public init(model: String? = nil, mcpServerPath: String? = nil, workingDirectory: URL) {
         self.model = model?.isEmpty == true ? nil : model
+        self.mcpServerPath = mcpServerPath
         self.workingDirectory = workingDirectory
     }
 
@@ -163,6 +241,65 @@ public struct GeminiCLIProvider: ChatProvider {
         return .ready
     }
 
+    /// Built-in Gemini CLI tools Momo never offers: they change files, run commands or write
+    /// the CLI's own memory. Momo has its own tools for all of that, with confirmation.
+    static let excludedTools = [
+        "run_shell_command", "write_file", "replace", "edit", "save_memory", "write_todos",
+    ]
+
+    /// How long the CLI waits for one Momo tool call, in milliseconds: long enough for the
+    /// user to answer a confirmation question.
+    static let toolTimeoutMilliseconds = 600_000
+
+    /// The settings file for one run, in the current (v2, nested) settings format.
+    ///
+    /// The Momo server is trusted because Momo asks for confirmation itself; in non-interactive
+    /// runs the CLI would otherwise deny every call that needs approval. Only the Momo server
+    /// is allowed, so tools that bypass Momo's confirmation never reach the model.
+    static func settings(bridge: MCPLaunch?) -> JSONValue {
+        var settings: [String: JSONValue] = [
+            "tools": ["exclude": .array(excludedTools.map { .string($0) })]
+        ]
+        if let bridge {
+            settings["mcpServers"] = [
+                ToolBridge.serverName: [
+                    "command": .string(bridge.command),
+                    "args": .array(bridge.arguments.map { .string($0) }),
+                    "trust": true,
+                    "timeout": .number(Double(toolTimeoutMilliseconds)),
+                ]
+            ]
+            settings["mcp"] = ["allowed": [.string(ToolBridge.serverName)]]
+        }
+        return .object(settings)
+    }
+
+    /// Writes `settings` to `<workspace>/.gemini/settings.json` and returns its location.
+    static func writeSettings(_ settings: JSONValue, in workspace: URL) throws -> URL {
+        let folder = workspace.appendingPathComponent(".gemini", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let file = folder.appendingPathComponent("settings.json")
+        try Data(settings.jsonString.utf8).write(to: file, options: .atomic)
+        return file
+    }
+
+    func arguments(format: String) -> [String] {
+        var arguments = ["--output-format", format]
+        if let model { arguments += ["-m", model] }
+        return arguments
+    }
+
+    /// The environment for a run: always the Google sign-in, never an API key from the
+    /// environment, and Momo's settings file.
+    static func environment(settingsFile: URL?) -> [String: String] {
+        var environment = ["GOOGLE_GENAI_USE_GCA": "true", "GEMINI_API_KEY": ""]
+        // Workspace settings are ignored in folders the user has not trusted, so the file is
+        // also passed as the system settings layer, which is always read and wins over the
+        // user's own settings for the keys it sets.
+        if let settingsFile { environment["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = settingsFile.path }
+        return environment
+    }
+
     public func respond(
         to request: ChatRequest, runTool: @escaping ToolRunner
     )
@@ -174,22 +311,42 @@ public struct GeminiCLIProvider: ChatProvider {
                     continuation.finish(throwing: ProviderError("The Gemini CLI is not installed."))
                     return
                 }
-                var arguments = ["--output-format", "json"]
-                if let model { arguments += ["-m", model] }
+                let bridge = ToolBridge.start(
+                    tools: request.tools, relayPath: mcpServerPath, runTool: runTool,
+                    report: { continuation.yield($0) })
+                defer { bridge?.stop() }
+                let settingsFile = try? Self.writeSettings(
+                    Self.settings(bridge: bridge?.launch), in: workingDirectory)
+                let environment = Self.environment(settingsFile: settingsFile)
+                let prompt = CLIPrompt.make(request, hasTools: bridge != nil)
+                var parser = GeminiStreamParser(
+                    bridgedServer: bridge.map { _ in ToolBridge.serverName },
+                    bridgedTools: Set(bridge == nil ? [] : request.tools.map(\.name)))
                 var output = ""
                 do {
-                    // Always use the Google sign-in, never an API key from the environment.
                     for try await line in CommandRunner.lines(
-                        executable: executable, arguments: arguments,
-                        input: CLIPrompt.make(request), workingDirectory: workingDirectory,
-                        environment: ["GOOGLE_GENAI_USE_GCA": "true", "GEMINI_API_KEY": ""])
+                        executable: executable, arguments: arguments(format: "stream-json"),
+                        input: prompt, workingDirectory: workingDirectory,
+                        environment: environment)
                     {
-                        output += line + "\n"
+                        if output.count < 64_000 { output += line + "\n" }
+                        for event in try parser.consume(line) { continuation.yield(event) }
                     }
-                    continuation.yield(.text(try Self.parse(output)))
                     continuation.finish()
+                } catch let failure as CommandRunner.Failure
+                    where !parser.sawEvents && Self.rejectsStreamJSON(failure.standardError)
+                {
+                    // An older CLI without streaming output: ask for one JSON answer.
+                    do {
+                        let text = try await answer(
+                            executable: executable, prompt: prompt, environment: environment)
+                        continuation.yield(.text(text))
+                        continuation.finish()
+                    } catch {
+                        continuation.finish(throwing: error)
+                    }
                 } catch let failure as CommandRunner.Failure {
-                    let message = Self.errorMessage(in: output)
+                    let message = parser.lastError ?? Self.errorMessage(in: output)
                     continuation.finish(
                         throwing: ProviderError(
                             message ?? CLIPrompt.describe(failure, tool: "Gemini CLI")))
@@ -199,6 +356,32 @@ public struct GeminiCLIProvider: ChatProvider {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    /// Runs the CLI with `--output-format json` and returns the reply.
+    private func answer(
+        executable: URL, prompt: String, environment: [String: String]
+    ) async throws -> String {
+        var output = ""
+        do {
+            for try await line in CommandRunner.lines(
+                executable: executable, arguments: arguments(format: "json"), input: prompt,
+                workingDirectory: workingDirectory, environment: environment)
+            {
+                output += line + "\n"
+            }
+            return try Self.parse(output)
+        } catch let failure as CommandRunner.Failure {
+            throw ProviderError(
+                Self.errorMessage(in: output) ?? CLIPrompt.describe(failure, tool: "Gemini CLI"))
+        }
+    }
+
+    /// Whether the CLI refused `--output-format stream-json` because it is too old.
+    static func rejectsStreamJSON(_ standardError: String) -> Bool {
+        standardError.contains("stream-json")
+            && (standardError.localizedCaseInsensitiveContains("invalid")
+                || standardError.localizedCaseInsensitiveContains("choices"))
     }
 
     /// The error message in a JSON answer, if there is one.
@@ -227,17 +410,114 @@ public struct GeminiCLIProvider: ChatProvider {
     }
 }
 
+/// Reads the JSON Lines events of `gemini --output-format stream-json`: streamed reply text
+/// and the CLI's own tool calls (such as Google Search).
+struct GeminiStreamParser {
+    /// The MCP server whose calls the ``ToolBridge`` already reports.
+    var bridgedServer: String?
+    /// Tool names the bridge serves; older CLIs report MCP tools without a prefix.
+    var bridgedTools: Set<String>
+    private(set) var lastError: String?
+    /// Whether any event was understood, which shows the CLI supports streaming output.
+    private(set) var sawEvents = false
+    /// Names of the running tool calls the parser reported, by tool call ID.
+    private var runningTools: [String: String] = [:]
+    private var hasText = false
+    private var toolSinceText = false
+
+    init(bridgedServer: String? = nil, bridgedTools: Set<String> = []) {
+        self.bridgedServer = bridgedServer
+        self.bridgedTools = bridgedTools
+    }
+
+    mutating func consume(_ line: String) throws -> [ChatEvent] {
+        guard let event = try? JSONValue.parse(line), let type = event["type"]?.stringValue else {
+            return []
+        }
+        sawEvents = true
+        switch type {
+        case "message":
+            guard event["role"]?.stringValue == "assistant",
+                let content = event["content"]?.stringValue, !content.isEmpty
+            else { return [] }
+            // Separate the text before and after tool calls.
+            let text = hasText && toolSinceText ? "\n\n" + content : content
+            hasText = true
+            toolSinceText = false
+            return [.text(text)]
+        case "tool_use":
+            toolSinceText = true
+            let name = event["tool_name"]?.stringValue ?? "tool"
+            guard !isBridged(name) else { return [] }
+            let id = event["tool_id"]?.stringValue ?? ShortID.make()
+            runningTools[id] = name
+            return [
+                .toolStarted(
+                    ToolCall(
+                        id: id, name: name, arguments: event["parameters"]?.jsonString ?? "{}"))
+            ]
+        case "tool_result":
+            toolSinceText = true
+            guard let id = event["tool_id"]?.stringValue,
+                let name = runningTools.removeValue(forKey: id)
+            else { return [] }
+            let failed = event["status"]?.stringValue == "error"
+            let output =
+                event["output"]?.stringValue ?? event["error"]?["message"]?.stringValue ?? ""
+            return [
+                .toolFinished(ToolResult(callID: id, name: name, output: output, isError: failed))
+            ]
+        case "error":
+            if event["severity"]?.stringValue != "warning",
+                let message = event["message"]?.stringValue
+            {
+                lastError = "Gemini CLI: \(message)"
+            }
+            return []
+        case "result":
+            guard event["status"]?.stringValue == "error" else { return [] }
+            let message =
+                event["error"]?["message"]?.stringValue ?? lastError ?? "The Gemini CLI failed."
+            lastError = message.hasPrefix("Gemini CLI") ? message : "Gemini CLI: \(message)"
+            throw ProviderError(lastError ?? message)
+        default:
+            return []
+        }
+    }
+
+    private func isBridged(_ name: String) -> Bool {
+        guard let bridgedServer else { return false }
+        return name.hasPrefix("mcp_\(bridgedServer)_") || name.hasPrefix("\(bridgedServer)__")
+            || bridgedTools.contains(name)
+    }
+}
+
 /// Builds single-shot prompts for CLI agents and explains their failures.
 enum CLIPrompt {
-    static func make(_ request: ChatRequest) -> String {
-        """
-        \(request.systemPrompt)
+    /// - Parameter hasTools: Whether the CLI can reach Momo's tools through the `momo` MCP
+    ///   server.
+    static func make(_ request: ChatRequest, hasTools: Bool = false) -> String {
+        let bridge =
+            hasTools
+            ? """
+            You are answering through a command line bridge. To act for the user (tasks, \
+            notes, memories, calendar, apps, their connected services and more), call the \
+            tools of the "momo" MCP server: they run inside Momo on the user's Mac, and Momo \
+            asks the user before anything irreversible, so use them directly instead of \
+            describing what you would do or telling the user to do it. Use web search for \
+            current information. Never modify files or run shell commands.
+            """
+            : """
+            You are answering through a command line bridge. Do not modify files or run shell \
+            commands; just answer.
+            """
+        return """
+            \(request.systemPrompt)
 
-        You are answering through a command line bridge. Do not modify files or run shell \
-        commands; just answer.
+            \(bridge)
 
-        \(PromptFlattener.prompt(for: request.turns, budget: 60_000))
-        """
+            \(PromptFlattener.prompt(for: request.turns, budget: 60_000))
+            """
     }
 
     static func describe(_ failure: CommandRunner.Failure, tool: String) -> String {
