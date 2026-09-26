@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ at %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ saat %2$@"
+          }
+        }
+      }
+    },
     "%@ is connected with your key." : {
       "localizations" : {
         "tr" : {
@@ -139,6 +149,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo Hakkında"
+          }
+        }
+      }
+    },
+    "Add Routine…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rutin Ekle…"
           }
         }
       }
@@ -904,6 +924,16 @@
         }
       }
     },
+    "Custom" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Özel"
+          }
+        }
+      }
+    },
     "Dance along when music plays" : {
       "localizations" : {
         "tr" : {
@@ -914,12 +944,42 @@
         }
       }
     },
+    "Days" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Günler"
+          }
+        }
+      }
+    },
     "Delete" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sil"
+          }
+        }
+      }
+    },
+    "Delete the routine “%@”?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” rutini silinsin mi?"
+          }
+        }
+      }
+    },
+    "Delete…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sil…"
           }
         }
       }
@@ -1115,6 +1175,16 @@
         }
       }
     },
+    "Edit…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Düzenle…"
+          }
+        }
+      }
+    },
     "Erase all of Momo's data…" : {
       "localizations" : {
         "tr" : {
@@ -1141,6 +1211,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hepsini sil"
+          }
+        }
+      }
+    },
+    "Every day" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her gün"
+          }
+        }
+      }
+    },
+    "Every day at %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her gün saat %@"
           }
         }
       }
@@ -1929,6 +2019,16 @@
         }
       }
     },
+    "Momo runs each routine at its time, adds the answer to the chat and lets you know with a notification. If your Mac was asleep, it catches up once when it wakes. You can also ask Momo to set one up, like “every weekday at 9, summarise my day”." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo her rutini zamanında çalıştırır, cevabı sohbete ekler ve bir bildirimle haber verir. Mac'in uykudaysa uyandığında bir kez telafi eder. Momo'dan bir rutin kurmasını da isteyebilirsin, örneğin “hafta içi her gün 9'da günümü özetle”."
+          }
+        }
+      }
+    },
     "Momo starts these servers on your Mac and offers their tools to its brains. Only add servers you trust." : {
       "localizations" : {
         "tr" : {
@@ -1976,6 +2076,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Daha fazla"
+          }
+        }
+      }
+    },
+    "Morning brief" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sabah özeti"
           }
         }
       }
@@ -2078,6 +2188,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Henüz not yok. Bir tane yaz ya da sohbette bana “not al…” de."
+          }
+        }
+      }
+    },
+    "No routines yet." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Henüz rutin yok."
           }
         }
       }
@@ -2670,6 +2790,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo'nun araçlarını görmek için Claude Desktop'ı yeniden başlat."
+          }
+        }
+      }
+    },
+    "Routines" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rutinler"
+          }
+        }
+      }
+    },
+    "Run Now" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Şimdi Çalıştır"
           }
         }
       }
@@ -3394,6 +3534,16 @@
         }
       }
     },
+    "Time" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saat"
+          }
+        }
+      }
+    },
     "Title" : {
       "localizations" : {
         "tr" : {
@@ -3625,12 +3775,52 @@
         }
       }
     },
+    "Weekdays" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hafta içi"
+          }
+        }
+      }
+    },
+    "Weekdays at %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hafta içi saat %@"
+          }
+        }
+      }
+    },
+    "Weekends at %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hafta sonu saat %@"
+          }
+        }
+      }
+    },
     "What can I do for you?" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Senin için ne yapabilirim?"
+          }
+        }
+      }
+    },
+    "What should Momo do?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo ne yapsın?"
           }
         }
       }
@@ -3831,6 +4021,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "kişilik, kısayol, girişte aç, güncellemeler, hoş geldin turu, shortcut, updates"
+          }
+        }
+      }
+    },
+    "schedule, automation, every day, morning brief, recurring prompt" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zamanlama, otomasyon, her gün, sabah özeti, tekrarlayan istek, schedule, automation, routine"
           }
         }
       }
