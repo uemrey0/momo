@@ -2794,6 +2794,46 @@
         }
       }
     },
+    "Run this AppleScript:\n\n%@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu AppleScript çalıştırılsın:\n\n%@"
+          }
+        }
+      }
+    },
+    "Run this shell command:\n\n%@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu kabuk komutu çalıştırılsın:\n\n%@"
+          }
+        }
+      }
+    },
+    "Running AppleScript" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AppleScript çalıştırıyorum"
+          }
+        }
+      }
+    },
+    "Running a command" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komut çalıştırıyorum"
+          }
+        }
+      }
+    },
     "Running a shortcut" : {
       "localizations" : {
         "tr" : {
