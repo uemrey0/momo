@@ -1,5 +1,6 @@
 import Foundation
 import MomoBrain
+import MomoVoice
 import Observation
 
 /// Momo's personality, which adds one line to the system prompt.
@@ -45,6 +46,14 @@ struct Preferences: Codable, Equatable {
     var reactsToLateNight = true
     var wakeWordEnabled = false
     var voiceIdentifier = ""
+    /// The speech recognition engine for dictation.
+    var dictationEngine = DictationEngineChoice.automatic
+    /// The OpenAI model used when ``dictationEngine`` is OpenAI.
+    var openAITranscriptionModel = OpenAITranscriptionService.defaultModel.rawValue
+    /// Which voice reads replies aloud.
+    var speechVoice = SpeechVoiceChoice.apple
+    /// The OpenAI voice used when ``speechVoice`` is OpenAI.
+    var openAIVoice = OpenAISpeechRequest.defaultVoice
     var mcpServers: [MCPServerConfiguration] = []
     var checksForUpdates = true
     var hidesFromScreenCapture = true
@@ -69,6 +78,11 @@ struct Preferences: Codable, Equatable {
         reactsToLateNight = value(.reactsToLateNight, defaults.reactsToLateNight)
         wakeWordEnabled = value(.wakeWordEnabled, defaults.wakeWordEnabled)
         voiceIdentifier = value(.voiceIdentifier, defaults.voiceIdentifier)
+        dictationEngine = value(.dictationEngine, defaults.dictationEngine)
+        openAITranscriptionModel = value(
+            .openAITranscriptionModel, defaults.openAITranscriptionModel)
+        speechVoice = value(.speechVoice, defaults.speechVoice)
+        openAIVoice = value(.openAIVoice, defaults.openAIVoice)
         mcpServers = value(.mcpServers, defaults.mcpServers)
         checksForUpdates = value(.checksForUpdates, defaults.checksForUpdates)
         hidesFromScreenCapture = value(.hidesFromScreenCapture, defaults.hidesFromScreenCapture)

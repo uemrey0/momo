@@ -107,9 +107,12 @@ struct ConfirmationPrompt: Identifiable, Equatable {
 struct OutboundRecord: Codable, Identifiable, Equatable {
     var id = UUID()
     var date: Date
+    /// The brain or service the request went to.
     var brainName: String
     var characters: Int
     var masked: Bool
+    /// Seconds of audio sent, for cloud transcription.
+    var audioSeconds: Double?
 }
 
 /// A brain and whether it is ready, for the brain picker and settings.
@@ -366,12 +369,24 @@ final class AssistantController {
     private func record(
         brain: ProviderInfo, message: String, _ configuration: Assistant.Configuration
     ) {
-        outboundLog.insert(
+        record(
             OutboundRecord(
                 date: Date(), brainName: brain.name,
                 characters: configuration.systemPrompt.count + message.count,
-                masked: configuration.masksPersonalData),
-            at: 0)
+                masked: configuration.masksPersonalData))
+    }
+
+    /// Logs a voice request that left the Mac: text sent to a cloud voice, or audio sent to
+    /// a cloud transcription service.
+    func recordOutbound(service: String, characters: Int = 0, audioSeconds: Double? = nil) {
+        record(
+            OutboundRecord(
+                date: Date(), brainName: service, characters: characters, masked: false,
+                audioSeconds: audioSeconds))
+    }
+
+    private func record(_ entry: OutboundRecord) {
+        outboundLog.insert(entry, at: 0)
         outboundLog = Array(outboundLog.prefix(100))
         if let data = try? JSONEncoder().encode(outboundLog) {
             UserDefaults.standard.set(data, forKey: Self.logKey)

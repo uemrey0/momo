@@ -23,12 +23,13 @@ public enum DictationError: LocalizedError, Equatable {
     }
 }
 
-/// Turns speech into text, on the device whenever the language allows it.
+/// Turns speech into text with Apple Speech, on the device whenever the language allows it.
 ///
 /// Call ``start(locale:)``; partial transcripts arrive through ``onPartial``, and the final
-/// one through ``onFinal`` after the user pauses or ``stop()`` is called.
+/// one through ``onFinal`` after the user pauses or ``stop(deliver:)`` is called. This engine
+/// works on every supported macOS version, so it is the fallback for the others.
 @MainActor
-public final class SpeechRecognizer {
+public final class SpeechRecognizer: DictationEngine {
     public var onPartial: ((String) -> Void)?
     public var onFinal: ((String) -> Void)?
     /// Input level from 0 to 1, about 20 times a second.
@@ -55,6 +56,48 @@ public final class SpeechRecognizer {
             SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
         }
         guard status == .authorized else { throw DictationError.speechRecognitionDenied }
+    }
+
+    /// Transcribes a recorded audio file with Apple Speech, on the device when the language
+    /// allows it. Used when a cloud engine fails after the user has already spoken.
+    public nonisolated static func transcribeFile(
+        at url: URL, locale: Locale = .current
+    ) async throws
+        -> String
+    {
+        guard let recognizer = SFSpeechRecognizer(locale: locale) ?? SFSpeechRecognizer() else {
+            throw DictationError.unsupportedLanguage(locale.identifier)
+        }
+        guard recognizer.isAvailable else { throw DictationError.unavailable }
+        let request = SFSpeechURLRecognitionRequest(url: url)
+        request.shouldReportPartialResults = false
+        request.addsPunctuation = true
+        if recognizer.supportsOnDeviceRecognition {
+            request.requiresOnDeviceRecognition = true
+        }
+        let box = ContinuationBox()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                box.set(continuation)
+                box.task = recognizer.recognitionTask(
+                    with: request,
+                    resultHandler: makeFileResultHandler(box: box))
+            }
+        } onCancel: {
+            box.cancel()
+        }
+    }
+
+    private nonisolated static func makeFileResultHandler(
+        box: ContinuationBox
+    ) -> (SFSpeechRecognitionResult?, (any Error)?) -> Void {
+        { result, error in
+            if let result, result.isFinal {
+                box.resume(with: .success(result.bestTranscription.formattedString))
+            } else if let error {
+                box.resume(with: .failure(error))
+            }
+        }
     }
 
     /// Starts listening in `locale`'s language.
@@ -164,6 +207,32 @@ public final class SpeechRecognizer {
     }
 }
 
+/// Resumes a file transcription exactly once, from whichever thread finishes first.
+private final class ContinuationBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<String, any Error>?
+    var task: SFSpeechRecognitionTask?
+
+    func set(_ continuation: CheckedContinuation<String, any Error>) {
+        lock.lock()
+        self.continuation = continuation
+        lock.unlock()
+    }
+
+    func resume(with result: Result<String, any Error>) {
+        lock.lock()
+        let continuation = self.continuation
+        self.continuation = nil
+        lock.unlock()
+        continuation?.resume(with: result)
+    }
+
+    func cancel() {
+        task?.cancel()
+        resume(with: .failure(CancellationError()))
+    }
+}
+
 /// Passes audio buffers from the audio thread to the recognition request, which is safe to
 /// append to from any thread.
 private final class AudioFeed: @unchecked Sendable {
@@ -179,7 +248,7 @@ private final class AudioFeed: @unchecked Sendable {
 }
 
 /// Measures the input level and reports it at most every 50 ms.
-private final class LevelReporter: @unchecked Sendable {
+final class LevelReporter: @unchecked Sendable {
     private let callback: @Sendable (Double) -> Void
     private var last = Date.distantPast
     private let lock = NSLock()
@@ -198,11 +267,17 @@ private final class LevelReporter: @unchecked Sendable {
         }
         last = now
         lock.unlock()
+        callback(
+            Self.level(of: UnsafeBufferPointer(start: samples, count: Int(buffer.frameLength))))
+    }
+
+    /// The level of `samples` from 0 to 1, mapping roughly -50 dB…-10 dB.
+    static func level(of samples: UnsafeBufferPointer<Float>) -> Double {
+        guard !samples.isEmpty else { return 0 }
         var sum: Float = 0
-        for index in 0..<Int(buffer.frameLength) { sum += samples[index] * samples[index] }
-        let rms = sqrt(sum / Float(buffer.frameLength))
-        // Map roughly -50 dB…-10 dB to 0…1.
+        for sample in samples { sum += sample * sample }
+        let rms = sqrt(sum / Float(samples.count))
         let decibels = 20 * log10(max(rms, 0.000_01))
-        callback(Double(min(1, max(0, (decibels + 50) / 40))))
+        return Double(min(1, max(0, (decibels + 50) / 40)))
     }
 }
