@@ -1,7 +1,7 @@
 import Foundation
 
-/// The tools that read and change Momo's own data: tasks, notes, habits, memories and
-/// routines.
+/// The tools that read and change Momo's own data: tasks, notes, habits, memories,
+/// routines and meetings.
 ///
 /// These are shared by the in-app assistant and the MCP server.
 public enum StoreTools {
@@ -11,7 +11,8 @@ public enum StoreTools {
             deleteTask(store), addNote(store), searchNotes(store), appendToNote(store),
             deleteNote(store), logHabit(store), listHabits(store), remember(store),
             listMemories(store), forget(store), addRoutine(store), listRoutines(store),
-            updateRoutine(store), deleteRoutine(store), currentTime(),
+            updateRoutine(store), deleteRoutine(store), listMeetings(store), getMeeting(store),
+            meetingActionItemsToTasks(store), currentTime(),
         ]
     }
 
@@ -433,6 +434,159 @@ public enum StoreTools {
             throw ToolError("'\(text)' are not days. Use \(daysDescription).")
         }
         return days
+    }
+
+    // MARK: - Meetings
+
+    static func listMeetings(_ store: MomoStore) -> any MomoTool {
+        ClosureTool(
+            ToolDefinition(
+                name: "list_meetings",
+                description:
+                    "List meetings Momo took notes of, newest first, with their date, participants and summary. Use it to find a meeting, e.g. yesterday's stand-up, then get_meeting for details.",
+                parameters: JSONSchema.object([
+                    "query": JSONSchema.string(
+                        "Optional words to look for in titles, summaries and participants"),
+                    "days": JSONSchema.integer("Optional: only meetings from the last N days"),
+                ]))
+        ) { arguments in
+            var meetings = await store.meetings()
+            if let days = arguments["days"]?.intValue, days > 0 {
+                let start = Calendar.current.date(
+                    byAdding: .day, value: -days, to: Calendar.current.startOfDay(for: Date()))
+                meetings = meetings.filter { $0.startedAt >= (start ?? .distantPast) }
+            }
+            let words = (arguments["query"]?.stringValue ?? "").lowercased()
+                .split(whereSeparator: \.isWhitespace)
+            if !words.isEmpty {
+                meetings = meetings.filter { meeting in
+                    let text =
+                        ([meeting.title, meeting.summary] + meeting.participants.map(\.name))
+                        .joined(separator: " ").lowercased()
+                    return words.allSatisfy { text.contains($0) }
+                }
+            }
+            guard !meetings.isEmpty else { return "No meetings found." }
+            return meetings.prefix(20).map(describe).joined(separator: "\n")
+        }
+    }
+
+    static func getMeeting(_ store: MomoStore) -> any MomoTool {
+        ClosureTool(
+            ToolDefinition(
+                name: "get_meeting",
+                description:
+                    "Get a meeting's notes: summary, decisions, action items, open questions and participants, optionally with an excerpt of the transcript.",
+                parameters: JSONSchema.object(
+                    [
+                        "meeting": JSONSchema.string("Meeting ID, title, or 'latest'"),
+                        "include_transcript": JSONSchema.boolean(
+                            "Also return the transcript (shortened when long)"),
+                    ], required: ["meeting"]))
+        ) { arguments in
+            let meeting = try await store.findMeeting(try required(arguments, "meeting"))
+            return details(
+                meeting, includeTranscript: arguments["include_transcript"]?.boolValue ?? false)
+        }
+    }
+
+    static func meetingActionItemsToTasks(_ store: MomoStore) -> any MomoTool {
+        ClosureTool(
+            ToolDefinition(
+                name: "meeting_action_items_to_tasks",
+                description:
+                    "Add a meeting's action items to the user's tasks. Items that are already tasks are skipped.",
+                parameters: JSONSchema.object(
+                    [
+                        "meeting": JSONSchema.string("Meeting ID, title, or 'latest'"),
+                        "items": JSONSchema.string(
+                            "Optional comma-separated action item IDs; all items when omitted"),
+                    ], required: ["meeting"]))
+        ) { arguments in
+            let meeting = try await store.findMeeting(try required(arguments, "meeting"))
+            guard !meeting.actionItems.isEmpty else {
+                return "The meeting “\(meeting.title)” has no action items."
+            }
+            var ids: Set<String>?
+            if let text = arguments["items"]?.stringValue, !text.isEmpty {
+                ids = Set(
+                    text.split(whereSeparator: { $0 == "," || $0.isWhitespace })
+                        .map { $0.lowercased() })
+            } else if let array = arguments["items"]?.arrayValue {
+                ids = Set(array.compactMap(\.stringValue).map { $0.lowercased() })
+            }
+            let tasks = try await store.addActionItemsAsTasks(meetingID: meeting.id, itemIDs: ids)
+            guard !tasks.isEmpty else { return "Those action items are already tasks." }
+            return "Added tasks:\n" + tasks.map(describe).joined(separator: "\n")
+        }
+    }
+
+    static func describe(_ meeting: Meeting) -> String {
+        var parts = [
+            "[\(meeting.id)] \(FlexibleDate.format(meeting.startedAt)) \(meeting.title)",
+            "(\(Int(meeting.duration() / 60)) min, \(meeting.participantCount) participants)",
+        ]
+        switch meeting.status {
+        case .recording: parts.append("(recording now)")
+        case .summarizing: parts.append("(summary in progress)")
+        case .failed: parts.append("(no summary)")
+        case .done: break
+        }
+        if !meeting.summary.isEmpty {
+            let summary = meeting.summary.replacingOccurrences(of: "\n", with: " ")
+            parts.append("— " + (summary.count > 200 ? summary.prefix(200) + "…" : summary))
+        }
+        return parts.joined(separator: " ")
+    }
+
+    /// A meeting's notes for the model, with at most `transcriptLimit` characters of transcript.
+    static func details(
+        _ meeting: Meeting, includeTranscript: Bool, transcriptLimit: Int = 8_000
+    ) -> String {
+        var lines = [describe(meeting)]
+        if !meeting.participants.isEmpty {
+            lines.append(
+                "Participants: "
+                    + meeting.participants.map { participant in
+                        participant.isUser
+                            ? "the user"
+                            : participant.name + (participant.spoke ? "" : " (invited)")
+                    }.joined(separator: ", "))
+        }
+        if !meeting.summary.isEmpty { lines.append("Summary: \(meeting.summary)") }
+        func section(_ title: String, _ items: [String]) {
+            guard !items.isEmpty else { return }
+            lines.append("\(title):\n" + items.map { "- \($0)" }.joined(separator: "\n"))
+        }
+        section("Decisions", meeting.decisions)
+        section(
+            "Action items",
+            meeting.actionItems.map { item in
+                var text = "[\(item.id)] \(item.text)"
+                if let owner = item.owner { text += " — owner: \(owner)" }
+                if let due = item.dueDate {
+                    text += ", due \(FlexibleDate.format(due))"
+                } else if let due = item.dueText {
+                    text += ", due \(due)"
+                }
+                if item.taskID != nil { text += " (already a task)" }
+                return text
+            })
+        section("Open questions", meeting.openQuestions)
+        if let reason = meeting.failureReason { lines.append("No summary: \(reason)") }
+        if includeTranscript {
+            let transcript = MeetingTranscript.lines(meeting.segments).joined(separator: "\n")
+            if transcript.isEmpty {
+                lines.append("Transcript: (empty)")
+            } else if transcript.count > transcriptLimit {
+                lines.append(
+                    "Transcript (first \(transcriptLimit) of \(transcript.count) characters):\n"
+                        + transcript.prefix(transcriptLimit) + "…")
+            } else {
+                lines.append("Transcript:\n\(transcript)")
+            }
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - Time

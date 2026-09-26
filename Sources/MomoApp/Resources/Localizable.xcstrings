@@ -303,6 +303,16 @@
         }
       }
     },
+    "Adding action items as tasks" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapılacakları görev olarak ekliyorum"
+          }
+        }
+      }
+    },
     "Adjusting the volume" : {
       "localizations" : {
         "tr" : {
@@ -820,6 +830,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alışkanlıklarına bakılıyor"
+          }
+        }
+      }
+    },
+    "Checking your meetings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantılarına bakıyorum"
           }
         }
       }
@@ -3280,6 +3300,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Web sayfası okunuyor"
+          }
+        }
+      }
+    },
+    "Reading meeting notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı notlarını okuyorum"
           }
         }
       }

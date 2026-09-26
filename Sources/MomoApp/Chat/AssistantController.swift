@@ -129,6 +129,10 @@ struct ToolActivity: Identifiable, Equatable {
         case "list_routines": L("Checking your routines", comment: "Tool activity")
         case "update_routine": L("Updating a routine", comment: "Tool activity")
         case "delete_routine": L("Deleting a routine", comment: "Tool activity")
+        case "list_meetings": L("Checking your meetings", comment: "Tool activity")
+        case "get_meeting": L("Reading meeting notes", comment: "Tool activity")
+        case "meeting_action_items_to_tasks":
+            L("Adding action items as tasks", comment: "Tool activity")
         case "current_time": L("Checking the time", comment: "Tool activity")
         case "calendar_events": L("Looking at your calendar", comment: "Tool activity")
         case "add_calendar_event": L("Adding a calendar event", comment: "Tool activity")
