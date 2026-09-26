@@ -107,6 +107,22 @@ confirmation, masking and the character's reactions apply as for every other bra
 the bridge through `-c mcp_servers.momo...`; Gemini CLI through a generated settings file in
 Momo's CLI workspace that trusts the Momo server and excludes the CLI's file and shell tools.
 
+## Images
+
+Drawing is a tool, so it works with every brain: `generate_image` (prompt, square, landscape or
+portrait, a style hint, one to four pictures) and `edit_image` (the path of an existing picture
+and what to change), in the Images ability group. `ImageGenerator` (in `MomoBrain/Images`)
+tries each `ImageBackend` in turn and falls back to the next when one fails: Apple Image
+Playground on the Mac (`ImageCreator`, macOS 15.4+ with Apple Intelligence), the OpenAI Images
+API or a Gemini image model with the user's keys, then Codex with their ChatGPT plan (`codex
+exec` with its image generation tool; the picture is collected from
+`generated_images/<thread>`). Settings → Abilities → "Draw with" puts one first. In local-only
+mode only Image Playground may draw, and every request to the others is listed in Privacy.
+Pictures are saved in `~/Library/Application Support/Momo/Artifacts/<day>` and returned as
+tool files, so the answer's gallery shows them; the tool's text gives the model their paths.
+When nothing can draw, the tool tells the model how the user can turn drawing on. The system
+prompt asks every brain, Codex included, to draw with these tools.
+
 ## The character
 
 `MomoFace` draws the character procedurally: every visual property is a spring-driven
