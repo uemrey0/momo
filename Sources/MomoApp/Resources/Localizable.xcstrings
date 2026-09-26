@@ -453,6 +453,16 @@
         }
       }
     },
+    "Allow %@ in Settings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ iznini Ayarlar'da ver"
+          }
+        }
+      }
+    },
     "Allow calendar access" : {
       "localizations" : {
         "tr" : {
@@ -3419,6 +3429,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ollama'yı aç"
+          }
+        }
+      }
+    },
+    "Open Permissions" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İzinleri Aç"
           }
         }
       }

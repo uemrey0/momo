@@ -47,12 +47,18 @@ public struct ToolResult: Sendable, Hashable {
     /// Text returned to the model.
     public var output: String
     public var isError: Bool
+    /// The macOS permission the tool was missing, when that is why it failed.
+    public var missingPermission: MacPermission?
 
-    public init(callID: String, name: String, output: String, isError: Bool = false) {
+    public init(
+        callID: String, name: String, output: String, isError: Bool = false,
+        missingPermission: MacPermission? = nil
+    ) {
         self.callID = callID
         self.name = name
         self.output = output
         self.isError = isError
+        self.missingPermission = missingPermission
     }
 }
 
@@ -170,6 +176,10 @@ public struct Toolbox: Sendable {
         do {
             let output = try await tool.run(arguments: arguments)
             return ToolResult(callID: call.id, name: call.name, output: output)
+        } catch let error as PermissionRequired {
+            return ToolResult(
+                callID: call.id, name: call.name, output: "Error: \(error.localizedDescription)",
+                isError: true, missingPermission: error.permission)
         } catch {
             return ToolResult(
                 callID: call.id, name: call.name, output: "Error: \(error.localizedDescription)",

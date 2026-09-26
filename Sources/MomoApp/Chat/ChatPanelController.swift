@@ -1,4 +1,5 @@
 import AppKit
+import MomoKit
 import SwiftUI
 
 /// The sections of the panel.
@@ -106,7 +107,8 @@ final class ChatPanelController {
     init(
         assistant: AssistantController, today: TodayModel, notes: NotesModel,
         meetings: MeetingController?, state: PanelState, voice: VoiceController?,
-        character: CharacterController, openSettings: @escaping (SettingsPane?) -> Void
+        character: CharacterController, openSettings: @escaping (SettingsPane?) -> Void,
+        openPermissions: @escaping (MacPermission?) -> Void = { _ in }
     ) {
         self.assistant = assistant
         self.state = state
@@ -114,7 +116,8 @@ final class ChatPanelController {
         let root = PanelView(
             assistant: assistant, today: today, notes: notes, meetings: meetings, state: state,
             voice: voice,
-            openSettings: openSettings, close: { [weak self] in self?.hide() },
+            openSettings: openSettings, openPermissions: openPermissions,
+            close: { [weak self] in self?.hide() },
             resize: { [weak self] in self?.requestResize(to: $0) })
         let host = NSHostingView(rootView: root)
         host.sizingOptions = []

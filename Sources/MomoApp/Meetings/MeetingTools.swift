@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import MomoKit
 
@@ -39,10 +40,14 @@ enum MeetingTools {
                     "Started taking meeting notes. A red dot shows next to Momo while it records; the user can stop from the menu bar, the Meetings tab or by asking."
             case .waitingForAnswer:
                 return
-                    "Momo needs one more answer from the user in the Meetings tab (Screen Recording permission for the call's audio, or microphone only) before it starts."
+                    "Momo needs one more answer from the user in the Meetings tab (the Screen & System Audio Recording permission for the call's audio, which can also be allowed in Momo Settings → Permissions, or microphone only) before it starts."
             case .alreadyRunning:
                 return "Momo is already taking notes of a meeting."
             case .failed(let reason):
+                if AVCaptureDevice.authorizationStatus(for: .audio) == .denied {
+                    throw PermissionRequired(
+                        .microphone, "Could not start meeting notes: microphone access is off.")
+                }
                 throw ToolError("Could not start meeting notes: \(reason)")
             }
         }

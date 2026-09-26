@@ -21,6 +21,19 @@ struct ToolboxTests {
         #expect(!result.isError)
     }
 
+    @Test("marks results of tools that miss a permission")
+    func missingPermission() async {
+        let calendar = ClosureTool(ToolDefinition(name: "calendar", description: "Calendar")) {
+            _ in throw PermissionRequired(.calendars, "Calendar access is off.")
+        }
+        let result = await Toolbox([calendar]).execute(
+            ToolCall(id: "1", name: "calendar", arguments: "{}"))
+        #expect(result.isError)
+        #expect(result.missingPermission == .calendars)
+        #expect(result.output.contains("Calendar access is off."))
+        #expect(result.output.contains("Momo Settings → Permissions"))
+    }
+
     @Test("keeps the label a tool describes itself with")
     func keepsActivityLabels() {
         let labelled = ClosureTool(

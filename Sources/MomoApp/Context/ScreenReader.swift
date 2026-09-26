@@ -40,8 +40,9 @@ enum ScreenReader {
     private static func captureScreen(scale: Int) async throws -> CGImage {
         guard hasPermission else {
             requestPermission()
-            throw ToolError(
-                "Momo needs Screen Recording permission. The user can allow it in System Settings → Privacy & Security → Screen Recording, then try again."
+            throw PermissionRequired(
+                .screenRecording,
+                "Momo can't see the screen: it needs the Screen & System Audio Recording permission."
             )
         }
         let content = try await SCShareableContent.excludingDesktopWindows(

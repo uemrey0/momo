@@ -68,7 +68,8 @@ final class AppModel {
         let panel = ChatPanelController(
             assistant: assistant, today: today, notes: notes, meetings: meetings,
             state: panelState, voice: voice, character: character,
-            openSettings: { [weak self] in self?.openSettings($0) })
+            openSettings: { [weak self] in self?.openSettings($0) },
+            openPermissions: { [weak self] in self?.openPermissions($0) })
         chatPanel = panel
         meetings.showMeetings = { [weak panel] in panel?.show(tab: .meetings) }
         panel.hasMeetingQuestion = { [weak meetings] in

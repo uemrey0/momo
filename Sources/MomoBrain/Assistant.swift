@@ -9,8 +9,9 @@ public enum AssistantEvent: Sendable, Equatable {
     case text(String)
     /// A tool started running.
     case toolStarted(name: String)
-    /// A tool finished.
-    case toolFinished(name: String, succeeded: Bool)
+    /// A tool finished. `missingPermission` is set when it failed for lack of a macOS
+    /// permission.
+    case toolFinished(name: String, succeeded: Bool, missingPermission: MacPermission? = nil)
 }
 
 /// The user's answer when Momo asks before using a remote brain.
@@ -212,7 +213,10 @@ public actor Assistant {
                         name: result.name,
                         arguments: incoming(calls[result.callID]?.arguments ?? "{}"),
                         result: incoming(result.output), isError: result.isError))
-                continuation.yield(.toolFinished(name: result.name, succeeded: !result.isError))
+                continuation.yield(
+                    .toolFinished(
+                        name: result.name, succeeded: !result.isError,
+                        missingPermission: result.missingPermission))
             }
         }
         if !pending.isEmpty {
