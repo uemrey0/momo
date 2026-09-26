@@ -17,7 +17,7 @@ let package = Package(
     targets: [
         .target(name: "MomoFace"),
         .target(name: "MomoKit"),
-        .target(name: "MomoBrain", dependencies: ["MomoKit"]),
+        .target(name: "MomoBrain", dependencies: ["MomoKit", "MomoMCP"]),
         .target(name: "MomoVoice"),
         .target(name: "MomoMCP", dependencies: ["MomoKit"]),
         .executableTarget(name: "momo-mcp", dependencies: ["MomoMCP", "MomoKit"]),
@@ -28,7 +28,7 @@ let package = Package(
         ),
         .testTarget(name: "MomoFaceTests", dependencies: ["MomoFace"]),
         .testTarget(name: "MomoKitTests", dependencies: ["MomoKit"]),
-        .testTarget(name: "MomoBrainTests", dependencies: ["MomoBrain", "MomoKit"]),
+        .testTarget(name: "MomoBrainTests", dependencies: ["MomoBrain", "MomoKit", "MomoMCP"]),
         .testTarget(name: "MomoVoiceTests", dependencies: ["MomoVoice"]),
         .testTarget(name: "MomoMCPTests", dependencies: ["MomoMCP", "MomoKit"]),
     ]
