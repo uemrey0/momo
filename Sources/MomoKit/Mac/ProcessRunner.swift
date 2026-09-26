@@ -1,22 +1,21 @@
 import Foundation
-import MomoKit
 
 /// What a finished process printed and how it ended.
-struct ProcessOutput: Sendable {
+public struct ProcessOutput: Sendable {
     /// The exit status, or the signal number when the process was killed.
-    var status: Int32
+    public var status: Int32
     /// Standard output and standard error, interleaved, decoded as UTF-8.
-    var output: String
+    public var output: String
     /// Whether the process was stopped because it ran past its timeout.
-    var timedOut: Bool
+    public var timedOut: Bool
     /// Whether output beyond the byte limit was dropped.
-    var truncated: Bool
+    public var truncated: Bool
 }
 
 /// Runs command line tools off the main thread with a timeout and a cap on the output kept.
-enum ProcessRunner {
+public enum ProcessRunner {
     /// Runs `executable` and waits for it to finish, at most `timeout` seconds.
-    static func run(
+    public static func run(
         _ executable: String, arguments: [String], currentDirectory: URL? = nil,
         timeout: TimeInterval = 60, outputLimit: Int = 1_000_000
     ) async throws -> ProcessOutput {
