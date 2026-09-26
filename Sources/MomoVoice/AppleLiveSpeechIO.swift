@@ -104,19 +104,39 @@ public final class AppleLiveSpeechIO: LiveSpeechIO {
         if wasRunning { onEvent?(.stopped) }
     }
 
+    /// Opens the microphone and the speakers. Voice processing (echo cancellation) is tried
+    /// first; some devices, such as Bluetooth headsets in certain modes, refuse it, and then
+    /// the session runs without it rather than not at all, with barge-in off because Momo
+    /// would hear itself.
     private func startAudio() throws {
-        let graph = try LiveAudioGraph(router: router) { [weak self] in
-            self?.outputChanged()
-        } onOutputLevel: { [weak self] level in
-            self?.outputLevel(level)
-        } onInputLevel: { [weak self] level in
-            self?.inputLevel(level)
+        let graph: LiveAudioGraph
+        do {
+            graph = try makeAudioGraph(voiceProcessing: true)
+        } catch {
+            guard let plain = try? makeAudioGraph(voiceProcessing: false) else { throw error }
+            graph = plain
         }
         audio = graph
         configurationObserver = NotificationCenter.default.addObserver(
             forName: .AVAudioEngineConfigurationChange, object: graph.engine, queue: nil,
             using: Self.makeConfigurationHandler { [weak self] in self?.audioConfigurationChanged()
             })
+    }
+
+    private func makeAudioGraph(voiceProcessing: Bool) throws -> LiveAudioGraph {
+        try LiveAudioGraph(router: router, voiceProcessing: voiceProcessing) { [weak self] in
+            self?.outputChanged()
+        } onOutputLevel: { [weak self] level in
+            self?.outputLevel(level)
+        } onInputLevel: { [weak self] level in
+            self?.inputLevel(level)
+        }
+    }
+
+    /// Whether the user can talk over Momo: only with echo cancellation, or Momo's own voice
+    /// would interrupt it.
+    private var allowsBargeIn: Bool {
+        configuration.allowsBargeIn && audio?.isEchoCancelling == true
     }
 
     private func stopAudio() {
@@ -273,12 +293,12 @@ public final class AppleLiveSpeechIO: LiveSpeechIO {
         guard isRunning else { return }
         onEvent?(.level(level))
         let active = isOutputActive
-        let event = detector.process(
-            level: level, at: now, isOutputActive: active && configuration.allowsBargeIn)
+        let bargeIn = allowsBargeIn
+        let event = detector.process(level: level, at: now, isOutputActive: active && bargeIn)
         switch event {
         case .speechStarted:
             if active {
-                guard configuration.allowsBargeIn, let id = utterances.first?.id else { break }
+                guard bargeIn, let id = utterances.first?.id else { break }
                 onEvent?(.speechStarted)
                 cancelSpeech()
                 onEvent?(.interrupted(id: id))
@@ -514,6 +534,21 @@ extension OpenAISpeechRequest {
 
 // MARK: - Audio graph
 
+/// Why the live session's audio couldn't start.
+public enum LiveAudioError: LocalizedError, Equatable {
+    /// No microphone is connected, or it delivers no audio.
+    case noMicrophone
+    /// The audio engine refused to start, with its OSStatus code.
+    case engineFailed(code: Int)
+
+    public var errorDescription: String? {
+        switch self {
+        case .noMicrophone: "No microphone is available."
+        case .engineFailed(let code): "The audio devices couldn't be opened (error \(code))."
+        }
+    }
+}
+
 /// The audio engine of a live session: the microphone with voice processing, and a player
 /// for Momo's voice on the same engine.
 @MainActor
@@ -521,14 +556,18 @@ private final class LiveAudioGraph {
     let engine = AVAudioEngine()
     let player: AVAudioPlayerNode
     let scheduler: LivePlaybackScheduler
+    /// Whether voice processing removes Momo's voice from the microphone.
+    let isEchoCancelling: Bool
 
     init(
-        router: LiveInputRouter, onOutputChange: @escaping @MainActor @Sendable () -> Void,
+        router: LiveInputRouter, voiceProcessing: Bool,
+        onOutputChange: @escaping @MainActor @Sendable () -> Void,
         onOutputLevel: @escaping @MainActor @Sendable (Double) -> Void,
         onInputLevel: @escaping @MainActor @Sendable (Double) -> Void
     ) throws {
         let player = AVAudioPlayerNode()
         self.player = player
+        isEchoCancelling = voiceProcessing
         guard
             let format = AVAudioFormat(
                 commonFormat: .pcmFormatFloat32,
@@ -538,20 +577,28 @@ private final class LiveAudioGraph {
         scheduler = LivePlaybackScheduler(
             player: player, format: format,
             onChange: Self.mainActorRelay(onOutputChange))
+        // The output side must exist before voice processing is turned on. Otherwise the
+        // voice processing unit is set up with an output of 0 channels at 0 Hz, and the
+        // engine fails to start with -10875 ("client-side input and output formats do not
+        // match").
+        _ = engine.mainMixerNode
+        _ = engine.outputNode
         let input = engine.inputNode
-        // Echo cancellation: Momo's voice, played by this engine, is removed from the input.
-        try input.setVoiceProcessingEnabled(true)
-        input.voiceProcessingOtherAudioDuckingConfiguration =
-            AVAudioVoiceProcessingOtherAudioDuckingConfiguration(
-                enableAdvancedDucking: false, duckingLevel: .min)
+        if voiceProcessing {
+            // Echo cancellation: Momo's voice, played by this engine, is removed from the input.
+            try input.setVoiceProcessingEnabled(true)
+            input.voiceProcessingOtherAudioDuckingConfiguration =
+                AVAudioVoiceProcessingOtherAudioDuckingConfiguration(
+                    enableAdvancedDucking: false, duckingLevel: .min)
+        }
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
 
         router.levels = LevelReporter(Self.levelRelay(onInputLevel))
         let inputFormat = input.outputFormat(forBus: 0)
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
-            try? input.setVoiceProcessingEnabled(false)
-            throw DictationError.unavailable
+            if voiceProcessing { try? input.setVoiceProcessingEnabled(false) }
+            throw LiveAudioError.noMicrophone
         }
         input.installTap(
             onBus: 0, bufferSize: 1024, format: inputFormat, block: Self.makeInputTap(router))
@@ -564,8 +611,8 @@ private final class LiveAudioGraph {
         } catch {
             input.removeTap(onBus: 0)
             player.removeTap(onBus: 0)
-            try? input.setVoiceProcessingEnabled(false)
-            throw error
+            if voiceProcessing { try? input.setVoiceProcessingEnabled(false) }
+            throw LiveAudioError.engineFailed(code: (error as NSError).code)
         }
         player.play()
     }
@@ -575,7 +622,7 @@ private final class LiveAudioGraph {
         engine.inputNode.removeTap(onBus: 0)
         player.removeTap(onBus: 0)
         engine.stop()
-        try? engine.inputNode.setVoiceProcessingEnabled(false)
+        if isEchoCancelling { try? engine.inputNode.setVoiceProcessingEnabled(false) }
     }
 
     // Audio callbacks run on the audio thread, so they must not inherit main actor isolation.
