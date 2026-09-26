@@ -37,6 +37,47 @@ public enum SpeechText {
     }
 }
 
+/// A short spoken answer to a yes-or-no question.
+public enum SpokenAnswer: Sendable, Equatable {
+    case yes
+    case no
+}
+
+extension SpeechText {
+    /// Words that mean yes, in English and Turkish, folded (lower case, no diacritics).
+    static let yesWords: Set<String> = [
+        "yes", "yeah", "yep", "yup", "sure", "okay", "ok", "alright", "evet", "tamam", "olur",
+        "tabii", "tabi", "peki",
+    ]
+    /// Words that mean no, including negations, folded.
+    static let noWords: Set<String> = [
+        "no", "nope", "nah", "cancel", "stop", "not", "dont", "hayir", "iptal", "vazgec", "yok",
+        "dur", "istemiyorum",
+    ]
+    static let yesPhrases = ["go ahead", "do it", "all right"]
+
+    /// Reads a short spoken reply ("yes", "sure", "evet", "no", "cancel", "vazgeç") as yes or
+    /// no. Returns `nil` when the reply is unclear or says both ("not sure").
+    public static func answer(in transcript: String) -> SpokenAnswer? {
+        let folded = transcript.folding(
+            options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en")
+        )
+        .replacingOccurrences(of: "ı", with: "i")  // Turkish dotless i has no diacritic to fold
+        .replacingOccurrences(of: "\u{2019}", with: "")
+        .replacingOccurrences(of: "'", with: "")
+        let words = Set(
+            folded.components(separatedBy: CharacterSet.letters.inverted).filter { !$0.isEmpty })
+        let saysYes =
+            !words.isDisjoint(with: yesWords) || yesPhrases.contains { folded.contains($0) }
+        let saysNo = !words.isDisjoint(with: noWords)
+        switch (saysYes, saysNo) {
+        case (true, false): return .yes
+        case (false, true): return .no
+        default: return nil
+        }
+    }
+}
+
 /// A voice, described without AVFoundation types so the choice can be tested.
 public struct VoiceDescriptor: Sendable, Hashable, Identifiable {
     public enum Quality: Int, Sendable, Comparable {
