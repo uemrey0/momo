@@ -62,6 +62,9 @@ struct ToolActivity: Identifiable, Equatable {
         case "read_screen": L("Reading your screen", comment: "Tool activity")
         case "start_focus": L("Starting a focus session", comment: "Tool activity")
         case "get_clipboard": L("Reading the clipboard", comment: "Tool activity")
+        // Searches the CLI brains run themselves.
+        case "web_search", "google_web_search":
+            L("Searching the web", comment: "Tool activity")
         default: String(format: L("Using %@", comment: "Tool activity for other tools"), name)
         }
     }
@@ -258,9 +261,14 @@ final class AssistantController {
             settings: preferences.brains, keys: settings.keys,
             mcpServerPath: AppSettings.bridgeRelayPath, workingDirectory: AppSettings.cliWorkspace)
         let memories = await store.memories()
+        let webTools = WebTools.all(
+            searcher: WebSearcher(braveKey: settings.keys.key(for: WebSearcher.braveKeyID)),
+            labels: WebTools.Labels(
+                search: L("Searching the web", comment: "Tool activity"),
+                read: L("Reading a web page", comment: "Tool activity")))
         return Assistant.Configuration(
             providers: providers,
-            toolbox: Toolbox(StoreTools.all(store: store) + systemTools()),
+            toolbox: Toolbox(StoreTools.all(store: store) + webTools + systemTools()),
             policy: preferences.brains.policy,
             masksPersonalData: preferences.brains.masksPersonalData,
             systemPrompt: SystemPrompt.make(
