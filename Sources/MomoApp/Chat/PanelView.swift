@@ -40,9 +40,7 @@ struct PanelView: View {
             .clipped()
         }
         .frame(width: ChatPanelController.size.width)
-        .frame(
-            height: snapshotMode ? ChatPanelController.size.height : nil, alignment: .top
-        )
+        .frame(height: snapshotMode ? ChatPanelController.size.height : nil)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(
             ZStack {
@@ -61,6 +59,7 @@ struct PanelView: View {
         )
         .scaleEffect(appeared ? 1 : 0.94, anchor: .top)
         .opacity(appeared ? 1 : 0)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .environment(\.colorScheme, .dark)
         .tint(Theme.accent)
         .animation(Theme.spring, value: state.tab)

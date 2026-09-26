@@ -106,6 +106,7 @@ struct NotesView: View {
                 .accessibilityLabel(L("New note"))
             }
             .padding(12)
+            .fixedSize(horizontal: false, vertical: true)
             .measureHeight($searchHeight)
             if model.filtered.isEmpty {
                 EmptyHint(
@@ -116,6 +117,7 @@ struct NotesView: View {
                 )
                 .padding(.horizontal, 12)
                 .padding(.bottom, 12)
+                .fixedSize(horizontal: false, vertical: true)
                 .measureHeight($contentHeight)
                 Spacer(minLength: 0)
             } else {
