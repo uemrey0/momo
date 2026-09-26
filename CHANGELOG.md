@@ -7,6 +7,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Voice mode: ⌥⇧Space and "Hey Momo" work without opening the chat. A caption bubble under
+  the notch shows what you said and Momo's answer while it is read aloud, and Momo's
+  questions can be answered with "yes" or "no". Hold the shortcut to talk if you turn on
+  push to talk.
+- Better speech: Apple's SpeechAnalyzer on macOS 26, or OpenAI and Gemini transcription with
+  your own key, and optional OpenAI voices.
+- Meeting notes: Momo offers to take notes when a meeting starts, listens to you and the
+  call as separate tracks, and writes a summary with decisions, action items, open questions
+  and participants. Action items become tasks in one click; a Meetings tab keeps the
+  transcripts. Audio is not kept unless you ask.
+- ChatGPT (Codex) and Gemini CLI can use every Momo tool through a private bridge, with the
+  same confirmations and personal data masking as other brains.
+- Web search (no key needed, or Brave Search with a key) and reading web pages.
+- Conversations are saved and searchable, and follow-up questions remember what the tools
+  found. Attach files, images and screenshots to a message; brains that can see get the
+  images.
+- Momo across the Mac: files (find, read, list, reveal, move to the Trash), Reminders,
+  Contacts, Mail drafts, Messages, Music and Spotify, volume, dark mode, display sleep, lock
+  screen, quitting apps, battery and Wi-Fi status, weather, AppleScript and shell commands
+  (always shown and confirmed first), and what's on screen ("summarise this").
+- Momo is hidden from screen recordings and screen sharing (Settings → Privacy).
+- Memory ranks what it remembers by relevance and sorts memories into categories.
+- Tasks can repeat and have a priority and tags; routines run a prompt on a schedule, such
+  as a morning summary.
+
 ### Changed
 
 - The panel has a fresh, friendlier design and now grows and shrinks with its content
