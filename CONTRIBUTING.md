@@ -7,7 +7,7 @@ reviewed and merged quickly.
 
 - **Code:** bug fixes, features from the [roadmap](docs/roadmap.md), performance work.
 - **Translations:** add or improve a language in the String Catalogs.
-- **Character packs:** new looks and moods for Momo (format lands in Phase 0/1).
+- **Character packs:** new looks for Momo, see [docs/character-packs.md](docs/character-packs.md).
 - **Docs and design:** clearer docs, better onboarding, accessibility reviews.
 - **Issues:** well-described bug reports and feature ideas.
 
@@ -25,6 +25,23 @@ before you invest time.
    ```
 
 3. Optional: open `Package.swift` in Xcode.
+
+Useful targets:
+
+| Command          | What it does                                              |
+| ---------------- | --------------------------------------------------------- |
+| `make test`      | Build and run all tests                                   |
+| `make run`       | Launch Momo from the command line (English UI)            |
+| `make app`       | Build `dist/Momo.app` with translations and `momo-mcp`    |
+| `make dmg`       | Pack `dist/Momo-<version>.dmg`                            |
+| `make lint`      | Check formatting (`make format` fixes it)                 |
+| `make l10n`      | Check that every UI string is translated                  |
+| `make snapshots` | Regenerate the README images                              |
+| `make icon`      | Regenerate the app icon from the character renderer       |
+
+Debug builds also understand `--snapshot <folder>` (render the UI to PNG),
+`--render-icon <file>` and `--ask "<message>"` (run one message through the whole assistant,
+optionally with `--brain-url` and `--brain-model` for an OpenAI-compatible server).
 
 ## Branches
 
@@ -83,6 +100,8 @@ process.
 ## Code style
 
 - Swift 6 language mode with strict concurrency. UI and engine types are `@MainActor`.
+  Callbacks that run on other threads (audio taps, delegates, process handlers) must be
+  created outside main-actor code, or Swift 6 will trap at runtime.
 - Format with `swift format` using the repository's `.swift-format` config (`make format`).
 - Prefer small, focused types. Document public API with `///` comments.
 - No force unwraps outside tests unless the invariant is explained in a comment.
@@ -96,13 +115,18 @@ random number generator so behaviour can be tested deterministically.
 
 ## Localization
 
-User-facing strings live in `Sources/<Module>/Resources/Localizable.xcstrings`. English is the
-source language. To add a language:
+User-facing strings live in `Sources/MomoApp/Resources/Localizable.xcstrings`, with English
+as the source language. In code, use `L("English text")` and `String(format:)` for values
+(never interpolation inside `L`). `make l10n` fails when a string lacks a translation.
+
+To add a language:
 
 1. Open the catalog in Xcode and add the language, or edit the JSON directly.
 2. Translate every string and mark it `translated`.
-3. Add the language code to `CFBundleLocalizations` in `Scripts/Info.plist`.
-4. Build with `make app` and check the UI in that language.
+3. Add `Scripts/InfoPlist/<code>.strings` (permission prompts) and the code to
+   `CFBundleLocalizations` in `Scripts/Info.plist` and `LOCALIZATIONS` in
+   `Scripts/build-app.sh`.
+4. Run `make l10n`, build with `make app` and check the UI in that language.
 
 ## Architecture decisions
 
