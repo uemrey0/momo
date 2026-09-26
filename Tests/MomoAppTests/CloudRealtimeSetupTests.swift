@@ -43,6 +43,12 @@ struct CloudRealtimeSetupTests {
                 preferences, key: key(Self.keys), recentFailure: false) == .localOnly)
     }
 
+    @Test("Settings lists the cloud engine only when it is offered")
+    func offeredChoices() {
+        #expect(!LiveEngineChoice.offered(includingCloud: false).contains(.cloudRealtime))
+        #expect(LiveEngineChoice.offered(includingCloud: true).last == .cloudRealtime)
+    }
+
     @Test("asks for consent the first time and whenever the provider changes")
     func consent() {
         var preferences = Preferences()

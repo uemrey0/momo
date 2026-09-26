@@ -71,6 +71,12 @@ enum SettingsSearch {
                 keywords: L("push to talk, shortcut, talk to Momo")),
             SearchableSetting(pane: .voice, title: L("Open the chat for spoken requests")),
             SearchableSetting(
+                pane: .voice, title: L("Live conversation"),
+                keywords: L("engine, interrupt, follow-up, realtime, OpenAI Realtime, Gemini Live")),
+            SearchableSetting(
+                pane: .voice, title: L("Cloud realtime voice"),
+                keywords: L("speech to speech, OpenAI Realtime, Gemini Live, cloud voice")),
+            SearchableSetting(
                 pane: .voice, title: L("Speech recognition"),
                 keywords: L("dictation, transcription, Whisper, microphone")),
             SearchableSetting(

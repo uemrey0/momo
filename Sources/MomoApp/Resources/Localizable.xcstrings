@@ -51,6 +51,16 @@
         }
       }
     },
+    "%@ needs an API key, which you can add in AI settings." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bir API anahtarı gerektirir; bunu Yapay Zekâ ayarlarından ekleyebilirsin."
+          }
+        }
+      }
+    },
     "%@ · %@ GB download" : {
       "localizations" : {
         "tr" : {
@@ -509,6 +519,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ iznini Ayarlar'da ver"
+          }
+        }
+      }
+    },
+    "Allow my microphone audio to leave this Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon sesimin bu Mac'ten çıkmasına izin ver"
           }
         }
       }
@@ -1270,6 +1290,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bulutta gerçek zamanlı"
+          }
+        }
+      }
+    },
+    "Cloud realtime voice" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulut gerçek zamanlı ses"
           }
         }
       }
@@ -5317,6 +5347,16 @@
         }
       }
     },
+    "Service" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hizmet"
+          }
+        }
+      }
+    },
     "Set Up AI…" : {
       "localizations" : {
         "tr" : {
@@ -6093,6 +6133,16 @@
         }
       }
     },
+    "The cloud model only talks; Momo's assistant still does the real work. The service bills your key for audio in both directions while a conversation is open, and each session is listed in Privacy." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulut modeli yalnızca konuşur; asıl işi yine Momo'nun asistanı yapar. Hizmet, sohbet açıkken iki yöndeki ses için anahtarından ücret alır ve her oturum Gizlilik'te listelenir."
+          }
+        }
+      }
+    },
     "The download didn't work: %@" : {
       "localizations" : {
         "tr" : {
@@ -6795,6 +6845,16 @@
         }
       }
     },
+    "With cloud realtime voice, your microphone audio goes to the chosen service while the conversation is open." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulut gerçek zamanlı seste, sohbet açıkken mikrofon sesin seçilen hizmete gider."
+          }
+        }
+      }
+    },
     "With “Hey Momo” on, the microphone stays on while Momo listens for its name (always on this Mac), and macOS shows the microphone indicator." : {
       "localizations" : {
         "tr" : {
@@ -7105,6 +7165,16 @@
         }
       }
     },
+    "engine, interrupt, follow-up, realtime, OpenAI Realtime, Gemini Live" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "motor, sözünü kesme, devam sorusu, gerçek zamanlı, OpenAI Realtime, Gemini Live"
+          }
+        }
+      }
+    },
     "local only, offline" : {
       "localizations" : {
         "tr" : {
@@ -7275,6 +7345,16 @@
         }
       }
     },
+    "speech to speech, OpenAI Realtime, Gemini Live, cloud voice" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sesten sese, OpenAI Realtime, Gemini Live, bulut ses"
+          }
+        }
+      }
+    },
     "speech, microphone, read aloud, voices, talk, push to talk, live voice, Hey Momo, wake word, dictation, speech recognition" : {
       "localizations" : {
         "tr" : {
@@ -7361,6 +7441,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“%1$@”, %2$@ uygulamasında başlamış gibi görünüyor."
+          }
+        }
+      }
+    },
+    "“Keep everything on this Mac” is on, so Momo uses its built-in voice engine instead." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Her şeyi bu Mac'te tut” açık, bu yüzden Momo bunun yerine yerleşik ses motorunu kullanır."
           }
         }
       }
