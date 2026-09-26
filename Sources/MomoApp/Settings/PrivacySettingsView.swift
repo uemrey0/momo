@@ -57,7 +57,9 @@ struct PrivacySettingsView: View {
                             }
                             Spacer()
                             Text(
-                                verbatim: String(format: L("%lld characters"), record.characters)
+                                verbatim: record.audioSeconds.map {
+                                    String(format: L("%lld s of audio"), Int($0.rounded()))
+                                } ?? String(format: L("%lld characters"), record.characters)
                             )
                             .font(.caption)
                             .monospacedDigit()
