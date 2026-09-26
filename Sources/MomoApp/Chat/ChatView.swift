@@ -69,7 +69,7 @@ struct ChatView: View {
     }
 
     private var messages: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(assistant.messages.enumerated()), id: \.element.id) { index, message in
                 MessageRow(
                     message: message, isLatest: index == assistant.messages.count - 1
@@ -392,11 +392,14 @@ struct MessageRow: View {
         case .assistant:
             HStack(alignment: .bottom, spacing: 8) {
                 MomoAvatar(isAnimated: isLatest)
-                VStack(alignment: .leading, spacing: 4) {
+                    .padding(.bottom, Self.detailsHeight + 3)
+                VStack(alignment: .leading, spacing: 3) {
                     bubble
-                    if isHovering && !message.isStreaming {
-                        details.transition(.opacity.combined(with: .offset(y: -4)))
-                    }
+                    // The line is always there, so pointing at an answer never changes the
+                    // conversation's height; its contents just fade in.
+                    details
+                        .frame(height: Self.detailsHeight)
+                        .opacity(isHovering && !message.isStreaming ? 1 : 0)
                 }
                 Spacer(minLength: 30)
             }
@@ -482,6 +485,9 @@ struct MessageRow: View {
         .foregroundStyle(Theme.tertiaryText)
         .padding(.leading, 6)
     }
+
+    /// Room kept under each answer for who answered and what Momo did.
+    static let detailsHeight: CGFloat = 14
 
     static func markdown(_ text: String) -> AttributedString {
         (try? AttributedString(
