@@ -92,7 +92,7 @@ enum CommandRunner {
     /// non-zero status. Cancelling the stream terminates the process.
     static func lines(
         executable: URL, arguments: [String], input: String?, workingDirectory: URL? = nil,
-        environment extraEnvironment: [String: String] = [:]
+        environment extraEnvironment: [String: String] = [:], closesInput: Bool = true
     ) -> AsyncThrowingStream<String, any Error> {
         AsyncThrowingStream { continuation in
             let process = Process()
@@ -163,7 +163,7 @@ enum CommandRunner {
                 if let input {
                     stdin.fileHandleForWriting.write(Data(input.utf8))
                 }
-                try? stdin.fileHandleForWriting.close()
+                if closesInput { try? stdin.fileHandleForWriting.close() }
             } catch {
                 continuation.finish(throwing: error)
             }

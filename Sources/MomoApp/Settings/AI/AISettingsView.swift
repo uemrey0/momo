@@ -26,6 +26,7 @@ struct AISettingsView: View {
                     ForEach(group.options) { option in
                         BrainOptionRow(
                             option: option, isConnected: model.isConnected(option),
+                            chosenModel: model.chosenModel(for: option),
                             open: { navigation.setupOption = option })
                     }
                 } header: {
@@ -99,6 +100,7 @@ private struct StatusHeader: View {
 private struct BrainOptionRow: View {
     var option: BrainOption
     var isConnected: Bool
+    var chosenModel: String?
     var open: () -> Void
 
     var body: some View {
@@ -110,9 +112,12 @@ private struct BrainOptionRow: View {
                 .background(option.tint.gradient, in: RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: option.title).font(.body.weight(.medium))
-                Text(verbatim: option.subtitle)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                Text(
+                    verbatim: isConnected && chosenModel != nil
+                        ? String(format: L("Using %@"), chosenModel ?? "") : option.subtitle
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
             }
             Spacer()
             if isConnected {

@@ -634,6 +634,16 @@
         }
       }
     },
+    "Choose which model Momo thinks with. The recommended one is a great place to start." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun hangi modelle düşüneceğini seç. Önerilen model başlamak için harika bir seçim."
+          }
+        }
+      }
+    },
     "Claude (API key)" : {
       "localizations" : {
         "tr" : {
@@ -830,6 +840,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anahtarı kopyala"
+          }
+        }
+      }
+    },
+    "Couldn't get the list of models." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model listesi alınamadı."
           }
         }
       }
@@ -1272,6 +1292,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ollama uygulamasını edin"
+          }
+        }
+      }
+    },
+    "Getting the list of models…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model listesi alınıyor…"
           }
         }
       }
@@ -2444,6 +2474,16 @@
         }
       }
     },
+    "Recommended" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Önerilen"
+          }
+        }
+      }
+    },
     "Refresh" : {
       "localizations" : {
         "tr" : {
@@ -2673,6 +2713,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ara"
+          }
+        }
+      }
+    },
+    "Search models" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model ara"
           }
         }
       }
@@ -3290,6 +3340,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Su içmek gibi küçük günlük başarılarını takip et."
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekrar Dene"
           }
         }
       }

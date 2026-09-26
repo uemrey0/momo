@@ -28,6 +28,12 @@ struct BrainSetupSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     content
+                    if model.isConnected(option), option.modelSetting != nil,
+                        option != .ollama, option != .lmStudio
+                    {
+                        Divider()
+                        ModelPicker(option: option, model: model)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(24)
