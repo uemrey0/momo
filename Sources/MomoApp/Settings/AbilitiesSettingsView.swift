@@ -1,4 +1,5 @@
 import AppKit
+import MomoBrain
 import MomoKit
 import SwiftUI
 
@@ -24,6 +25,9 @@ struct AbilitiesSettingsView: View {
                     verbatim: L(
                         "Momo never offers a turned-off ability to any brain. With “Always ask first”, it asks you before each use. Tap a permission to check it."
                     ))
+            }
+            if settings.preferences.abilities.isEnabled(.images) {
+                ImagesSection(settings: settings)
             }
             MCPAbilitiesSection(settings: settings, model: model)
         }
@@ -153,6 +157,87 @@ extension PermissionStatus {
         case .allowed: .green
         case .denied: .orange
         case .notDetermined, .unknown: .secondary
+        }
+    }
+}
+
+/// Which service draws pictures, and which one would draw right now.
+private struct ImagesSection: View {
+    @Bindable var settings: AppSettings
+    /// The service that would draw now, `""` when none can, or `nil` while checking.
+    @State private var readyName: String?
+
+    private var preferred: Binding<ImageBackendID?> {
+        Binding {
+            settings.preferences.images.preferred
+        } set: {
+            settings.preferences.images.preferred = $0
+        }
+    }
+
+    private var localOnly: Bool { settings.preferences.brains.localOnly }
+
+    var body: some View {
+        Section {
+            Picker(L("Draw with"), selection: preferred) {
+                Text(verbatim: L("Automatic")).tag(ImageBackendID?.none)
+                ForEach(ImageBackendID.priority, id: \.self) { backend in
+                    Text(verbatim: Self.title(for: backend)).tag(Optional(backend))
+                }
+            }
+            .settingsAnchor("abilities.images.backend")
+            HStack(spacing: 6) {
+                if let readyName {
+                    Image(
+                        systemName: readyName.isEmpty
+                            ? "exclamationmark.triangle.fill" : "checkmark.circle.fill"
+                    )
+                    .foregroundStyle(readyName.isEmpty ? .orange : .green)
+                    Text(
+                        verbatim: readyName.isEmpty
+                            ? L("Nothing can draw yet.")
+                            : String(format: L("Momo draws with %@ now."), readyName))
+                } else {
+                    ProgressView().controlSize(.small)
+                    Text(verbatim: L("Checking…"))
+                }
+            }
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        } header: {
+            Text(verbatim: L("Image generation"))
+        } footer: {
+            Text(
+                verbatim: localOnly
+                    ? L(
+                        "Local-only mode is on, so only Image Playground draws. It needs Apple Intelligence on macOS 15.4 or later."
+                    )
+                    : L(
+                        "Automatic tries Image Playground on this Mac first, then OpenAI or Gemini with your API key, then your ChatGPT plan. Pictures you ask for with OpenAI, Gemini or ChatGPT leave this Mac and are listed in Privacy."
+                    ))
+        }
+        .task(id: settings.preferences.images) { await refresh() }
+        .task(id: localOnly) { await refresh() }
+    }
+
+    private func refresh() async {
+        readyName = nil
+        let preferences = settings.preferences
+        let backends = ImageBackendCatalog.backends(
+            settings: preferences.images, keys: settings.keys,
+            workingDirectory: AppSettings.cliWorkspace)
+        let ready = await ImageBackendSelector.firstReady(
+            backends, preferred: preferences.images.preferred,
+            localOnly: preferences.brains.localOnly)
+        readyName = ready.map { Self.title(for: $0.id) } ?? ""
+    }
+
+    static func title(for backend: ImageBackendID) -> String {
+        switch backend {
+        case .applePlayground: L("Image Playground (on this Mac)")
+        case .openAI: L("OpenAI (API key)")
+        case .gemini: L("Gemini (API key)")
+        case .codex: L("ChatGPT plan (Codex)")
         }
     }
 }

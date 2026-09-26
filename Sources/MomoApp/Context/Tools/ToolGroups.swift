@@ -12,6 +12,7 @@ enum ToolGroup: String, CaseIterable, Identifiable {
     case music
     case system
     case web
+    case images
     case screen
     case power
     case meetings
@@ -44,6 +45,7 @@ enum ToolGroup: String, CaseIterable, Identifiable {
         "sleep_display": .system, "lock_screen": .system, "quit_app": .system,
         "system_status": .system,
         "web_search": .web, "read_web_page": .web, "get_weather": .web,
+        "generate_image": .images, "edit_image": .images,
         "read_screen": .screen, "get_context": .screen, "get_clipboard": .screen,
         "run_applescript": .power, "run_shell_command": .power,
         "start_meeting_notes": .meetings, "stop_meeting_notes": .meetings,
@@ -67,6 +69,7 @@ enum ToolGroup: String, CaseIterable, Identifiable {
         case .music: L("Music")
         case .system: L("System controls")
         case .web: L("Web")
+        case .images: L("Images")
         case .screen: L("Screen & context")
         case .power: L("Power tools (AppleScript & shell)")
         case .meetings: L("Meetings")
@@ -87,6 +90,7 @@ enum ToolGroup: String, CaseIterable, Identifiable {
         case .system:
             L("Open apps and links, run Shortcuts, change volume or dark mode, lock the screen.")
         case .web: L("Search the web, read web pages and check the weather.")
+        case .images: L("Draw pictures and change them, whichever brain you use.")
         case .screen: L("See what you're working on: the front app, selected text, your screen.")
         case .power: L("Run AppleScript and shell commands. Momo always asks first.")
         case .meetings: L("Start and stop meeting notes, and read past meetings.")
@@ -104,6 +108,7 @@ enum ToolGroup: String, CaseIterable, Identifiable {
         case .music: "music.note"
         case .system: "switch.2"
         case .web: "globe"
+        case .images: "paintbrush.pointed.fill"
         case .screen: "macwindow"
         case .power: "terminal.fill"
         case .meetings: "person.2.wave.2.fill"
@@ -121,6 +126,7 @@ enum ToolGroup: String, CaseIterable, Identifiable {
         case .music: Color(red: 0.98, green: 0.36, blue: 0.47)
         case .system: .gray
         case .web: Color(red: 0.36, green: 0.7, blue: 0.95)
+        case .images: Color(red: 0.93, green: 0.42, blue: 0.75)
         case .screen: Color(red: 0.55, green: 0.42, blue: 0.98)
         case .power: Color(red: 0.3, green: 0.3, blue: 0.35)
         case .meetings: Color(red: 0.95, green: 0.55, blue: 0.2)
@@ -140,7 +146,7 @@ enum ToolGroup: String, CaseIterable, Identifiable {
         case .screen: [.screenRecording, .accessibility]
         case .power: [.automation(nil)]
         case .meetings: [.microphone, .speechRecognition, .screenRecording]
-        case .tasks, .files, .web, .routines, .essentials: []
+        case .tasks, .files, .web, .images, .routines, .essentials: []
         }
     }
 

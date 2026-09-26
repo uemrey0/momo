@@ -214,10 +214,9 @@ struct ToolActivity: Identifiable, Equatable {
         case "get_clipboard": L("Reading the clipboard", comment: "Tool activity")
         case "run_command": L("Running a command", comment: "Tool activity")
         case "generate_image": L("Drawing", comment: "Tool activity")
+        case "edit_image": L("Editing a picture", comment: "Tool activity")
         case "get_weather": L("Checking the weather", comment: "Tool activity")
         case "codex_skill": L("Getting ready", comment: "Tool activity")
-        case "web_search", "google_web_search":
-            L("Searching the web", comment: "Tool activity")
         // Searches the CLI brains run themselves.
         case "web_search", "google_web_search":
             L("Searching the web", comment: "Tool activity")
@@ -702,17 +701,37 @@ final class AssistantController {
             labels: WebTools.Labels(
                 search: L("Searching the web", comment: "Tool activity"),
                 read: L("Reading a web page", comment: "Tool activity")))
+        let toolbox = Toolbox(
+            preferences.abilities.apply(
+                to: StoreTools.all(store: store) + webTools + imageTools() + systemTools()))
         return Assistant.Configuration(
             providers: providers,
-            toolbox: Toolbox(
-                preferences.abilities.apply(
-                    to: StoreTools.all(store: store) + webTools + systemTools())),
+            toolbox: toolbox,
             policy: preferences.brains.policy,
             masksPersonalData: preferences.brains.masksPersonalData,
             systemPrompt: SystemPrompt.make(
                 memories: memories, languageName: preferredLanguageName,
                 personality: preferences.personality.instruction, message: message,
+                canDraw: toolbox.tool(named: "generate_image") != nil,
                 isSpoken: isSpokenRequest))
+    }
+
+    /// The image tools, drawing with the backend the user prefers or the best available one.
+    /// Remote backends are never used in local-only mode, and each remote request is logged.
+    func imageTools() -> [any MomoTool] {
+        let preferences = settings.preferences
+        let generator = ImageGenerator(
+            backends: ImageBackendCatalog.backends(
+                settings: preferences.images, keys: settings.keys,
+                workingDirectory: AppSettings.cliWorkspace),
+            preferred: preferences.images.preferred, localOnly: preferences.brains.localOnly,
+            folder: ArtifactStore.folder,
+            recordRemoteRequest: { [weak self] service, characters in
+                await self?.recordOutbound(service: service, characters: characters)
+            })
+        return ImageTools.all(
+            generator: generator, activityLabel: ToolActivity.label(for: "generate_image"),
+            editActivityLabel: ToolActivity.label(for: "edit_image"))
     }
 
     // MARK: - Background jobs

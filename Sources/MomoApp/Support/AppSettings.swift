@@ -85,6 +85,8 @@ struct Preferences: Codable, Equatable {
     var meetingLanguage = ""
     /// Tool groups the user turned off or wants Momo to ask about first.
     var abilities = AbilitySettings()
+    /// Which service draws pictures for the image tools.
+    var images = ImageSettings()
 
     init() {}
 
@@ -131,6 +133,7 @@ struct Preferences: Codable, Equatable {
         keepsMeetingAudio = value(.keepsMeetingAudio, defaults.keepsMeetingAudio)
         meetingLanguage = value(.meetingLanguage, defaults.meetingLanguage)
         abilities = value(.abilities, defaults.abilities)
+        images = value(.images, defaults.images)
     }
 }
 

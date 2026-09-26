@@ -23,7 +23,7 @@ struct ToolGroupTests {
         let web = WebTools.all(
             searcher: WebSearcher(braveKey: nil),
             labels: WebTools.Labels(search: "Searching", read: "Reading"))
-        return StoreTools.all(store: store) + web
+        return StoreTools.all(store: store) + web + assistant.imageTools()
             + SystemTools.all(calendar: calendar, focus: FocusController(character: character))
             + MacTools.all() + MeetingTools.all(controller: meetings)
     }
