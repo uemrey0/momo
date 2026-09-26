@@ -21,15 +21,22 @@
 - **Shipping:** English and Turkish, onboarding, settings, launch at login, update checks,
   DMG packaging and a release workflow.
 
+## In progress for the next release
+
+- Voice mode without the panel, SpeechAnalyzer and cloud transcription, OpenAI voices
+- Meeting notes with summaries, action items and participants
+- Every tool for every brain, web search, saved conversations and attachments
+- Files, Apple apps, system controls and screen context as tools
+- Relevance-ranked memory, repeating tasks and routines
+- Hiding from screen recordings and sharing
+
 ## Next
 
 Ideas for upcoming releases. Pick one up by opening an issue first.
 
-- Automatically hide during screen sharing and presentations
-- Keep chat history across launches, with search
 - In-app models through MLX, so Momo works without Apple Intelligence or Ollama
-- Apple's SpeechAnalyzer on macOS 26 for faster, more accurate dictation
 - Agent Client Protocol support for more CLI agents
+- Detect screen sharing and presentations to tuck Momo away automatically
 - Sparkle for in-place updates, and a Homebrew cask
 - A gallery of community character packs
 - More languages through community translation
