@@ -107,6 +107,14 @@ struct GeminiLiveCodecTests {
         #expect(audio?["data"] as? String == pcm.base64EncodedString())
     }
 
+    @Test("sends a typed turn as realtime text")
+    func userText() throws {
+        let messages = try GeminiLiveCodec(apiKey: "k", model: "m").userTextMessages("Merhaba")
+        #expect(messages.count == 1)
+        let json = try #require(RealtimeJSON.object(messages[0]))
+        #expect((json["realtimeInput"] as? [String: Any])?["text"] as? String == "Merhaba")
+    }
+
     @Test("answers a tool call with a function response scheduled when idle")
     func toolResponse() throws {
         let codec = GeminiLiveCodec(apiKey: "k", model: "m")

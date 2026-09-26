@@ -120,6 +120,19 @@ struct OpenAIRealtimeCodec: RealtimeCodec {
         #"{"audio":"\#(pcm16.base64EncodedString())","type":"input_audio_buffer.append"}"#
     }
 
+    func userTextMessages(_ text: String) throws -> [String] {
+        [
+            try RealtimeJSON.string([
+                "type": "conversation.item.create",
+                "item": [
+                    "type": "message", "role": "user",
+                    "content": [["type": "input_text", "text": text]],
+                ],
+            ]),
+            try RealtimeJSON.string(["type": "response.create"]),
+        ]
+    }
+
     func functionResultMessages(
         _ output: String, for call: RealtimeFunctionCall
     ) throws

@@ -136,6 +136,22 @@ public actor RealtimeVoiceSession {
         outgoing?.yield(codec.audioMessage(pcm16))
     }
 
+    /// Adds a turn the user did not speak here, such as the words after "Hey Momo" that the
+    /// wake word already heard, and lets the model answer it. Ignored unless the session is
+    /// ready.
+    public func sendUserText(_ text: String) {
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard state == .ready, !text.isEmpty else { return }
+        do {
+            let messages = try codec.userTextMessages(text)
+            totals.textCharactersSent += text.count
+            for message in messages { outgoing?.yield(message) }
+        } catch {
+            eventContinuation.yield(
+                .error(CloudVoiceError("Could not send your words to the live voice model.")))
+        }
+    }
+
     /// Answers a function call; the model then continues (it voices the result).
     /// `output` is text or a JSON object string, such as ``AskMomoResult/output``.
     public func sendFunctionResult(_ output: String, for call: RealtimeFunctionCall) {
