@@ -170,6 +170,12 @@ final class ContextMonitor: NSObject {
     enum NotificationAction: String {
         case planDay = "plan-day"
         case openTask = "open-task"
+        case openChat = "open-chat"
+    }
+
+    /// Posts a notification that opens the chat when clicked, e.g. a routine's reply.
+    func notifyOpeningChat(id: String, title: String, body: String) {
+        notify(id: id, title: title, body: body, action: .openChat)
     }
 
     /// Notifications need an app bundle; `swift run` builds skip them.
@@ -257,7 +263,7 @@ extension ContextMonitor: UNUserNotificationCenterDelegate {
         await MainActor.run {
             switch NotificationAction(rawValue: action ?? "") {
             case .planDay: openChat?(L("Plan my day"))
-            case .openTask: openChat?(nil)
+            case .openTask, .openChat: openChat?(nil)
             case nil: break
             }
         }

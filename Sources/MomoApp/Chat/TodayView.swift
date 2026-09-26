@@ -28,10 +28,11 @@ final class TodayModel {
 
     private func apply(_ data: MomoData) {
         let calendar = Calendar.current
+        // By deadline, then more important first, then oldest first.
         tasks = data.tasks.filter { !$0.isDone }
             .sorted {
-                ($0.dueDate ?? .distantFuture, $0.createdAt)
-                    < ($1.dueDate ?? .distantFuture, $1.createdAt)
+                ($0.dueDate ?? .distantFuture, $1.priority, $0.createdAt)
+                    < ($1.dueDate ?? .distantFuture, $0.priority, $1.createdAt)
             }
         completedToday = data.tasks.filter {
             $0.isDone && $0.completedAt.map { calendar.isDateInToday($0) } == true
@@ -270,6 +271,18 @@ private struct TaskRow: View {
     var model: TodayModel
     @State private var ticked = false
 
+    /// Done tasks fade out; low-priority ones are a little quieter than the rest.
+    private var titleColor: Color {
+        if task.isDone { return Theme.tertiaryText }
+        return task.priority == .low ? Theme.secondaryText : .white
+    }
+
+    /// Whether there is a date, a repeat rule or tags to show under the title.
+    private var hasDetails: Bool {
+        task.dueDate != nil || task.remindAt != nil || task.recurrence != nil
+            || !task.tags.isEmpty
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Button {
@@ -283,18 +296,42 @@ private struct TaskRow: View {
             .padding(.top, 1)
             .accessibilityLabel(task.isDone ? L("Mark as not done") : L("Mark as done"))
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: task.title)
-                    .font(.system(size: 13))
-                    .strikethrough(task.isDone)
-                    .foregroundStyle(task.isDone ? Theme.tertiaryText : .white)
-                if let due = task.dueDate ?? task.remindAt, !task.isDone {
-                    Label {
-                        Text(due, format: .relative(presentation: .named))
-                    } icon: {
-                        Image(systemName: task.remindAt != nil ? "bell.fill" : "calendar")
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    if task.priority == .high, !task.isDone {
+                        Image(systemName: "exclamationmark")
+                            .font(.system(size: 10, weight: .heavy))
+                            .foregroundStyle(Color.orange)
+                            .help(L("High priority"))
+                            .accessibilityLabel(L("High priority"))
+                    }
+                    Text(verbatim: task.title)
+                        .font(.system(size: 13))
+                        .strikethrough(task.isDone)
+                        .foregroundStyle(titleColor)
+                }
+                if !task.isDone, hasDetails {
+                    HStack(spacing: 7) {
+                        if let due = task.dueDate ?? task.remindAt {
+                            Label {
+                                Text(due, format: .relative(presentation: .named))
+                            } icon: {
+                                Image(systemName: task.remindAt != nil ? "bell.fill" : "calendar")
+                            }
+                            .foregroundStyle(due < Date() ? Theme.danger : Theme.secondaryText)
+                        }
+                        if let recurrence = task.recurrence {
+                            Image(systemName: "repeat")
+                                .foregroundStyle(Theme.secondaryText)
+                                .help(recurrence.localizedSummary)
+                                .accessibilityLabel(recurrence.localizedSummary)
+                        }
+                        if !task.tags.isEmpty {
+                            Text(verbatim: task.tags.map { "#\($0)" }.joined(separator: " "))
+                                .foregroundStyle(Theme.tertiaryText)
+                                .lineLimit(1)
+                        }
                     }
                     .font(.system(size: 11))
-                    .foregroundStyle(due < Date() ? Theme.danger : Theme.secondaryText)
                 }
             }
             Spacer()
@@ -305,6 +342,23 @@ private struct TaskRow: View {
             Button(L("Delete"), role: .destructive) {
                 withAnimation(Theme.spring) { model.delete(task) }
             }
+        }
+    }
+}
+
+extension Recurrence {
+    /// "Repeats weekly", in the user's language.
+    var localizedSummary: String {
+        switch (frequency, interval) {
+        case (.weekdays, _): L("Repeats every weekday")
+        case (.daily, 1): L("Repeats daily")
+        case (.weekly, 1): L("Repeats weekly")
+        case (.monthly, 1): L("Repeats monthly")
+        case (.yearly, 1): L("Repeats yearly")
+        case (.daily, _): String(format: L("Repeats every %lld days"), interval)
+        case (.weekly, _): String(format: L("Repeats every %lld weeks"), interval)
+        case (.monthly, _): String(format: L("Repeats every %lld months"), interval)
+        case (.yearly, _): String(format: L("Repeats every %lld years"), interval)
         }
     }
 }

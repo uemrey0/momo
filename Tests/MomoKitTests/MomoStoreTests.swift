@@ -78,6 +78,77 @@ struct MomoStoreTests {
         #expect(await store.memories().isEmpty)
     }
 
+    @Test("files memories by category and updates the category of a known memory")
+    func memoryCategories() async throws {
+        let store = temporaryStore()
+        try await store.remember("Prefers short answers", category: .preference)
+        try await store.remember("Ayşe is the user's sister")
+        #expect(await store.memories(in: .preference).count == 1)
+        #expect(await store.memories(in: .fact).count == 1)
+        let updated = try await store.remember("ayşe is the user's sister", category: .person)
+        #expect(updated.category == .person)
+        #expect(await store.memories().count == 2)
+        // Remembering again without a category keeps the one it has.
+        try await store.remember("Ayşe is the user's sister")
+        #expect(await store.memories(in: .person).count == 1)
+    }
+
+    @Test("completing a repeating task adds the next occurrence")
+    func recurringTasks() async throws {
+        let store = temporaryStore()
+        let calendar = testCalendar()
+        let due = date(2026, 9, 25, 18)
+        let task = try await store.addTask(
+            title: "Take out the trash", dueDate: due, remindAt: due.addingTimeInterval(-3600),
+            recurrence: Recurrence(frequency: .weekly), priority: .high, tags: ["#Home", "home"])
+        #expect(task.tags == ["home"])
+        let done = try await store.completeTask(
+            "trash", at: date(2026, 9, 26, 10), calendar: calendar)
+        #expect(done.isDone)
+        let nextID = try #require(done.nextOccurrenceID)
+        let next = try #require(await store.task(id: nextID))
+        #expect(next.dueDate == date(2026, 10, 2, 18))
+        #expect(next.remindAt == date(2026, 10, 2, 17))
+        #expect(next.priority == .high)
+        #expect(await store.tasks().map(\.id) == [nextID])
+    }
+
+    @Test("unticking a repeating task removes the occurrence it created")
+    func untickRecurring() async throws {
+        let store = temporaryStore()
+        let task = try await store.addTask(
+            title: "Stretch", dueDate: Date(), recurrence: Recurrence(frequency: .daily))
+        try await store.setTaskDone(id: task.id, true)
+        #expect(await store.tasks(includeDone: true).count == 2)
+        try await store.setTaskDone(id: task.id, true)
+        #expect(await store.tasks(includeDone: true).count == 2)
+        try await store.setTaskDone(id: task.id, false)
+        let tasks = await store.tasks(includeDone: true)
+        #expect(tasks.map(\.id) == [task.id])
+        #expect(tasks.first?.isDone == false)
+    }
+
+    @Test("adds, updates, runs and deletes routines")
+    func routines() async throws {
+        let store = temporaryStore()
+        let routine = try await store.addRoutine(
+            title: "Morning brief", prompt: "Summarise my day",
+            schedule: RoutineSchedule(hour: 9, minute: 0, weekdays: RoutineSchedule.workweek))
+        let updated = try await store.updateRoutine(
+            "morning", prompt: "Summarise my day and the weather", isEnabled: false)
+        #expect(updated.id == routine.id)
+        #expect(!updated.isEnabled)
+        let now = Date()
+        try await store.markRoutineRun(id: routine.id, at: now)
+        #expect(await store.routines().first?.lastRun == now)
+        var edited = updated
+        edited.title = "Morning"
+        try await store.saveRoutine(edited)
+        #expect(await store.routines().map(\.title) == ["Morning"])
+        try await store.deleteRoutine(routine.id)
+        #expect(await store.routines().isEmpty)
+    }
+
     @Test("publishes changes")
     func changes() async throws {
         let store = temporaryStore()

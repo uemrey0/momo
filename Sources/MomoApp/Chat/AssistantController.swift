@@ -53,6 +53,10 @@ struct ToolActivity: Identifiable, Equatable {
         case "remember": L("Remembering", comment: "Tool activity")
         case "list_memories": L("Checking what I remember", comment: "Tool activity")
         case "forget": L("Forgetting", comment: "Tool activity")
+        case "add_routine": L("Adding a routine", comment: "Tool activity")
+        case "list_routines": L("Checking your routines", comment: "Tool activity")
+        case "update_routine": L("Updating a routine", comment: "Tool activity")
+        case "delete_routine": L("Deleting a routine", comment: "Tool activity")
         case "current_time": L("Checking the time", comment: "Tool activity")
         case "calendar_events": L("Looking at your calendar", comment: "Tool activity")
         case "add_calendar_event": L("Adding a calendar event", comment: "Tool activity")
@@ -141,6 +145,11 @@ final class AssistantController {
     @ObservationIgnored var systemTools: () -> [any MomoTool] = { [] }
     /// Called with each finished reply, for speaking it aloud.
     @ObservationIgnored var onReply: ((String) -> Void)?
+    /// Called when a background request needs the user to answer a consent or confirmation
+    /// question in the panel.
+    @ObservationIgnored var onAttentionNeeded: (() -> Void)?
+    /// Whether the current request came from ``sendInBackground(_:completion:)``.
+    @ObservationIgnored private(set) var isInBackground = false
 
     @ObservationIgnored private let assistant = Assistant()
     /// Labels tools describe themselves with, from the latest configuration.
@@ -169,7 +178,26 @@ final class AssistantController {
         messages.append(ChatMessage(role: .user, text: message))
         isBusy = true
         character?.showWorking()
-        task = Task { await run(message) }
+        task = Task { _ = await run(message) }
+    }
+
+    /// Answers `text` in the chat conversation without opening the panel or speaking, for
+    /// routines. Returns `false` without doing anything when Momo is busy; otherwise calls
+    /// `completion` with the reply, or `nil` if there was none.
+    @discardableResult
+    func sendInBackground(_ text: String, completion: @escaping (String?) -> Void) -> Bool {
+        let message = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !message.isEmpty, !isBusy else { return false }
+        messages.append(ChatMessage(role: .user, text: message))
+        isBusy = true
+        isInBackground = true
+        character?.showWorking()
+        task = Task {
+            let reply = await run(message)
+            isInBackground = false
+            completion(reply)
+        }
+        return true
     }
 
     func stop() {
@@ -185,8 +213,9 @@ final class AssistantController {
         Task { await assistant.reset() }
     }
 
-    private func run(_ message: String) async {
-        let configuration = await makeConfiguration()
+    /// Answers `message` and returns the reply, or `nil` when there was none.
+    private func run(_ message: String) async -> String? {
+        let configuration = await makeConfiguration(for: message)
         activityLabels = Dictionary(
             configuration.toolbox.definitions.compactMap { definition in
                 definition.activityLabel.map { (definition.name, $0) }
@@ -241,21 +270,25 @@ final class AssistantController {
                 character?.showIdle()
             } else {
                 character?.showDone()
-                if !reply.isEmpty { onReply?(reply) }
+                if !reply.isEmpty, !isInBackground { onReply?(reply) }
             }
         } catch is CancellationError {
             if let index { messages[index].isStreaming = false }
             character?.showIdle()
+            reply = ""
         } catch {
             if let index { messages[index].isStreaming = false }
             messages.append(ChatMessage(role: .error, text: error.localizedDescription))
             character?.showTrouble()
+            reply = ""
         }
         isBusy = false
         task = nil
+        return reply.isEmpty ? nil : reply
     }
 
-    private func makeConfiguration() async -> Assistant.Configuration {
+    /// Everything the assistant needs to answer `message`, with the memories related to it.
+    private func makeConfiguration(for message: String) async -> Assistant.Configuration {
         let preferences = settings.preferences
         let providers = BrainCatalog.providers(
             settings: preferences.brains, keys: settings.keys,
@@ -273,7 +306,7 @@ final class AssistantController {
             masksPersonalData: preferences.brains.masksPersonalData,
             systemPrompt: SystemPrompt.make(
                 memories: memories, languageName: preferredLanguageName,
-                personality: preferences.personality.instruction))
+                personality: preferences.personality.instruction, message: message))
     }
 
     // MARK: - Prompts
@@ -284,6 +317,7 @@ final class AssistantController {
         -> RemoteConsent
     {
         character?.showCurious()
+        if isInBackground { onAttentionNeeded?() }
         return await withCheckedContinuation { continuation in
             consentContinuation = continuation
             consentPrompt = ConsentPrompt(brain: brain, reason: reason, masksData: masked)
@@ -299,6 +333,7 @@ final class AssistantController {
 
     private func askConfirmation(_ summary: String) async -> Bool {
         character?.showCurious()
+        if isInBackground { onAttentionNeeded?() }
         return await withCheckedContinuation { continuation in
             confirmationContinuation = continuation
             confirmationPrompt = ConfirmationPrompt(summary: summary)

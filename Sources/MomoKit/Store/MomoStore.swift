@@ -1,6 +1,6 @@
 import Foundation
 
-/// Stores tasks, notes, habits and memories in a single JSON file.
+/// Stores tasks, notes, habits, memories and routines in a single JSON file.
 ///
 /// The file may be shared with other processes (the MCP server), so the store reloads it
 /// whenever it changed on disk and writes atomically.
@@ -62,28 +62,40 @@ public actor MomoStore {
 
     @discardableResult
     public func addTask(
-        title: String, notes: String? = nil, dueDate: Date? = nil, remindAt: Date? = nil
+        title: String, notes: String? = nil, dueDate: Date? = nil, remindAt: Date? = nil,
+        recurrence: Recurrence? = nil, priority: TaskPriority = .normal, tags: [String] = []
     ) throws -> TaskItem {
-        let task = TaskItem(title: title, notes: notes, dueDate: dueDate, remindAt: remindAt)
+        let task = TaskItem(
+            title: title, notes: notes, dueDate: dueDate, remindAt: remindAt,
+            recurrence: recurrence, priority: priority, tags: Self.normalizedTags(tags))
         try mutate { $0.tasks.append(task) }
         return task
     }
 
     /// Marks a task done. `reference` is an ID or part of the title.
+    ///
+    /// Completing a repeating task also adds its next occurrence, whose ID the returned task
+    /// keeps in `nextOccurrenceID` (see ``task(id:)``).
     @discardableResult
-    public func completeTask(_ reference: String) throws -> TaskItem {
+    public func completeTask(
+        _ reference: String, at now: Date = Date(), calendar: Calendar = .current
+    ) throws -> TaskItem {
         let index = try taskIndex(for: reference, includeDone: false)
-        try mutate {
-            $0.tasks[index].isDone = true
-            $0.tasks[index].completedAt = Date()
-        }
+        try markDone(at: index, now: now, calendar: calendar)
         return data.tasks[index]
+    }
+
+    /// The task with exactly this ID, done or not.
+    public func task(id: String) -> TaskItem? {
+        reloadIfNeeded()
+        return data.tasks.first { $0.id == id }
     }
 
     @discardableResult
     public func updateTask(
         _ reference: String, title: String? = nil, notes: String? = nil, dueDate: Date?? = nil,
-        remindAt: Date?? = nil
+        remindAt: Date?? = nil, recurrence: Recurrence?? = nil, priority: TaskPriority? = nil,
+        tags: [String]? = nil
     ) throws -> TaskItem {
         let index = try taskIndex(for: reference, includeDone: true)
         try mutate {
@@ -91,6 +103,9 @@ public actor MomoStore {
             if let notes { $0.tasks[index].notes = notes }
             if let dueDate { $0.tasks[index].dueDate = dueDate }
             if let remindAt { $0.tasks[index].remindAt = remindAt }
+            if let recurrence { $0.tasks[index].recurrence = recurrence }
+            if let priority { $0.tasks[index].priority = priority }
+            if let tags { $0.tasks[index].tags = Self.normalizedTags(tags) }
         }
         return data.tasks[index]
     }
@@ -103,11 +118,49 @@ public actor MomoStore {
         return task
     }
 
-    public func setTaskDone(id: String, _ done: Bool) throws {
+    /// Ticks or unticks a task from the UI. Unticking a repeating task removes the occurrence
+    /// its completion created, as long as that one is still open.
+    public func setTaskDone(id: String, _ done: Bool, at now: Date = Date()) throws {
         let index = try taskIndex(for: id, includeDone: true)
+        guard data.tasks[index].isDone != done else { return }
+        if done {
+            try markDone(at: index, now: now, calendar: .current)
+            return
+        }
+        let nextID = data.tasks[index].nextOccurrenceID
         try mutate {
-            $0.tasks[index].isDone = done
-            $0.tasks[index].completedAt = done ? Date() : nil
+            $0.tasks[index].isDone = false
+            $0.tasks[index].completedAt = nil
+            $0.tasks[index].nextOccurrenceID = nil
+            if let nextID, let next = $0.tasks.firstIndex(where: { $0.id == nextID }),
+                !$0.tasks[next].isDone
+            {
+                $0.tasks.remove(at: next)
+            }
+        }
+    }
+
+    /// Completes the task at `index` and adds the next occurrence if it repeats.
+    @discardableResult
+    private func markDone(at index: Int, now: Date, calendar: Calendar) throws -> TaskItem? {
+        let next = data.tasks[index].nextOccurrence(completedAt: now, calendar: calendar)
+        try mutate {
+            $0.tasks[index].isDone = true
+            $0.tasks[index].completedAt = now
+            $0.tasks[index].nextOccurrenceID = next?.id
+            if let next { $0.tasks.append(next) }
+        }
+        return next
+    }
+
+    /// Lowercased, trimmed, without duplicates or a leading `#`.
+    static func normalizedTags(_ tags: [String]) -> [String] {
+        var seen: Set<String> = []
+        return tags.compactMap { tag in
+            var cleaned = tag.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            while cleaned.hasPrefix("#") { cleaned.removeFirst() }
+            guard !cleaned.isEmpty, seen.insert(cleaned).inserted else { return nil }
+            return cleaned
         }
     }
 
@@ -242,20 +295,27 @@ public actor MomoStore {
 
     // MARK: - Memories
 
-    public func memories() -> [Memory] {
+    /// Memories from oldest to newest, optionally only those in one category.
+    public func memories(in category: MemoryCategory? = nil) -> [Memory] {
         reloadIfNeeded()
-        return data.memories.sorted { $0.createdAt < $1.createdAt }
+        return data.memories.filter { category == nil || $0.category == category }
+            .sorted { $0.createdAt < $1.createdAt }
     }
 
+    /// Saves a memory once. Remembering known text again only updates its category, when one
+    /// is given.
     @discardableResult
-    public func remember(_ text: String) throws -> Memory {
+    public func remember(_ text: String, category: MemoryCategory? = nil) throws -> Memory {
         reloadIfNeeded()
-        if let existing = data.memories.first(where: {
+        if let index = data.memories.firstIndex(where: {
             $0.text.localizedCaseInsensitiveCompare(text) == .orderedSame
         }) {
-            return existing
+            if let category, data.memories[index].category != category {
+                try mutate { $0.memories[index].category = category }
+            }
+            return data.memories[index]
         }
-        let memory = Memory(text: text)
+        let memory = Memory(text: text, category: category ?? .fact)
         try mutate { $0.memories.append(memory) }
         return memory
     }
@@ -269,6 +329,82 @@ public actor MomoStore {
         let memory = data.memories[index]
         try mutate { $0.memories.remove(at: index) }
         return memory
+    }
+
+    // MARK: - Routines
+
+    /// Routines in the order they were created.
+    public func routines() -> [Routine] {
+        reloadIfNeeded()
+        return data.routines.sorted { $0.createdAt < $1.createdAt }
+    }
+
+    @discardableResult
+    public func addRoutine(
+        title: String, prompt: String, schedule: RoutineSchedule, isEnabled: Bool = true,
+        now: Date = Date()
+    ) throws -> Routine {
+        let routine = Routine(
+            title: title, prompt: prompt, schedule: schedule, isEnabled: isEnabled, createdAt: now)
+        try mutate { $0.routines.append(routine) }
+        return routine
+    }
+
+    /// Changes the given parts of a routine; `time` and `weekdays` can change independently.
+    @discardableResult
+    public func updateRoutine(
+        _ reference: String, title: String? = nil, prompt: String? = nil,
+        time: (hour: Int, minute: Int)? = nil, weekdays: Set<Int>? = nil, isEnabled: Bool? = nil
+    ) throws -> Routine {
+        let index = try routineIndex(for: reference)
+        let previous = data.routines[index]
+        var routine = previous
+        if let title { routine.title = title }
+        if let prompt { routine.prompt = prompt }
+        routine.schedule = RoutineSchedule(
+            hour: time?.hour ?? previous.schedule.hour,
+            minute: time?.minute ?? previous.schedule.minute,
+            weekdays: weekdays ?? previous.schedule.weekdays)
+        if let isEnabled { routine.isEnabled = isEnabled }
+        let saved = routine.edited(from: previous)
+        try mutate { $0.routines[index] = saved }
+        return saved
+    }
+
+    /// Replaces a routine, or adds it when no routine has its ID.
+    @discardableResult
+    public func saveRoutine(_ routine: Routine) throws -> Routine {
+        reloadIfNeeded()
+        if let index = data.routines.firstIndex(where: { $0.id == routine.id }) {
+            let saved = routine.edited(from: data.routines[index])
+            try mutate { $0.routines[index] = saved }
+            return saved
+        } else {
+            try mutate { $0.routines.append(routine) }
+        }
+        return routine
+    }
+
+    /// Records that a routine ran, so it does not run again for the same scheduled time.
+    public func markRoutineRun(id: String, at date: Date = Date()) throws {
+        reloadIfNeeded()
+        guard let index = data.routines.firstIndex(where: { $0.id == id }) else { return }
+        try mutate { $0.routines[index].lastRun = date }
+    }
+
+    @discardableResult
+    public func deleteRoutine(_ reference: String) throws -> Routine {
+        let index = try routineIndex(for: reference)
+        let routine = data.routines[index]
+        try mutate { $0.routines.remove(at: index) }
+        return routine
+    }
+
+    private func routineIndex(for reference: String) throws -> Int {
+        reloadIfNeeded()
+        return try Self.index(
+            in: data.routines, reference: reference, kind: "routine", id: \.id, title: \.title,
+            isEligible: { _ in true })
     }
 
     /// Deletes everything.
