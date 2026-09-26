@@ -6,7 +6,7 @@ import SwiftUI
 
 /// The items of the menu shown when right-clicking the character.
 enum CharacterMenuItem {
-    case talk, today, notes, setUpAI, settings, hide
+    case talk, today, notes, meetings, stopMeeting, setUpAI, settings, hide
 }
 
 /// Owns the character: its engine, the notch panel it lives in, and the settings the menu bar
@@ -48,7 +48,26 @@ final class CharacterController {
         }
     }
 
+    /// Whether meeting notes are being taken: a pulsing red dot shows next to the character,
+    /// and Momo looks focused unless another mood is showing.
+    var isRecordingMeeting = false {
+        didSet {
+            guard isRecordingMeeting != oldValue else { return }
+            recordingIndicator.isOn = isRecordingMeeting
+            if isRecordingMeeting, ambientMood == nil || ambientMood == .music {
+                moodBeforeMeeting = ambientMood
+                ambientMood = .focused
+            } else if !isRecordingMeeting, let previous = moodBeforeMeeting {
+                if ambientMood == .focused { ambientMood = previous }
+                moodBeforeMeeting = nil
+            }
+        }
+    }
+
     @ObservationIgnored let engine = FaceEngine()
+    @ObservationIgnored private let recordingIndicator = RecordingIndicatorState()
+    /// The ambient mood the meeting replaced, restored when it ends. `.some(nil)` means none.
+    @ObservationIgnored private var moodBeforeMeeting: Mood??
     /// Called when the user clicks the character.
     @ObservationIgnored var onClick: (() -> Void)?
     /// Called when the user picks an item from the character's right-click menu.
@@ -216,7 +235,13 @@ final class CharacterController {
                 onTap: { [weak self] in self?.onClick?() }
             )
             .accessibilityLabel(Text("Momo", bundle: .module))
-            .contextMenu { contextMenu })
+            .contextMenu { contextMenu }
+            .overlay(alignment: .topLeading) {
+                RecordingDot(state: recordingIndicator)
+                    .position(
+                        x: layout.anchor.x + (FaceGeometry.bodyWidth / 2 + 12) * layout.scale,
+                        y: layout.anchor.y + 12 * layout.scale)
+            })
     }
 
     /// The menu shown when the user right-clicks or Control-clicks Momo.
@@ -226,6 +251,10 @@ final class CharacterController {
         Button(L("Talk to Momo")) { pick(.talk) }
         Button(L("Today")) { pick(.today) }
         Button(L("Notes")) { pick(.notes) }
+        Button(L("Meetings")) { pick(.meetings) }
+        if isRecordingMeeting {
+            Button(L("Stop Meeting Notes")) { pick(.stopMeeting) }
+        }
         Divider()
         if needsAISetup() {
             Button(L("Set Up AI…")) { pick(.setUpAI) }
@@ -259,5 +288,38 @@ final class CharacterController {
             panel.ignoresMouseEvents = !wantsClicks
         }
         return FaceEngine.Input(pointer: pointer, systemIdleTime: SystemActivity.idleSeconds())
+    }
+}
+
+/// Whether the recording dot shows. Separate from the controller so the face's view doesn't
+/// hold on to it.
+@MainActor
+@Observable
+final class RecordingIndicatorState {
+    var isOn = false
+}
+
+/// A small pulsing red dot shown next to Momo while it takes meeting notes, so recording is
+/// always visible.
+private struct RecordingDot: View {
+    var state: RecordingIndicatorState
+    @State private var isPulsing = false
+
+    var body: some View {
+        if state.isOn {
+            Circle()
+                .fill(Color(red: 1, green: 0.27, blue: 0.23))
+                .frame(width: 9, height: 9)
+                .overlay(Circle().strokeBorder(.black.opacity(0.35), lineWidth: 1))
+                .opacity(isPulsing ? 0.45 : 1)
+                .animation(
+                    .easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: isPulsing
+                )
+                .onAppear { isPulsing = true }
+                .onDisappear { isPulsing = false }
+                .help(L("Taking meeting notes"))
+                .accessibilityLabel(L("Taking meeting notes"))
+                .transition(.scale.combined(with: .opacity))
+        }
     }
 }

@@ -115,10 +115,13 @@
             try? await Task.sleep(for: .milliseconds(300))
 
             let state = PanelState()
+            let meetings = MeetingController(
+                store: store, settings: settings, calendar: CalendarService(),
+                assistant: assistant, character: CharacterController())
             func panel() -> some View {
                 PanelView(
-                    assistant: assistant, today: today, notes: notes, state: state,
-                    openSettings: { _ in }, close: {}
+                    assistant: assistant, today: today, notes: notes, meetings: meetings,
+                    state: state, openSettings: { _ in }, close: {}
                 )
                 .environment(\.snapshotMode, true)
                 .padding(24)
@@ -183,7 +186,51 @@
             state.tab = .notes
             save(panel(), "panel-notes", folder)
 
+            let meeting = sampleMeeting()
+            _ = try? await store.saveMeeting(meeting)
+            meetings.start()
+            try? await Task.sleep(for: .milliseconds(300))
+            state.tab = .meetings
+            save(panel(), "panel-meetings", folder)
+            meetings.selectedMeetingID = meeting.id
+            save(panel(), "panel-meeting", folder)
+
             print("Snapshots written to \(folder.path)")
+        }
+
+        /// A finished stand-up with notes, for the Meetings tab.
+        private static func sampleMeeting() -> Meeting {
+            let start = Date().addingTimeInterval(-26 * 3600)
+            return Meeting(
+                title: "Weekly stand-up", startedAt: start,
+                endedAt: start.addingTimeInterval(1_260),
+                language: "en", status: .done,
+                participants: [
+                    MeetingParticipant(name: "You", isUser: true),
+                    MeetingParticipant(name: "Ayşe Yılmaz"), MeetingParticipant(name: "Deniz"),
+                    MeetingParticipant(name: "Can", spoke: false),
+                ],
+                participantCount: 3,
+                segments: [
+                    MeetingSegment(
+                        source: .you, text: "Morning! Shall we start?", start: 2, end: 4),
+                    MeetingSegment(
+                        source: .others, speaker: "1A", speakerName: "Ayşe Yılmaz",
+                        text: "Yes. The beta build is ready for testing.", start: 5, end: 8),
+                    MeetingSegment(
+                        source: .others, speaker: "1B", text: "I still need the release notes.",
+                        start: 9, end: 11),
+                ],
+                summary:
+                    "The team reviewed the beta. Testing starts on Monday, and the release moves to the week after if the crash on older Macs isn't fixed by Thursday.",
+                decisions: ["Start beta testing on Monday", "Keep the launch date for now"],
+                actionItems: [
+                    MeetingActionItem(
+                        text: "Write the release notes", owner: "You", dueText: "Friday"),
+                    MeetingActionItem(
+                        text: "Fix the crash on macOS 14", owner: "Deniz", taskID: "done"),
+                ],
+                openQuestions: ["Who presents the demo?"])
         }
 
         /// Runs an engine until it has settled, with the eyes open (not mid-blink).

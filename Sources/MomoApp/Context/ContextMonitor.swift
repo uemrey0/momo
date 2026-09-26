@@ -14,6 +14,10 @@ final class ContextMonitor: NSObject {
     private weak var character: CharacterController?
     /// Opens the chat with a message, for notification actions.
     var openChat: ((String?) -> Void)?
+    /// Opens the Meetings tab, when a meeting offer is clicked.
+    var openMeetings: (() -> Void)?
+    /// Starts meeting notes, when the user picks "Take notes" on a meeting offer.
+    var takeMeetingNotes: (() -> Void)?
 
     private var tick: Task<Void, Never>?
     private var observers: [any NSObjectProtocol] = []
@@ -171,6 +175,19 @@ final class ContextMonitor: NSObject {
         case planDay = "plan-day"
         case openTask = "open-task"
         case openChat = "open-chat"
+        case meetingOffer = "meeting-offer"
+    }
+
+    /// The category of meeting offers, whose "Take notes" button starts recording.
+    private static let meetingCategory = "meeting-offer"
+    private static let takeNotesAction = "take-notes"
+
+    /// Asks whether to take notes of a meeting that seems to have started. Only the "Take
+    /// notes" button starts recording; clicking the notification opens the Meetings tab.
+    func notifyMeetingOffer(id: String, title: String, body: String) {
+        notify(
+            id: "meeting-offer-\(id)", title: title, body: body, action: .meetingOffer,
+            category: Self.meetingCategory)
     }
 
     /// Posts a notification that opens the chat when clicked, e.g. a routine's reply.
@@ -184,6 +201,12 @@ final class ContextMonitor: NSObject {
     private func prepareNotifications() {
         guard canNotify else { return }
         UNUserNotificationCenter.current().delegate = self
+        let takeNotes = UNNotificationAction(
+            identifier: Self.takeNotesAction, title: L("Take notes"), options: [])
+        UNUserNotificationCenter.current().setNotificationCategories([
+            UNNotificationCategory(
+                identifier: Self.meetingCategory, actions: [takeNotes], intentIdentifiers: [])
+        ])
         Task {
             let granted =
                 (try? await UNUserNotificationCenter.current().requestAuthorization(
@@ -192,14 +215,17 @@ final class ContextMonitor: NSObject {
         }
     }
 
-    private func notify(id: String, title: String, body: String, action: NotificationAction? = nil)
-    {
+    private func notify(
+        id: String, title: String, body: String, action: NotificationAction? = nil,
+        category: String? = nil
+    ) {
         guard canNotify, notificationsReady else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
         if let action { content.userInfo = ["action": action.rawValue] }
+        if let category { content.categoryIdentifier = category }
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: id, content: content, trigger: nil))
     }
@@ -260,10 +286,17 @@ extension ContextMonitor: UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse
     ) async {
         let action = response.notification.request.content.userInfo["action"] as? String
+        let tapped = response.actionIdentifier
         await MainActor.run {
             switch NotificationAction(rawValue: action ?? "") {
             case .planDay: openChat?(L("Plan my day"))
             case .openTask, .openChat: openChat?(nil)
+            case .meetingOffer:
+                if tapped == Self.takeNotesAction {
+                    takeMeetingNotes?()
+                } else if tapped == UNNotificationDefaultActionIdentifier {
+                    openMeetings?()
+                }
             case nil: break
             }
         }

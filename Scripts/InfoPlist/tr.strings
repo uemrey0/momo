@@ -1,5 +1,5 @@
 "CFBundleDisplayName" = "Momo";
-"NSMicrophoneUsageDescription" = "Momo, onunla konuştuğunda ve açarsan “Hey Momo” dediğinde seni dinler.";
+"NSMicrophoneUsageDescription" = "Momo, onunla konuştuğunda, açarsan “Hey Momo” dediğinde ve evet dediğinde toplantı notu almak için seni dinler.";
 "NSSpeechRecognitionUsageDescription" = "Momo söylediklerini, mümkün olduğunca Mac'inde yazıya çevirir.";
 "NSCalendarsFullAccessUsageDescription" = "Momo gününü planlamak ve toplantılardan önce hatırlatmak için takvimini okur.";
 "NSCalendarsUsageDescription" = "Momo gününü planlamak ve toplantılardan önce hatırlatmak için takvimini okur.";

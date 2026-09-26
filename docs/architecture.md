@@ -9,7 +9,7 @@ fit together; the [ADRs](adr/README.md) explain why.
 flowchart LR
   subgraph App["MomoApp"]
     Face["Character in the notch"]
-    Panel["Chat, Today, Notes"]
+    Panel["Chat, Today, Notes, Meetings"]
     Voice["Voice controller"]
     Context["Context monitor\ncalendar, music, battery, reminders"]
     System["System tools\ncalendar, apps, Shortcuts, screen"]
@@ -19,7 +19,7 @@ flowchart LR
     Providers["Providers"]
   end
   subgraph Kit["MomoKit"]
-    Store[("Store\ntasks, notes, habits, memories")]
+    Store[("Store\ntasks, notes, habits, memories, meetings")]
     Tools["Store tools"]
     Router{"Brain router"}
     Masker["Personal data masker"]
@@ -58,9 +58,9 @@ flowchart LR
 | Module      | Kind       | Responsibility                                                         | Depends on        |
 | ----------- | ---------- | ---------------------------------------------------------------------- | ----------------- |
 | `MomoFace`  | Library    | Character engine, SwiftUI renderer, character packs                    | nothing           |
-| `MomoKit`   | Library    | Store, tools, JSON values, personal data masking, brain router, versions | nothing         |
+| `MomoKit`   | Library    | Store, tools, JSON values, personal data masking, brain router, meeting notes logic, versions | nothing |
 | `MomoBrain` | Library    | Providers, CLI bridges, the assistant, system prompt, brain settings   | MomoKit           |
-| `MomoVoice` | Library    | Dictation engines, cloud transcription, speech synthesis, wake word    | nothing           |
+| `MomoVoice` | Library    | Dictation engines, transcription, meeting audio capture, speech synthesis, wake word | nothing |
 | `MomoMCP`   | Library    | MCP server and client                                                  | MomoKit           |
 | `momo-mcp`  | Executable | Serves Momo's store over stdio MCP; shipped inside the app bundle      | MomoMCP, MomoKit  |
 | `MomoApp`   | Executable | The app: notch, panel, settings, voice, context, system tools          | everything        |
@@ -137,6 +137,51 @@ under the notch, and consent or confirmation questions are asked aloud and answe
 spoken yes or no (`SpeechText.answer(in:)`). `DictationEngineSelector` turns the user's
 choice into an engine (cloud engines only with a key). The wake word always uses Apple Speech on the Mac. Cloud requests use the keys of the
 OpenAI and Gemini brains and are listed in the privacy log.
+
+## Meeting notes
+
+Momo takes notes in meetings only after the user says yes, and shows a pulsing red dot next to
+the character (and a different menu bar icon) the whole time it records.
+
+1. **Detection.** `MeetingDetectionMonitor` polls the calendar, Core Audio's list of processes
+   recording audio (`MicrophoneActivity`; on older systems whether the default input runs
+   somewhere while Momo itself isn't listening) and the running apps. `MeetingDetector`
+   decides: a meeting app (Zoom, Teams, Webex, Slack, FaceTime, or a browser during an event)
+   on the microphone, plus an event in progress or starting within five minutes, or a
+   dedicated call app. The offer is a notification with a "Take notes" button and a card in
+   the Meetings tab; each event is offered once.
+2. **Capture.** `MeetingAudioCapture` records two tracks, so the user and the others are
+   always told apart: the microphone (`AVAudioEngine`) and the Mac's output through
+   ScreenCaptureKit (`capturesAudio`, `excludesCurrentProcessAudio`, a 2 × 2 pixel video
+   stream at one frame a second). System audio needs the Screen Recording permission; without
+   it Momo explains why and offers microphone-only notes. Both tracks become 16 kHz mono and
+   stay in memory; they are written to WAV files only with "Keep meeting audio" (off by
+   default).
+3. **Transcription.** `AudioChunker` cuts each track at the quietest moment between 20 and
+   30 seconds (no overlap, so nothing is transcribed twice) and silent chunks are skipped.
+   Chunks go to the chosen engine: OpenAI's `gpt-4o-transcribe-diarize` (timed segments and
+   speaker labels), Gemini, or `OnDeviceTranscriptionService` (SpeechAnalyzer on macOS 26,
+   Apple Speech otherwise, in memory). A failed cloud chunk is transcribed on the Mac instead.
+   Cloud transcription asks for consent once per meeting, is never used in local-only mode,
+   and every chunk is logged in Privacy. `Transcript.chunkSegments` moves segments into place
+   and scopes speaker labels to their chunk ("3A"), because services label speakers per
+   request; `MeetingTranscript.removingEcho` drops microphone segments that only repeat the
+   call.
+4. **Summary.** `MeetingSummarizer` asks for JSON (summary, decisions, action items with
+   owners and due dates, open questions, participants, and names for speaker labels) and
+   reads the answer defensively. Transcripts longer than the smallest ready brain handles are
+   summarised in parts and merged (map-reduce). Requests go through
+   `AssistantController.backgroundBrain`: a fresh `Assistant` without tools per request, so
+   routing, consent (asked once per summary, in the Meetings tab) and personal data masking
+   apply. Speaker labels are reconciled here: the brain names them from introductions and the
+   calendar attendees, and `MeetingParticipants` counts at least the most speakers heard in one
+   chunk.
+5. **Storage.** `Meeting` lives in `MomoData` (version 3) with its segments (source you or
+   others, chunk-scoped speaker label, name) and notes; the summary is also saved as a note
+   "Meeting: <title> — <date>", and action items become tasks in one click or with the
+   `meeting_action_items_to_tasks` tool. `list_meetings` and `get_meeting` answer questions
+   like "what did we decide in yesterday's stand-up?", also over MCP; `start_meeting_notes`
+   (confirmed) and `stop_meeting_notes` are app tools.
 
 ## Data and privacy
 

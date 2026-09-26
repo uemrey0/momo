@@ -46,7 +46,7 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 The Momo Authors. Licensed under the Apache License 2.0.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Momo listens when you talk to it, and for “Hey Momo” if you turn that on.</string>
+	<string>Momo listens when you talk to it, for “Hey Momo” if you turn that on, and to take meeting notes when you say yes.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Momo reads and adds reminders in the Reminders app when you ask it to.</string>
 	<key>NSRemindersUsageDescription</key>

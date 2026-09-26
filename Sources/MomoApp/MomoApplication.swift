@@ -10,8 +10,12 @@ struct MomoApplication: App {
         MenuBarExtra {
             StatusMenu(model: appDelegate.model)
         } label: {
-            Image(systemName: "face.smiling")
-                .accessibilityLabel(Text("Momo", bundle: .module))
+            // The menu bar shows that Momo is recording even when the character is hidden.
+            Image(
+                systemName: appDelegate.model.meetings.isRecording
+                    ? "record.circle.fill" : "face.smiling"
+            )
+            .accessibilityLabel(Text("Momo", bundle: .module))
         }
     }
 }

@@ -129,6 +129,10 @@ struct ToolActivity: Identifiable, Equatable {
         case "list_routines": L("Checking your routines", comment: "Tool activity")
         case "update_routine": L("Updating a routine", comment: "Tool activity")
         case "delete_routine": L("Deleting a routine", comment: "Tool activity")
+        case "list_meetings": L("Checking your meetings", comment: "Tool activity")
+        case "get_meeting": L("Reading meeting notes", comment: "Tool activity")
+        case "meeting_action_items_to_tasks":
+            L("Adding action items as tasks", comment: "Tool activity")
         case "current_time": L("Checking the time", comment: "Tool activity")
         case "calendar_events": L("Looking at your calendar", comment: "Tool activity")
         case "add_calendar_event": L("Adding a calendar event", comment: "Tool activity")
@@ -189,6 +193,28 @@ struct OutboundRecord: Codable, Identifiable, Equatable {
     var masked: Bool
     /// Seconds of audio sent, for cloud transcription.
     var audioSeconds: Double?
+}
+
+/// Remembers the user's consent for one background job, so it is asked at most once.
+private actor ConsentMemory {
+    private let ask: RemoteConsentHandler
+    private var remembered: RemoteConsent?
+
+    init(ask: @escaping RemoteConsentHandler) {
+        self.ask = ask
+    }
+
+    func answer(brain: ProviderInfo, reason: RoutingReason, masked: Bool) async -> RemoteConsent {
+        if let remembered { return remembered }
+        let answer = await ask(brain, reason, masked)
+        switch answer {
+        // One job counts as one request, so allowing it once allows all of its parts.
+        case .allowOnce, .allowForConversation: remembered = .allowOnce
+        case .useLocal: remembered = .useLocal
+        case .cancel: remembered = .cancel
+        }
+        return answer
+    }
 }
 
 /// A brain and whether it is ready, for the brain picker and settings.
@@ -538,6 +564,68 @@ final class AssistantController {
             systemPrompt: SystemPrompt.make(
                 memories: memories, languageName: preferredLanguageName,
                 personality: preferences.personality.instruction, message: message))
+    }
+
+    // MARK: - Background jobs
+
+    /// A brain for jobs outside the chat, such as meeting summaries: each call answers one
+    /// prompt with the given instructions, without tools or history, through a fresh
+    /// ``Assistant``, so routing, the local-only lock, consent and personal data masking
+    /// apply as in the chat, and remote requests are logged.
+    ///
+    /// `consent` asks the user; its answer is remembered for every later call of the returned
+    /// closure, so one job (a map-reduce summary of several requests) asks at most once.
+    func backgroundBrain(consent: @escaping RemoteConsentHandler) -> MeetingSummarizer.Complete {
+        let memory = ConsentMemory(ask: consent)
+        return { [weak self] instructions, prompt in
+            guard let self else { throw CancellationError() }
+            return try await self.answerOnce(
+                prompt, instructions: instructions,
+                consent: { brain, reason, masked in
+                    await memory.answer(brain: brain, reason: reason, masked: masked)
+                })
+        }
+    }
+
+    /// How much transcript fits one background request: enough for the smallest ready
+    /// on-device brain, so long jobs are split instead of leaving the Mac just for length.
+    var backgroundRequestBudget: Int {
+        let ready = providerStatuses.filter(\.availability.isReady).map(\.info)
+        let local = ready.filter { $0.kind == .local }.map(\.comfortableLength)
+        let smallest = local.min() ?? ready.map(\.comfortableLength).min() ?? 24_000
+        return min(40_000, max(4_000, smallest * 6 / 10))
+    }
+
+    private func answerOnce(
+        _ prompt: String, instructions: String, consent: @escaping RemoteConsentHandler
+    ) async throws -> String {
+        let preferences = settings.preferences
+        let configuration = Assistant.Configuration(
+            providers: BrainCatalog.providers(
+                settings: preferences.brains, keys: settings.keys,
+                mcpServerPath: AppSettings.bridgeRelayPath,
+                workingDirectory: AppSettings.cliWorkspace),
+            toolbox: Toolbox(), policy: preferences.brains.policy,
+            masksPersonalData: preferences.brains.masksPersonalData, systemPrompt: instructions)
+        let stream = await Assistant().reply(
+            to: prompt, configuration: configuration, consent: consent, confirm: { _ in false })
+        var reply = ""
+        var answered = false
+        for try await event in stream {
+            switch event {
+            case .brainSelected(let brain, _):
+                answered = true
+                if brain.kind.isRemote { record(brain: brain, message: prompt, configuration) }
+            case .text(let chunk):
+                reply += chunk
+            case .toolStarted, .toolFinished:
+                break
+            }
+        }
+        guard answered else { throw CancellationError() }
+        let text = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { throw ProviderError("The brain gave an empty answer.") }
+        return text
     }
 
     // MARK: - Prompts

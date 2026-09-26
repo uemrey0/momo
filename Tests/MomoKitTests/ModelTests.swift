@@ -68,7 +68,7 @@ struct DataFormatTests {
         #expect(data.routines.isEmpty)
     }
 
-    @Test("reads a version 1 file from disk and writes it back as version 2")
+    @Test("reads a version 1 file from disk and writes it back in the current format")
     func migratesOnDisk() async throws {
         let store = temporaryStore()
         try FileManager.default.createDirectory(
@@ -77,7 +77,7 @@ struct DataFormatTests {
         #expect(await store.tasks().count == 1)
         try await store.addNote(title: "New", body: "")
         let written = try String(contentsOf: store.fileURL, encoding: .utf8)
-        #expect(written.contains(#""version" : 2"#))
+        #expect(written.contains("\"version\" : \(MomoData.currentVersion)"))
         #expect(written.contains(#""category" : "fact""#))
         #expect(written.contains(#""priority" : "normal""#))
         #expect(await store.memories().count == 1)

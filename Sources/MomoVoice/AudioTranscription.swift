@@ -14,8 +14,10 @@ import Foundation
 /// ```
 ///
 /// For long recordings (meetings), split the audio into chunks below the service's size limit
-/// (``AudioClip/maximumUploadBytes``), transcribe each with ``TranscriptionOptions/wantsSegments``
-/// and shift each chunk's segments by its start time with ``Transcript/offset(by:)``.
+/// (``AudioClip/maximumUploadBytes``) with ``AudioChunker``, transcribe each with
+/// ``TranscriptionOptions/wantsSegments`` and shift each chunk's segments by its start time
+/// with ``Transcript/offset(by:)``, or ``Transcript/chunkSegments(index:start:)`` to also
+/// scope speaker labels to the chunk. ``OnDeviceTranscriptionService`` does the same on the Mac.
 public protocol AudioTranscriptionService: Sendable {
     /// A short name for logs, such as "OpenAI gpt-4o-transcribe".
     var displayName: String { get }
