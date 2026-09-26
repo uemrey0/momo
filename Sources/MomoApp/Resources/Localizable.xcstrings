@@ -1598,6 +1598,16 @@
         }
       }
     },
+    "High priority" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yüksek öncelik"
+          }
+        }
+      }
+    },
     "How to reach me" : {
       "localizations" : {
         "tr" : {
@@ -2760,6 +2770,96 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kaldır"
+          }
+        }
+      }
+    },
+    "Repeats daily" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her gün tekrarlanır"
+          }
+        }
+      }
+    },
+    "Repeats every %lld days" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld günde bir tekrarlanır"
+          }
+        }
+      }
+    },
+    "Repeats every %lld months" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ayda bir tekrarlanır"
+          }
+        }
+      }
+    },
+    "Repeats every %lld weeks" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld haftada bir tekrarlanır"
+          }
+        }
+      }
+    },
+    "Repeats every %lld years" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld yılda bir tekrarlanır"
+          }
+        }
+      }
+    },
+    "Repeats every weekday" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hafta içi her gün tekrarlanır"
+          }
+        }
+      }
+    },
+    "Repeats monthly" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her ay tekrarlanır"
+          }
+        }
+      }
+    },
+    "Repeats weekly" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her hafta tekrarlanır"
+          }
+        }
+      }
+    },
+    "Repeats yearly" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her yıl tekrarlanır"
           }
         }
       }
