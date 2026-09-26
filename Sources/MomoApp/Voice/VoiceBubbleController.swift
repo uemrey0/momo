@@ -20,6 +20,7 @@ final class VoiceBubbleWindow: NSPanel {
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         appearance = NSAppearance(named: .darkAqua)
+        CapturePrivacy.register(self)
     }
 
     override var canBecomeKey: Bool { false }

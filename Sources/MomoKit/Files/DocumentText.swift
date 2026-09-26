@@ -16,6 +16,17 @@ public enum DocumentText {
     ///
     /// - Throws: `ToolError` when the file is too large, empty or not a readable document.
     public static func extract(from url: URL, limit: Int = maximumCharacters) throws -> String {
+        shortened(try fullText(of: url), to: limit)
+    }
+
+    /// The whole text of the file at `url`, for readers that page through long documents.
+    /// PDF pages are marked with "[Page n]".
+    ///
+    /// - Parameter maximumFileSize: Files larger than this are refused.
+    /// - Throws: `ToolError` when the file is too large, empty or not a readable document.
+    public static func fullText(
+        of url: URL, maximumFileSize: Int = maximumFileSize
+    ) throws -> String {
         let values = try url.resourceValues(forKeys: [.fileSizeKey, .contentTypeKey])
         if let size = values.fileSize, size > maximumFileSize {
             throw ToolError(
@@ -28,6 +39,10 @@ public enum DocumentText {
             text = try pdfText(at: url)
         } else if let type, richTypes.contains(where: type.conforms(to:)) {
             text = try richText(at: url)
+        } else if iWorkExtensions.contains(url.pathExtension.lowercased()) {
+            throw ToolError(
+                "“\(url.lastPathComponent)” is an iWork file, which Momo can't read directly. Export it as PDF or Word first."
+            )
         } else {
             text = try plainText(at: url)
         }
@@ -35,7 +50,7 @@ public enum DocumentText {
         guard !trimmed.isEmpty else {
             throw ToolError("“\(url.lastPathComponent)” has no readable text.")
         }
-        return shortened(trimmed, to: limit)
+        return trimmed
     }
 
     /// Whether the file at `url` is an image, judged by its type.
@@ -53,6 +68,9 @@ public enum DocumentText {
         UTType("org.oasis-open.opendocument.text"),
     ].compactMap { $0 }
 
+    /// Pages, Numbers and Keynote documents, which have no public text importer.
+    static let iWorkExtensions: Set<String> = ["pages", "numbers", "key"]
+
     static func shortened(_ text: String, to limit: Int) -> String {
         guard text.count > limit else { return text }
         return String(text.prefix(limit))
@@ -66,7 +84,14 @@ public enum DocumentText {
         if document.isLocked {
             throw ToolError("“\(url.lastPathComponent)” is password protected.")
         }
-        return document.string ?? ""
+        let pages = (0..<document.pageCount).map { index in
+            "[Page \(index + 1)]\n\(document.page(at: index)?.string ?? "")"
+        }
+        guard pages.joined().contains(where: \.isLetter) else {
+            throw ToolError(
+                "“\(url.lastPathComponent)” has no selectable text; it may be a scanned PDF.")
+        }
+        return pages.joined(separator: "\n\n")
     }
 
     private static func richText(at url: URL) throws -> String {

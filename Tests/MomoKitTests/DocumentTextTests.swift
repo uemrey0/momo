@@ -61,6 +61,18 @@ struct DocumentTextTests {
         #expect(throws: ToolError.self) { try DocumentText.extract(from: empty) }
     }
 
+    @Test("reads whole documents and explains iWork files and size limits")
+    func fullText() throws {
+        let long = String(repeating: "b", count: 70_000)
+        let url = try temporaryFile("whole.txt", Data(long.utf8))
+        #expect(try DocumentText.fullText(of: url) == long)
+        #expect(throws: ToolError.self) {
+            try DocumentText.fullText(of: url, maximumFileSize: 1_000)
+        }
+        let pages = try temporaryFile("slides.key", Data("zip".utf8))
+        #expect(throws: ToolError.self) { try DocumentText.fullText(of: pages) }
+    }
+
     @Test("recognises images by type")
     func images() throws {
         #expect(DocumentText.isImage(try temporaryFile("a.png", png(width: 2, height: 2))))
