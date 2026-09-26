@@ -56,6 +56,21 @@ struct PrivacySettingsView: View {
             }
 
             Section {
+                Toggle(
+                    L("Hide Momo from screen recordings and sharing"),
+                    isOn: $settings.preferences.hidesFromScreenCapture
+                )
+                .onChange(of: settings.preferences.hidesFromScreenCapture) {
+                    model.applyPreferences()
+                }
+            } footer: {
+                Text(
+                    verbatim: L(
+                        "Momo and its chat panel stay visible to you but don't appear in screenshots, recordings or when you share your screen."
+                    ))
+            }
+
+            Section {
                 if model.assistant.outboundLog.isEmpty {
                     Text(verbatim: L("Nothing has left this Mac yet."))
                         .foregroundStyle(.secondary)

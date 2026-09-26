@@ -22,6 +22,7 @@ final class NotchPanel: NSPanel {
         isMovable = false
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
+        CapturePrivacy.register(self)
     }
 
     override var canBecomeKey: Bool { false }

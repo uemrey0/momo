@@ -104,6 +104,7 @@ final class AppModel {
     /// Pushes settings that live outside the settings object into the running app.
     func applyPreferences() {
         character.setSleepDelay(minutes: settings.preferences.sleepDelayMinutes)
+        CapturePrivacy.hidesWindows = settings.preferences.hidesFromScreenCapture
         character.appearance =
             availableCharacters.first { $0.id == settings.preferences.characterID } ?? .classic
     }

@@ -1538,6 +1538,16 @@
         }
       }
     },
+    "Hide Momo from screen recordings and sharing" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'yu ekran kayıtlarında ve paylaşımda gizle"
+          }
+        }
+      }
+    },
     "Hide personal details from remote brains" : {
       "localizations" : {
         "tr" : {
@@ -1935,6 +1945,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo Ayarları"
+          }
+        }
+      }
+    },
+    "Momo and its chat panel stay visible to you but don't appear in screenshots, recordings or when you share your screen." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo ve sohbet paneli sana görünmeye devam eder, ancak ekran görüntülerinde, kayıtlarda ve ekranını paylaştığında görünmez."
           }
         }
       }

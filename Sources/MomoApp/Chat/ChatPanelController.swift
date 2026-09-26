@@ -61,6 +61,7 @@ final class ChatWindow: NSPanel {
         isReleasedWhenClosed = false
         becomesKeyOnlyIfNeeded = false
         appearance = NSAppearance(named: .darkAqua)
+        CapturePrivacy.register(self)
     }
 
     override var canBecomeKey: Bool { true }
