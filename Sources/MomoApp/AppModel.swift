@@ -19,6 +19,7 @@ final class AppModel {
     let focus: FocusController
     let connections: MCPConnections
     let updates: UpdateChecker
+    let meetings: MeetingController
     @ObservationIgnored let routines: RoutineScheduler
     @ObservationIgnored private var context: ContextMonitor?
     @ObservationIgnored private(set) var chatPanel: ChatPanelController?
@@ -42,6 +43,9 @@ final class AppModel {
         connections = MCPConnections(settings: settings)
         updates = UpdateChecker(settings: settings)
         routines = RoutineScheduler(store: store, assistant: assistant)
+        meetings = MeetingController(
+            store: store, settings: settings, calendar: calendar, assistant: assistant,
+            character: character)
     }
 
     func start() {
@@ -50,15 +54,26 @@ final class AppModel {
         assistant.character = character
         today.onTaskCompleted = { [weak character] in character?.celebrate() }
         let systemTools = SystemTools.all(calendar: calendar, focus: focus) + MacTools.all()
-        assistant.systemTools = { [weak connections] in systemTools + (connections?.tools ?? []) }
+        assistant.systemTools = { [weak connections, weak meetings] in
+            systemTools + (meetings.map { MeetingTools.all(controller: $0) } ?? [])
+                + (connections?.tools ?? [])
+        }
+        meetings.start()
         Task { await connections.refresh() }
 
         let voice = VoiceController(settings: settings, assistant: assistant, character: character)
         self.voice = voice
         let panel = ChatPanelController(
-            assistant: assistant, today: today, notes: notes, state: panelState, voice: voice,
-            character: character, openSettings: { [weak self] in self?.openSettings($0) })
+            assistant: assistant, today: today, notes: notes, meetings: meetings,
+            state: panelState, voice: voice, character: character,
+            openSettings: { [weak self] in self?.openSettings($0) })
         chatPanel = panel
+        meetings.showMeetings = { [weak panel] in panel?.show(tab: .meetings) }
+        panel.hasMeetingQuestion = { [weak meetings] in
+            meetings?.startPrompt != nil || meetings?.summaryConsent != nil
+        }
+        voice.isTakingMeetingNotes = { [weak meetings] in meetings?.isRecording ?? false }
+        meetings.onRecordingChanged = { [weak voice] in voice?.meetingNotesChanged() }
         voice.showPanel = { [weak panel] in panel?.show(tab: .chat) }
         voice.isPanelVisible = { [weak panel] in panel?.isVisible ?? false }
         panel.onShow = { [weak voice] in voice?.chatPanelDidOpen() }
@@ -77,6 +92,8 @@ final class AppModel {
             case .talk: openChat(tab: .chat)
             case .today: openChat(tab: .today)
             case .notes: openChat(tab: .notes)
+            case .meetings: openChat(tab: .meetings)
+            case .stopMeeting: meetings.stop()
             case .setUpAI: openSettings(.ai)
             case .settings: openSettings()
             case .hide: character.isVisible = false

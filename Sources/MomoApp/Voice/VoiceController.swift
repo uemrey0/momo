@@ -55,6 +55,9 @@ final class VoiceController {
     @ObservationIgnored var showPanel: (() -> Void)?
     /// Whether the chat panel is open.
     @ObservationIgnored var isPanelVisible: () -> Bool = { false }
+    /// Whether meeting notes are being taken. The wake word stays off meanwhile, so talk in
+    /// the meeting can't wake Momo.
+    @ObservationIgnored var isTakingMeetingNotes: () -> Bool = { false }
     /// Whether the current message was spoken, so the reply is spoken too.
     @ObservationIgnored private var lastMessageWasSpoken = false
 
@@ -517,9 +520,18 @@ final class VoiceController {
 
     // MARK: - Wake word
 
+    /// Turns the wake word off while meeting notes are taken, and back on afterwards.
+    func meetingNotesChanged() {
+        if isTakingMeetingNotes() {
+            wakeWord.stop()
+        } else {
+            startWakeWordIfEnabled()
+        }
+    }
+
     /// Starts or stops the wake word listener to match the preference.
     func startWakeWordIfEnabled() {
-        guard settings.preferences.wakeWordEnabled else {
+        guard settings.preferences.wakeWordEnabled, !isTakingMeetingNotes() else {
             wakeWord.stop()
             return
         }

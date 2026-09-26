@@ -21,6 +21,16 @@
         }
       }
     },
+    "%@ call" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ görüşmesi"
+          }
+        }
+      }
+    },
     "%@ can't see images, so it only got their names." : {
       "localizations" : {
         "tr" : {
@@ -61,6 +71,16 @@
         }
       }
     },
+    "%lld actions" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld yapılacak"
+          }
+        }
+      }
+    },
     "%lld characters" : {
       "localizations" : {
         "tr" : {
@@ -87,6 +107,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld dakika"
+          }
+        }
+      }
+    },
+    "%lld people" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kişi"
           }
         }
       }
@@ -127,6 +157,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld günlük seri"
+          }
+        }
+      }
+    },
+    "A call seems to have started in %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ uygulamasında bir görüşme başlamış gibi görünüyor."
           }
         }
       }
@@ -203,6 +243,16 @@
         }
       }
     },
+    "Action items" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapılacaklar"
+          }
+        }
+      }
+    },
     "Add Routine…" : {
       "localizations" : {
         "tr" : {
@@ -233,6 +283,26 @@
         }
       }
     },
+    "Add as a task" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görev olarak ekle"
+          }
+        }
+      }
+    },
+    "Add as tasks" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görev olarak ekle"
+          }
+        }
+      }
+    },
     "Add server" : {
       "localizations" : {
         "tr" : {
@@ -259,6 +329,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“%@” etkinliğini %@ saatine takvimine ekle"
+          }
+        }
+      }
+    },
+    "Added to your tasks" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görevlerine eklendi"
           }
         }
       }
@@ -543,6 +623,26 @@
         }
       }
     },
+    "Audio is kept in memory only and never saved." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses yalnızca bellekte tutulur, hiçbir zaman kaydedilmez."
+          }
+        }
+      }
+    },
+    "Audio is saved as WAV files in Momo's Meetings folder." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses, Momo'nun Toplantılar klasörüne WAV dosyası olarak kaydedilir."
+          }
+        }
+      }
+    },
     "Automatic" : {
       "localizations" : {
         "tr" : {
@@ -660,6 +760,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Takvim erişimi, Momo'nun gününü planlamasını ve etkinliklerden önce seni dürtmesini sağlar. Google ve Outlook takvimleri, Sistem Ayarları → İnternet Hesapları'na eklendiğinde çalışır."
+          }
+        }
+      }
+    },
+    "Call audio" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görüşme sesi"
           }
         }
       }
@@ -964,6 +1074,16 @@
         }
       }
     },
+    "Cloud transcription failed for part of the meeting, so Momo transcribed it on this Mac. %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantının bir kısmında bulut yazıya dökme başarısız oldu, bu yüzden Momo o kısmı bu Mac'te yazıya döktü. %@"
+          }
+        }
+      }
+    },
     "Cloud transcription failed, so Momo used Apple Speech instead. %@" : {
       "localizations" : {
         "tr" : {
@@ -1230,6 +1350,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Günler"
+          }
+        }
+      }
+    },
+    "Decisions" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kararlar"
           }
         }
       }
@@ -1575,6 +1705,16 @@
         }
       }
     },
+    "Finishing the transcript…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Döküm tamamlanıyor…"
+          }
+        }
+      }
+    },
     "Focus" : {
       "localizations" : {
         "tr" : {
@@ -1786,6 +1926,16 @@
         }
       }
     },
+    "Getting ready…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hazırlanıyor…"
+          }
+        }
+      }
+    },
     "Getting the list of models…" : {
       "localizations" : {
         "tr" : {
@@ -1894,6 +2044,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Claude Pro veya Max planın mı var?"
+          }
+        }
+      }
+    },
+    "Hearing the call needs the Screen Recording permission; Momo only captures sound. Without it, Momo takes notes from your microphone only." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görüşmeyi duymak için Ekran Kaydı izni gerekir; Momo yalnızca sesi alır. İzin yoksa Momo yalnızca mikrofonundan not alır."
           }
         }
       }
@@ -2028,6 +2188,16 @@
         }
       }
     },
+    "I'll listen to you and the call, then write a summary with decisions and action items when you stop." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seni ve görüşmeyi dinlerim, durdurduğunda kararları ve yapılacakları içeren bir özet yazarım."
+          }
+        }
+      }
+    },
     "Idle" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -2101,12 +2271,32 @@
         }
       }
     },
+    "Keep meeting audio" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı sesini sakla"
+          }
+        }
+      }
+    },
     "Keys are stored in your macOS Keychain and only sent to that provider." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anahtarlar macOS Anahtar Zinciri'nde saklanır ve yalnızca o sağlayıcıya gönderilir."
+          }
+        }
+      }
+    },
+    "Let Momo hear the call?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo görüşmeyi duysun mu?"
           }
         }
       }
@@ -2355,12 +2545,82 @@
         }
       }
     },
+    "Meeting language" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı dili"
+          }
+        }
+      }
+    },
+    "Meeting notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı notları"
+          }
+        }
+      }
+    },
+    "Meetings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantılar"
+          }
+        }
+      }
+    },
+    "Meetings Momo took notes of show up here, with their summary and action items." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun not aldığı toplantılar özetleri ve yapılacaklarıyla burada görünür."
+          }
+        }
+      }
+    },
+    "Meetings are transcribed by the cloud service chosen above, which tells the other speakers apart; Momo asks before each meeting, and you can pick this Mac instead." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantılar yukarıda seçilen bulut hizmetiyle yazıya dökülür ve diğer konuşmacılar birbirinden ayrılır; Momo her toplantıdan önce sorar, istersen bunun yerine bu Mac'i seçebilirsin."
+          }
+        }
+      }
+    },
+    "Meetings are transcribed on this Mac with the speech recognition chosen above." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantılar bu Mac'te, yukarıda seçilen konuşma tanıma ile yazıya dökülür."
+          }
+        }
+      }
+    },
     "Message" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mesaj"
+          }
+        }
+      }
+    },
+    "Microphone only" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yalnızca mikrofon"
           }
         }
       }
@@ -2415,6 +2675,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo günde bir kez GitHub'a yeni sürüm olup olmadığını sorar. Başka hiçbir şey gönderilmez."
+          }
+        }
+      }
+    },
+    "Momo can't hear the call any more, only your microphone. %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo artık görüşmeyi duyamıyor, yalnızca mikrofonunu duyuyor. %@"
           }
         }
       }
@@ -2485,6 +2755,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo ekranına yalnızca sen istediğinde bakar ve her seferinde önce sorar. Metin Mac'inde okunur."
+          }
+        }
+      }
+    },
+    "Momo quit before the summary was written." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo özet yazılmadan önce kapandı."
           }
         }
       }
@@ -2722,6 +3002,36 @@
         }
       }
     },
+    "No summary" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Özet yok"
+          }
+        }
+      }
+    },
+    "No summary was written." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Özet yazılmadı."
+          }
+        }
+      }
+    },
+    "Not now" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Şimdi değil"
+          }
+        }
+      }
+    },
     "Not set up yet" : {
       "localizations" : {
         "tr" : {
@@ -2758,6 +3068,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yapacak bir şey yok. Tadını çıkar ya da gününü planlamamı iste."
+          }
+        }
+      }
+    },
+    "Nothing to start." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Başlatılacak bir şey yok."
+          }
+        }
+      }
+    },
+    "Nothing was transcribed, so there is nothing to summarise." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiçbir şey yazıya dökülmedi, bu yüzden özetlenecek bir şey yok."
+          }
+        }
+      }
+    },
+    "Offer to take meeting notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı notu almayı öner"
           }
         }
       }
@@ -2819,6 +3159,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yalnızca çok uzun istekler"
+          }
+        }
+      }
+    },
+    "Only your microphone is recorded, so others are heard through it." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yalnızca mikrofonun kaydediliyor, diğerleri de onun üzerinden duyuluyor."
           }
         }
       }
@@ -2913,12 +3263,32 @@
         }
       }
     },
+    "Open System Settings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistem Ayarları'nı Aç"
+          }
+        }
+      }
+    },
     "Open at login" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Girişte aç"
+          }
+        }
+      }
+    },
+    "Open questions" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık sorular"
           }
         }
       }
@@ -3039,6 +3409,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Diğer ajanlar"
+          }
+        }
+      }
+    },
+    "Others" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diğerleri"
+          }
+        }
+      }
+    },
+    "Participants" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Katılımcılar"
+          }
+        }
+      }
+    },
+    "Participants (%ld)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Katılımcılar (%ld)"
+          }
+        }
+      }
+    },
+    "Past meetings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geçmiş toplantılar"
           }
         }
       }
@@ -3655,6 +4065,16 @@
         }
       }
     },
+    "Same as the Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac ile aynı"
+          }
+        }
+      }
+    },
     "Save" : {
       "localizations" : {
         "tr" : {
@@ -3967,6 +4387,26 @@
         }
       }
     },
+    "Should I take notes?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not alayım mı?"
+          }
+        }
+      }
+    },
+    "Show Meeting Audio in Finder" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı Seslerini Finder'da Göster"
+          }
+        }
+      }
+    },
     "Show Momo" : {
       "comment" : "Menu toggle that shows or hides the character",
       "localizations" : {
@@ -4160,6 +4600,16 @@
         }
       }
     },
+    "Speaker %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuşmacı %@"
+          }
+        }
+      }
+    },
     "Speaking" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -4251,6 +4701,16 @@
         }
       }
     },
+    "Starting meeting notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı notlarını başlatıyorum"
+          }
+        }
+      }
+    },
     "Starting…" : {
       "localizations" : {
         "tr" : {
@@ -4291,6 +4751,16 @@
         }
       }
     },
+    "Stop Meeting Notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı Notlarını Durdur"
+          }
+        }
+      }
+    },
     "Stop focus (until %@)" : {
       "localizations" : {
         "tr" : {
@@ -4321,6 +4791,26 @@
         }
       }
     },
+    "Stopping meeting notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı notlarını durduruyorum"
+          }
+        }
+      }
+    },
+    "Summarize again" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeniden özetle"
+          }
+        }
+      }
+    },
     "Surprised" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -4338,6 +4828,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Görünümü değiştiriyorum"
+          }
+        }
+      }
+    },
+    "Take Meeting Notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı Notu Al"
+          }
+        }
+      }
+    },
+    "Take notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not al"
+          }
+        }
+      }
+    },
+    "Take notes of this meeting? The audio is transcribed by %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu toplantının notları alınsın mı? Ses %@ ile yazıya dökülür."
+          }
+        }
+      }
+    },
+    "Take notes of this meeting? The audio is transcribed on this Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu toplantının notları alınsın mı? Ses bu Mac'te yazıya dökülür."
+          }
+        }
+      }
+    },
+    "Taking meeting notes" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı notu alınıyor"
+          }
+        }
+      }
+    },
+    "Taking notes · %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not alınıyor · %@"
           }
         }
       }
@@ -4463,12 +5013,42 @@
         }
       }
     },
+    "The meeting's audio is sent in short pieces to this service with your API key while Momo takes notes, and each piece is listed in Privacy. Or Momo can transcribe everything on this Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo not alırken toplantının sesi kısa parçalar halinde API anahtarınla bu hizmete gönderilir ve her parça Gizlilik bölümünde listelenir. Ya da Momo her şeyi bu Mac'te yazıya dökebilir."
+          }
+        }
+      }
+    },
     "The screenshot didn't work. Try again." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ekran görüntüsü alınamadı. Tekrar dene."
+          }
+        }
+      }
+    },
+    "The summary was cancelled." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Özet iptal edildi."
+          }
+        }
+      }
+    },
+    "The transcript appears here, about half a minute behind." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Döküm burada yaklaşık yarım dakika geriden görünür."
           }
         }
       }
@@ -4574,6 +5154,16 @@
         }
       }
     },
+    "To tell you and the others apart, Momo records the call's audio separately. macOS calls this Screen Recording; Momo only captures sound, never your screen. After allowing it in System Settings, quit and reopen Momo." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seni ve diğerlerini ayırt etmek için Momo görüşmenin sesini ayrı kaydeder. macOS buna Ekran Kaydı der; Momo yalnızca sesi alır, ekranını asla. Sistem Ayarları'nda izin verdikten sonra Momo'dan çıkıp yeniden aç."
+          }
+        }
+      }
+    },
     "Today" : {
       "localizations" : {
         "tr" : {
@@ -4590,6 +5180,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Su içmek gibi küçük günlük başarılarını takip et."
+          }
+        }
+      }
+    },
+    "Transcribe with %@?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ile yazıya dökülsün mü?"
+          }
+        }
+      }
+    },
+    "Transcript" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Döküm"
           }
         }
       }
@@ -4731,6 +5341,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaten sahip olduğun bir hesabı kullan"
+          }
+        }
+      }
+    },
+    "Use the cloud" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulutu kullan"
           }
         }
       }
@@ -4915,6 +5535,16 @@
         }
       }
     },
+    "When a meeting app uses the microphone during a calendar event, Momo asks whether to take notes. It never records without your yes, and shows a red dot while it does." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir takvim etkinliği sırasında bir toplantı uygulaması mikrofonu kullandığında Momo not alıp almayacağını sorar. Sen evet demeden asla kayıt yapmaz ve kayıt yaparken kırmızı bir nokta gösterir."
+          }
+        }
+      }
+    },
     "When hiding is on, emails, phone numbers, IBANs, card numbers, ID numbers and names are replaced with placeholders before a message leaves your Mac, and put back in the answer." : {
       "localizations" : {
         "tr" : {
@@ -4985,6 +5615,16 @@
         }
       }
     },
+    "Write the summary" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Özeti yaz"
+          }
+        }
+      }
+    },
     "Writing an email draft" : {
       "localizations" : {
         "tr" : {
@@ -5005,12 +5645,32 @@
         }
       }
     },
+    "Writing the summary…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Özet yazılıyor…"
+          }
+        }
+      }
+    },
     "Yawn when it gets very late" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Çok geç olunca esne"
+          }
+        }
+      }
+    },
+    "You" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sen"
           }
         }
       }
@@ -5181,6 +5841,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "sürüm, lisans, web sitesi, sorun bildir, version, license"
+          }
+        }
+      }
+    },
+    "“%@” seems to have started in %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@”, %2$@ uygulamasında başlamış gibi görünüyor."
           }
         }
       }

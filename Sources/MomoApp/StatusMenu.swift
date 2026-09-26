@@ -10,7 +10,9 @@ struct StatusMenu: View {
             .keyboardShortcut(" ", modifiers: .option)
         Button(L("Today")) { model.openChat(tab: .today) }
         Button(L("Notes")) { model.openChat(tab: .notes) }
+        Button(L("Meetings")) { model.openChat(tab: .meetings) }
 
+        MeetingMenu(meetings: model.meetings)
         FocusMenu(focus: model.focus)
 
         Divider()
@@ -62,6 +64,19 @@ private struct CharacterMenu: View {
                     Text(verbatim: brain.displayName).tag(brain)
                 }
             }
+        }
+    }
+}
+
+/// Starts and stops meeting notes. Stopping is always one click away while Momo records.
+private struct MeetingMenu: View {
+    var meetings: MeetingController
+
+    var body: some View {
+        if meetings.isRecording {
+            Button(L("Stop Meeting Notes")) { meetings.stop() }
+        } else if meetings.phase == .idle {
+            Button(L("Take Meeting Notes")) { Task { await meetings.requestStart() } }
         }
     }
 }

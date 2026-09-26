@@ -40,6 +40,21 @@ final class CalendarService: @unchecked Sendable {
         return event
     }
 
+    /// The event as meeting detection and meeting notes see it, with the names of the people
+    /// invited (without the user).
+    static func meeting(from event: EKEvent) -> CalendarMeeting {
+        let attendees = (event.attendees ?? []).filter { !$0.isCurrentUser }
+            .compactMap { participant -> String? in
+                if let name = participant.name, !name.isEmpty { return name }
+                let address = participant.url.absoluteString
+                return address.hasPrefix("mailto:") ? String(address.dropFirst(7)) : nil
+            }
+        return CalendarMeeting(
+            id: event.eventIdentifier ?? event.calendarItemIdentifier,
+            title: event.title ?? "", start: event.startDate, end: event.endDate,
+            isAllDay: event.isAllDay, attendees: attendees)
+    }
+
     /// Describes an event for a model, e.g. "09:30–10:00 Stand-up (Work) @ Room 2".
     static func describe(_ event: EKEvent) -> String {
         var text: String

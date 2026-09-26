@@ -61,6 +61,13 @@ struct Preferences: Codable, Equatable {
     var mcpServers: [MCPServerConfiguration] = []
     var checksForUpdates = true
     var hidesFromScreenCapture = true
+    /// Offer to take notes when a meeting seems to start.
+    var offersMeetingNotes = true
+    /// Keep meeting audio as WAV files in the meetings folder; off keeps it in memory only.
+    var keepsMeetingAudio = false
+    /// The language meetings are usually held in, as an ISO 639-1 code; empty follows the
+    /// system language.
+    var meetingLanguage = ""
 
     init() {}
 
@@ -93,6 +100,9 @@ struct Preferences: Codable, Equatable {
         mcpServers = value(.mcpServers, defaults.mcpServers)
         checksForUpdates = value(.checksForUpdates, defaults.checksForUpdates)
         hidesFromScreenCapture = value(.hidesFromScreenCapture, defaults.hidesFromScreenCapture)
+        offersMeetingNotes = value(.offersMeetingNotes, defaults.offersMeetingNotes)
+        keepsMeetingAudio = value(.keepsMeetingAudio, defaults.keepsMeetingAudio)
+        meetingLanguage = value(.meetingLanguage, defaults.meetingLanguage)
     }
 }
 
@@ -131,6 +141,11 @@ final class AppSettings {
             FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSHomeDirectory())
         return base.appendingPathComponent("Momo", isDirectory: true)
+    }
+
+    /// Where meeting audio is kept when the user asks for it, one folder per meeting.
+    static var meetingsDirectory: URL {
+        supportDirectory.appendingPathComponent("Meetings", isDirectory: true)
     }
 
     /// The folder CLI brains run in, kept empty so they have nothing to read or change.

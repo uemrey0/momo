@@ -6,6 +6,7 @@ enum PanelTab: String, CaseIterable, Identifiable {
     case chat
     case today
     case notes
+    case meetings
 
     var id: String { rawValue }
 
@@ -14,6 +15,7 @@ enum PanelTab: String, CaseIterable, Identifiable {
         case .chat: L("Chat", comment: "Panel tab")
         case .today: L("Today", comment: "Panel tab")
         case .notes: L("Notes", comment: "Panel tab")
+        case .meetings: L("Meetings", comment: "Panel tab")
         }
     }
 
@@ -22,6 +24,7 @@ enum PanelTab: String, CaseIterable, Identifiable {
         case .chat: "bubble.left.and.bubble.right.fill"
         case .today: "sun.max.fill"
         case .notes: "note.text"
+        case .meetings: "person.2.wave.2.fill"
         }
     }
 }
@@ -102,14 +105,15 @@ final class ChatPanelController {
 
     init(
         assistant: AssistantController, today: TodayModel, notes: NotesModel,
-        state: PanelState, voice: VoiceController?, character: CharacterController,
-        openSettings: @escaping (SettingsPane?) -> Void
+        meetings: MeetingController?, state: PanelState, voice: VoiceController?,
+        character: CharacterController, openSettings: @escaping (SettingsPane?) -> Void
     ) {
         self.assistant = assistant
         self.state = state
         self.character = character
         let root = PanelView(
-            assistant: assistant, today: today, notes: notes, state: state, voice: voice,
+            assistant: assistant, today: today, notes: notes, meetings: meetings, state: state,
+            voice: voice,
             openSettings: openSettings, close: { [weak self] in self?.hide() },
             resize: { [weak self] in self?.requestResize(to: $0) })
         let host = NSHostingView(rootView: root)
@@ -165,10 +169,13 @@ final class ChatPanelController {
         }
     }
 
+    /// Whether a meeting question is waiting for an answer in the panel.
+    var hasMeetingQuestion: () -> Bool = { false }
+
     /// Hides when the user clicks elsewhere, unless Momo is waiting for an answer.
     private func hideIfIdle() {
         guard assistant.consentPrompt == nil, assistant.confirmationPrompt == nil,
-            !assistant.isChoosingFiles
+            !assistant.isChoosingFiles, !hasMeetingQuestion()
         else { return }
         hide()
     }

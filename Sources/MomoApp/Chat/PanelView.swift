@@ -8,6 +8,7 @@ struct PanelView: View {
     @Bindable var assistant: AssistantController
     var today: TodayModel
     var notes: NotesModel
+    var meetings: MeetingController? = nil
     @Bindable var state: PanelState
     var voice: VoiceController? = nil
     var openSettings: (SettingsPane?) -> Void
@@ -39,6 +40,10 @@ struct PanelView: View {
                     TodayView(model: today).transition(tabTransition)
                 case .notes:
                     NotesView(model: notes).transition(tabTransition)
+                case .meetings:
+                    if let meetings {
+                        MeetingsView(controller: meetings).transition(tabTransition)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -90,7 +95,7 @@ struct PanelView: View {
 
     private var header: some View {
         HStack(spacing: 6) {
-            TabSwitcher(selection: $state.tab)
+            TabSwitcher(selection: $state.tab, isRecording: meetings?.isRecording ?? false)
             Spacer()
             if state.tab == .chat && !state.showsHistory && !assistant.messages.isEmpty {
                 IconButton(systemImage: "square.and.pencil", help: L("New conversation")) {
@@ -119,9 +124,11 @@ struct PanelView: View {
     }
 }
 
-/// The section switcher: icons with names and a sliding highlight.
+/// The section switcher: icons with a sliding highlight, and the selected section's name.
+/// A red dot on the Meetings icon shows while Momo takes notes.
 private struct TabSwitcher: View {
     @Binding var selection: PanelTab
+    var isRecording = false
     @Namespace private var highlight
 
     var body: some View {
@@ -133,10 +140,20 @@ private struct TabSwitcher: View {
                     HStack(spacing: 5) {
                         Image(systemName: tab.systemImage)
                             .font(.system(size: 11, weight: .semibold))
-                        Text(verbatim: tab.title)
+                            .overlay(alignment: .topTrailing) {
+                                if tab == .meetings && isRecording {
+                                    Circle().fill(Theme.danger).frame(width: 6, height: 6)
+                                        .offset(x: 3, y: -2)
+                                }
+                            }
+                        // Four names don't fit next to the header buttons, so only the
+                        // selected section shows its name.
+                        if selection == tab {
+                            Text(verbatim: tab.title).lineLimit(1).fixedSize()
+                        }
                     }
                     .font(.system(size: 12.5, weight: .semibold, design: .rounded))
-                    .padding(.horizontal, 11)
+                    .padding(.horizontal, selection == tab ? 11 : 9)
                     .padding(.vertical, 6)
                     .background {
                         if selection == tab {
@@ -149,6 +166,8 @@ private struct TabSwitcher: View {
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .help(tab.title)
+                .accessibilityLabel(tab.title)
                 .accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
         }
