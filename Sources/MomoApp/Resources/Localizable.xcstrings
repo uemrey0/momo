@@ -2825,22 +2825,22 @@
         }
       }
     },
-    "Meetings are transcribed by the cloud service chosen above, which tells the other speakers apart; Momo asks before each meeting, and you can pick this Mac instead." : {
+    "Meetings are transcribed by the cloud service chosen in Voice, which tells the other speakers apart; Momo asks before each meeting, and you can pick this Mac instead." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toplantılar yukarıda seçilen bulut hizmetiyle yazıya dökülür ve diğer konuşmacılar birbirinden ayrılır; Momo her toplantıdan önce sorar, istersen bunun yerine bu Mac'i seçebilirsin."
+            "value" : "Toplantılar Ses bölümünde seçilen bulut hizmetiyle yazıya dökülür ve diğer konuşmacılar birbirinden ayrılır; Momo her toplantıdan önce sorar, istersen bunun yerine bu Mac'i seçebilirsin."
           }
         }
       }
     },
-    "Meetings are transcribed on this Mac with the speech recognition chosen above." : {
+    "Meetings are transcribed on this Mac with the speech recognition chosen in Voice." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toplantılar bu Mac'te, yukarıda seçilen konuşma tanıma ile yazıya dökülür."
+            "value" : "Toplantılar bu Mac'te, Ses bölümünde seçilen konuşma tanıma ile yazıya dökülür."
           }
         }
       }
@@ -6491,6 +6491,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "görünüm, kostüm, tema, özel, karakter, appearance, theme"
+          }
+        }
+      }
+    },
+    "meeting notes, transcript, summary, record, call audio, Zoom, Teams, Meet, language, keep audio" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "toplantı notları, döküm, özet, kayıt, görüşme sesi, Zoom, Teams, Meet, dil, sesi sakla, meeting"
           }
         }
       }

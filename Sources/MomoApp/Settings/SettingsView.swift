@@ -4,7 +4,8 @@ import SwiftUI
 
 /// The sections of the Settings window, in sidebar order.
 enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
-    case ai, abilities, character, voice, reactions, routines, connections, permissions, privacy,
+    case ai, abilities, character, voice, meetings, reactions, routines, connections, permissions,
+        privacy,
         general,
         about
 
@@ -16,6 +17,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .abilities: L("Abilities")
         case .character: L("Character")
         case .voice: L("Voice")
+        case .meetings: L("Meetings")
         case .reactions: L("Reactions")
         case .routines: L("Routines")
         case .connections: L("Connections")
@@ -32,6 +34,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .abilities: "wand.and.stars"
         case .character: "face.smiling"
         case .voice: "waveform"
+        case .meetings: "person.2.wave.2.fill"
         case .reactions: "bell.badge"
         case .routines: "clock.arrow.circlepath"
         case .connections: "point.3.connected.trianglepath.dotted"
@@ -48,6 +51,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .abilities: Color(red: 0.95, green: 0.45, blue: 0.7)
         case .character: Color(red: 0.2, green: 0.74, blue: 0.62)
         case .voice: Color(red: 0.98, green: 0.36, blue: 0.47)
+        case .meetings: Color(red: 0.95, green: 0.55, blue: 0.2)
         case .reactions: Color(red: 1.0, green: 0.6, blue: 0.2)
         case .routines: Color(red: 0.36, green: 0.7, blue: 0.95)
         case .connections: Color(red: 0.25, green: 0.55, blue: 0.98)
@@ -71,6 +75,10 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
             )
         case .character: L("look, appearance, skin, theme, custom")
         case .voice: L("speech, microphone, read aloud, Hey Momo, wake word, dictation")
+        case .meetings:
+            L(
+                "meeting notes, transcript, summary, record, call audio, Zoom, Teams, Meet, language, keep audio"
+            )
         case .reactions: L("calendar, meetings, music, battery, late night, sleep, doze")
         case .routines: L("schedule, automation, every day, morning brief, recurring prompt")
         case .connections: L("MCP, server, tools, agents, Claude Code, Claude Desktop")
@@ -165,6 +173,7 @@ struct SettingsView: View {
         case .abilities: AbilitiesSettingsView(model: model)
         case .character: CharacterSettingsView(model: model)
         case .voice: VoiceSettingsView(model: model)
+        case .meetings: MeetingsSettingsView(model: model)
         case .reactions: ReactionsSettingsView(model: model)
         case .routines: RoutinesSettingsView(model: model)
         case .connections: ConnectionsSettingsView(model: model)
