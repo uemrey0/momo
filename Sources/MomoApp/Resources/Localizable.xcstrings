@@ -843,6 +843,16 @@
         }
       }
     },
+    "Automatic tries Image Playground on this Mac first, then OpenAI or Gemini with your API key, then your ChatGPT plan. Pictures you ask for with OpenAI, Gemini or ChatGPT leave this Mac and are listed in Privacy." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otomatik, önce bu Mac'teki Image Playground'u, sonra API anahtarınla OpenAI veya Gemini'yi, en son ChatGPT planını dener. OpenAI, Gemini veya ChatGPT ile istediğin resimler bu Mac'ten çıkar ve Gizlilik'te listelenir."
+          }
+        }
+      }
+    },
     "Automation" : {
       "localizations" : {
         "tr" : {
@@ -1084,6 +1094,16 @@
         }
       }
     },
+    "ChatGPT plan (Codex)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT planı (Codex)"
+          }
+        }
+      }
+    },
     "ChatGPT, Codex, Gemini, Claude, OpenAI, OpenRouter, Ollama, LM Studio, Apple Intelligence, API key, subscription" : {
       "localizations" : {
         "tr" : {
@@ -1240,6 +1260,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Görevlerine bakılıyor"
+          }
+        }
+      }
+    },
+    "Checking…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrol ediliyor…"
           }
         }
       }
@@ -2035,6 +2065,26 @@
         }
       }
     },
+    "Draw pictures and change them, whichever brain you use." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hangi beyni kullanırsan kullan resim çiz ve resimleri değiştir."
+          }
+        }
+      }
+    },
+    "Draw with" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çizim aracı"
+          }
+        }
+      }
+    },
     "Drawing" : {
       "localizations" : {
         "tr" : {
@@ -2061,6 +2111,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yankı engelleme"
+          }
+        }
+      }
+    },
+    "Editing a picture" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resmi düzenliyorum"
           }
         }
       }
@@ -2312,6 +2372,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gemini"
+          }
+        }
+      }
+    },
+    "Gemini (API key)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemini (API anahtarı)"
           }
         }
       }
@@ -2759,6 +2829,36 @@
         }
       }
     },
+    "Image Playground (on this Mac)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Playground (bu Mac'te)"
+          }
+        }
+      }
+    },
+    "Image generation" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resim oluşturma"
+          }
+        }
+      }
+    },
+    "Images" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resimler"
+          }
+        }
+      }
+    },
     "In LM Studio, open the Developer view and switch the server on. In its settings you can let it start with your Mac." : {
       "localizations" : {
         "tr" : {
@@ -3049,6 +3149,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yükleniyor…"
+          }
+        }
+      }
+    },
+    "Local-only mode is on, so only Image Playground draws. It needs Apple Intelligence on macOS 15.4 or later." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yalnızca yerel mod açık, bu yüzden yalnızca Image Playground çizer. macOS 15.4 veya sonrasında Apple Intelligence gerektirir."
           }
         }
       }
@@ -3495,6 +3605,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo dinlemeye başlayamadı. Birazdan tekrar dene."
+          }
+        }
+      }
+    },
+    "Momo draws with %@ now." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo şu an %@ ile çiziyor."
           }
         }
       }
@@ -3998,6 +4118,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notlar"
+          }
+        }
+      }
+    },
+    "Nothing can draw yet." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Henüz çizebilen bir şey yok."
           }
         }
       }
@@ -7561,6 +7691,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "dikte, yazıya dökme, Whisper, mikrofon"
+          }
+        }
+      }
+    },
+    "draw, image, picture, Image Playground, OpenAI, Gemini, ChatGPT" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "çiz, çizim, resim, görsel, Image Playground, OpenAI, Gemini, ChatGPT"
           }
         }
       }

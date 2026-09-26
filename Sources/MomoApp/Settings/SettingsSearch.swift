@@ -54,7 +54,12 @@ enum SettingsSearch {
             SearchableSetting(
                 pane: .abilities, title: group.title, keywords: group.summary,
                 anchor: "abilities." + group.id)
-        }
+        } + [
+            SearchableSetting(
+                pane: .abilities, title: L("Draw with"),
+                keywords: L("draw, image, picture, Image Playground, OpenAI, Gemini, ChatGPT"),
+                anchor: "abilities.images.backend")
+        ]
     }
 
     // Voice has no anchors yet, so its results open the pane at the top.
