@@ -97,5 +97,11 @@ public struct ProviderError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? { message }
 }
 
-/// The largest number of model ↔ tool round trips per request.
-let maximumToolRounds = 8
+/// The largest number of model ↔ tool round trips per request. Simple requests finish in one
+/// or two; the headroom lets longer multi-step jobs complete.
+let maximumToolRounds = 24
+
+/// What a provider appends when a request used up `maximumToolRounds`, so the answer never
+/// just stops.
+let toolRoundLimitNotice =
+    "\n\n(I stopped after \(maximumToolRounds) tool steps without finishing. Say “continue” and I'll pick up where I left off.)"

@@ -61,6 +61,7 @@ public struct AnthropicProvider: ChatProvider {
             ["role": .string($0.role.rawValue), "content": .string($0.text)]
         }
         for _ in 0..<maximumToolRounds {
+            try Task.checkCancellation()
             let turn = try await stream(
                 system: request.systemPrompt, messages: messages, tools: request.tools,
                 continuation: continuation)
@@ -83,6 +84,7 @@ public struct AnthropicProvider: ChatProvider {
             messages.append(["role": "assistant", "content": .array(turn.blocks)])
             var results: [JSONValue] = []
             for use in calls {
+                try Task.checkCancellation()
                 let call = ToolCall(id: use.id, name: use.name, arguments: use.arguments)
                 continuation.yield(.toolStarted(call))
                 let result: ToolResult
@@ -103,7 +105,7 @@ public struct AnthropicProvider: ChatProvider {
             // All results go back in one user message so parallel tool use keeps working.
             messages.append(["role": "user", "content": .array(results)])
         }
-        continuation.yield(.text("\n\n(I stopped after too many tool steps.)"))
+        continuation.yield(.text(toolRoundLimitNotice))
     }
 
     // MARK: - Streaming

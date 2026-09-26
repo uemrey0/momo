@@ -73,6 +73,33 @@ struct OpenAICompatibleProviderTests {
         #expect(bodies[1].contains(#""tool_call_id":"call_1""#))
     }
 
+    @Test("says so when a request needs more tool steps than allowed")
+    func toolRoundLimit() async throws {
+        let call = sse([
+            #"{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"add_task","arguments":"{}"}}]}}]}"#,
+            "[DONE]",
+        ])
+        let (session, host) = MockURLProtocol.session(
+            responses: Array(repeating: .init(body: call), count: maximumToolRounds))
+        let provider = OpenAICompatibleProvider(
+            info: ProviderInfo(id: "test", name: "Test", kind: .apiKey),
+            baseURL: URL(string: "https://\(host)/v1")!, model: "m", apiKey: "k", session: session)
+        let runs = LockedBox<[ToolCall]>([])
+        var reply = ""
+        for try await event in provider.respond(
+            to: ChatRequest(systemPrompt: "s", turns: [.init(role: .user, text: "go")]),
+            runTool: { call in
+                runs.append(call)
+                return ToolResult(callID: call.id, name: call.name, output: "ok")
+            })
+        {
+            if case .text(let text) = event { reply += text }
+        }
+        #expect(runs.value.count == maximumToolRounds)
+        #expect(reply == toolRoundLimitNotice)
+        #expect(reply.contains("\(maximumToolRounds) tool steps"))
+    }
+
     @Test("explains authentication failures")
     func authFailure() async {
         let (session, host) = MockURLProtocol.session(responses: [
