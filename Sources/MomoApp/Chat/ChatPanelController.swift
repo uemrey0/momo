@@ -78,6 +78,7 @@ final class ChatPanelController {
     static let size = CGSize(width: 440, height: 580)
     static let minimumHeight: CGFloat = 240
     private var height: CGFloat = 420
+    private var isResizeScheduled = false
 
     private let window = ChatWindow()
     private let assistant: AssistantController
@@ -98,7 +99,7 @@ final class ChatPanelController {
         let root = PanelView(
             assistant: assistant, today: today, notes: notes, state: state, voice: voice,
             openSettings: openSettings, close: { [weak self] in self?.hide() },
-            resize: { [weak self] in self?.resize(to: $0) })
+            resize: { [weak self] in self?.requestResize(to: $0) })
         let host = NSHostingView(rootView: root)
         host.sizingOptions = []
         window.contentView = host
@@ -152,15 +153,14 @@ final class ChatPanelController {
     }
 
     private func position() {
-        let screen =
-            character?.geometry.flatMap { geometry in
-                NSScreen.screens.first { $0.frame == geometry.screenFrame }
-            } ?? NSScreen.main
-        guard let frame = screen?.frame else { return }
-        let size = CGSize(width: Self.size.width, height: clamped(height, on: frame))
-        let origin = NSPoint(
-            x: frame.midX - size.width / 2, y: max(frame.minY + 20, top(on: frame) - size.height))
-        window.setFrame(NSRect(origin: origin, size: size), display: true)
+        guard let frame = currentScreen?.frame else { return }
+        setWindowHeight(clamped(height, on: frame), on: frame)
+    }
+
+    private var currentScreen: NSScreen? {
+        character?.geometry.flatMap { geometry in
+            NSScreen.screens.first { $0.frame == geometry.screenFrame }
+        } ?? window.screen ?? NSScreen.main
     }
 
     /// Where the top of the panel goes: just below the character.
@@ -173,23 +173,48 @@ final class ChatPanelController {
         return min(max(Self.minimumHeight, height), min(720, available))
     }
 
-    /// Grows or shrinks the panel to fit its content, keeping its top edge in place.
-    private func resize(to preferred: CGFloat) {
+    /// Sizes the transparent window, keeping its top edge just below the character.
+    private func setWindowHeight(_ height: CGFloat, on frame: NSRect) {
+        let size = CGSize(width: Self.size.width, height: height)
+        let origin = NSPoint(
+            x: frame.midX - size.width / 2, y: max(frame.minY + 20, top(on: frame) - size.height))
+        window.setFrame(NSRect(origin: origin, size: size), display: true)
+        window.invalidateShadow()
+    }
+
+    /// Remembers the height the content wants and resizes on the next turn of the run loop.
+    /// Resizing the window while SwiftUI is still laying out would start another layout pass
+    /// from inside this one, which AppKit stops with an exception.
+    private func requestResize(to preferred: CGFloat) {
         height = preferred
-        guard let screen = window.screen ?? NSScreen.main else { return }
-        let target = clamped(preferred, on: screen.frame)
+        guard !isResizeScheduled else { return }
+        isResizeScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.isResizeScheduled = false
+            self.resize(to: self.height)
+        }
+    }
+
+    /// Grows or shrinks the panel to fit its content, keeping its top edge in place. The
+    /// window animates; the panel inside always fills it from the top.
+    private func resize(to preferred: CGFloat) {
+        guard let screen = currentScreen?.frame else { return }
+        let target = clamped(preferred, on: screen)
         var frame = window.frame
         guard abs(frame.height - target) > 1 else { return }
         frame.origin.y += frame.height - target
         frame.size.height = target
-        if window.isVisible {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.24
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                window.animator().setFrame(frame, display: true)
-            }
-        } else {
+        guard window.isVisible else {
             window.setFrame(frame, display: false)
+            return
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.28
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
+            window.animator().setFrame(frame, display: true)
+        } completionHandler: { [window] in
+            MainActor.assumeIsolated { window.invalidateShadow() }
         }
     }
 }

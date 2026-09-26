@@ -12,6 +12,7 @@ struct ChatView: View {
     @FocusState private var isComposerFocused: Bool
     @Environment(\.snapshotMode) private var snapshotMode
     @State private var messagesHeight: CGFloat = 0
+    @State private var welcomeHeight: CGFloat = 0
     @State private var footerHeight: CGFloat = 0
 
     /// Whether the brains were checked and none of them can answer yet.
@@ -23,17 +24,16 @@ struct ChatView: View {
     /// The height the chat would like: its messages and the composer, or a comfortable
     /// size for the welcome screen.
     private var preferredHeight: CGFloat {
-        if assistant.messages.isEmpty { return needsAISetup ? 380 : 430 }
-        return messagesHeight + footerHeight
+        (assistant.messages.isEmpty ? welcomeHeight : messagesHeight) + footerHeight
     }
 
     var body: some View {
         VStack(spacing: 0) {
             if assistant.messages.isEmpty && needsAISetup {
-                SetUpAICard(setUp: setUpAI)
+                SetUpAICard(setUp: setUpAI, height: $welcomeHeight)
                     .transition(.opacity)
             } else if assistant.messages.isEmpty {
-                EmptyChatView { suggestion in
+                EmptyChatView(height: $welcomeHeight) { suggestion in
                     withAnimation(Theme.spring) { assistant.send(suggestion) }
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
@@ -54,6 +54,8 @@ struct ChatView: View {
             .padding(.horizontal, 12)
             .padding(.bottom, 12)
             .padding(.top, 6)
+            // Always at its natural height, so measuring it can't feed back into layout.
+            .fixedSize(horizontal: false, vertical: true)
             .measureHeight($footerHeight)
         }
         .preference(key: PanelHeightKey.self, value: preferredHeight)
@@ -228,11 +230,12 @@ struct MicrophoneButton: View {
 /// Shown instead of suggestions until Momo has a brain to think with.
 struct SetUpAICard: View {
     var setUp: () -> Void
+    /// Receives the card's natural height, so the panel can fit it.
+    @Binding var height: CGFloat
     @State private var engine = FaceEngine()
 
     var body: some View {
         VStack(spacing: 12) {
-            Spacer(minLength: 0)
             FaceView(engine: engine, layout: FaceLayout(scale: 0.42))
                 .frame(height: 70)
                 .clipped()
@@ -259,15 +262,18 @@ struct SetUpAICard: View {
             }
             .buttonStyle(.plain)
             .padding(.top, 4)
-            Spacer(minLength: 0)
         }
         .padding(20)
+        .fixedSize(horizontal: false, vertical: true)
+        .measureHeight($height)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 /// What the chat shows before the first message: Momo says hello and offers ideas.
 struct EmptyChatView: View {
+    /// Receives the view's natural height, so the panel can fit it.
+    @Binding var height: CGFloat
     var send: (String) -> Void
     @State private var engine = FaceEngine()
 
@@ -282,7 +288,6 @@ struct EmptyChatView: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Spacer(minLength: 0)
             FaceView(engine: engine, layout: FaceLayout(scale: 0.42))
                 .frame(height: 70)
                 .clipped()
@@ -308,13 +313,15 @@ struct EmptyChatView: View {
                 }
             }
             .padding(.top, 4)
-            Spacer(minLength: 0)
             Text(verbatim: L("Press ⌥Space anywhere to open me."))
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.tertiaryText)
+                .padding(.top, 4)
         }
         .padding(.horizontal, 16)
-        .padding(.top, 4)
+        .padding(.vertical, 8)
+        .fixedSize(horizontal: false, vertical: true)
+        .measureHeight($height)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

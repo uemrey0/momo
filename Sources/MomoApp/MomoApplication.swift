@@ -31,12 +31,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
             let arguments = CommandLine.arguments
             if arguments.contains("--show-settings") { model.openSettings() }
-            // `--show-panel today` opens the panel on a tab.
+            // `--show-panel today` opens the panel on a tab; `--show-panel notes,chat` switches
+            // between tabs every two seconds, for checking how the panel resizes.
             if let index = arguments.firstIndex(of: "--show-panel") {
-                let tab =
-                    index + 1 < arguments.count ? PanelTab(rawValue: arguments[index + 1]) : nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.model.openChat(tab: tab ?? .chat)
+                let names = index + 1 < arguments.count ? arguments[index + 1] : "chat"
+                let tabs = names.split(separator: ",").compactMap { PanelTab(rawValue: String($0)) }
+                for (step, tab) in tabs.enumerated() {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5 + Double(step) * 2) {
+                        self.model.openChat(tab: tab)
+                    }
                 }
             }
             // `--show-setup ollama` opens the AI page with that option's setup sheet.
