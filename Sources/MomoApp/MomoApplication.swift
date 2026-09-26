@@ -31,6 +31,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
             let arguments = CommandLine.arguments
             if arguments.contains("--show-settings") { model.openSettings() }
+            // `--show-panel today` opens the panel on a tab.
+            if let index = arguments.firstIndex(of: "--show-panel") {
+                let tab =
+                    index + 1 < arguments.count ? PanelTab(rawValue: arguments[index + 1]) : nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.model.openChat(tab: tab ?? .chat)
+                }
+            }
             // `--show-setup ollama` opens the AI page with that option's setup sheet.
             if let index = arguments.firstIndex(of: "--show-setup"), index + 1 < arguments.count,
                 let option = BrainOption(rawValue: arguments[index + 1])

@@ -16,6 +16,14 @@ enum PanelTab: String, CaseIterable, Identifiable {
         case .notes: L("Notes", comment: "Panel tab")
         }
     }
+
+    var systemImage: String {
+        switch self {
+        case .chat: "bubble.left.and.bubble.right.fill"
+        case .today: "sun.max.fill"
+        case .notes: "note.text"
+        }
+    }
 }
 
 /// UI state shared by the panel's views.
@@ -25,6 +33,8 @@ final class PanelState {
     var tab: PanelTab = .chat
     /// Bumped to move keyboard focus into the message field.
     var focusRequest = 0
+    /// Bumped each time the panel opens, to play its entrance.
+    var presentations = 0
 }
 
 /// A floating panel that can take keyboard input without activating the app, like Spotlight.
@@ -64,7 +74,10 @@ final class ChatWindow: NSPanel {
 /// Shows and hides the chat panel below the character.
 @MainActor
 final class ChatPanelController {
+    /// The panel's width and its height in snapshots. On screen the height follows the content.
     static let size = CGSize(width: 440, height: 580)
+    static let minimumHeight: CGFloat = 240
+    private var height: CGFloat = 420
 
     private let window = ChatWindow()
     private let assistant: AssistantController
@@ -84,7 +97,8 @@ final class ChatPanelController {
         self.character = character
         let root = PanelView(
             assistant: assistant, today: today, notes: notes, state: state, voice: voice,
-            openSettings: openSettings, close: { [weak self] in self?.hide() })
+            openSettings: openSettings, close: { [weak self] in self?.hide() },
+            resize: { [weak self] in self?.resize(to: $0) })
         let host = NSHostingView(rootView: root)
         host.sizingOptions = []
         window.contentView = host
@@ -107,6 +121,7 @@ final class ChatPanelController {
     func show(tab: PanelTab? = nil) {
         if let tab { state.tab = tab }
         position()
+        state.presentations += 1
         if !window.isVisible {
             window.alphaValue = 0
             window.orderFrontRegardless()
@@ -142,10 +157,39 @@ final class ChatPanelController {
                 NSScreen.screens.first { $0.frame == geometry.screenFrame }
             } ?? NSScreen.main
         guard let frame = screen?.frame else { return }
-        let top = (character?.characterBottom ?? frame.maxY - 110) - 14
-        let size = Self.size
+        let size = CGSize(width: Self.size.width, height: clamped(height, on: frame))
         let origin = NSPoint(
-            x: frame.midX - size.width / 2, y: max(frame.minY + 20, top - size.height))
+            x: frame.midX - size.width / 2, y: max(frame.minY + 20, top(on: frame) - size.height))
         window.setFrame(NSRect(origin: origin, size: size), display: true)
+    }
+
+    /// Where the top of the panel goes: just below the character.
+    private func top(on frame: NSRect) -> CGFloat {
+        (character?.characterBottom ?? frame.maxY - 110) - 14
+    }
+
+    private func clamped(_ height: CGFloat, on frame: NSRect) -> CGFloat {
+        let available = top(on: frame) - frame.minY - 40
+        return min(max(Self.minimumHeight, height), min(720, available))
+    }
+
+    /// Grows or shrinks the panel to fit its content, keeping its top edge in place.
+    private func resize(to preferred: CGFloat) {
+        height = preferred
+        guard let screen = window.screen ?? NSScreen.main else { return }
+        let target = clamped(preferred, on: screen.frame)
+        var frame = window.frame
+        guard abs(frame.height - target) > 1 else { return }
+        frame.origin.y += frame.height - target
+        frame.size.height = target
+        if window.isVisible {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.24
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                window.animator().setFrame(frame, display: true)
+            }
+        } else {
+            window.setFrame(frame, display: false)
+        }
     }
 }

@@ -51,6 +51,16 @@
         }
       }
     },
+    "%lld things left to do." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld iş kaldı."
+          }
+        }
+      }
+    },
     "%lld tools" : {
       "localizations" : {
         "tr" : {
@@ -219,6 +229,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaten kullandığın ajanlar, Momo üzerinden görevlerini, notlarını, alışkanlıklarını ve anılarını okuyup güncelleyebilir."
+          }
+        }
+      }
+    },
+    "All done for today. Nice work!" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bugünlük hepsi bitti. Harika iş!"
           }
         }
       }
@@ -624,16 +644,6 @@
         }
       }
     },
-    "Choose which brain answers" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hangi beynin cevap vereceğini seç"
-          }
-        }
-      }
-    },
     "Choose which model Momo thinks with. The recommended one is a great place to start." : {
       "localizations" : {
         "tr" : {
@@ -945,6 +955,16 @@
         }
       }
     },
+    "Done today (%lld)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bugün bitenler (%lld)"
+          }
+        }
+      }
+    },
     "Download" : {
       "localizations" : {
         "tr" : {
@@ -1091,6 +1111,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hepsini sil"
+          }
+        }
+      }
+    },
+    "Everything's done. You're amazing!" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her şey tamam. Harikasın!"
           }
         }
       }
@@ -1306,6 +1336,26 @@
         }
       }
     },
+    "Good afternoon!" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tünaydın!"
+          }
+        }
+      }
+    },
+    "Good evening!" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İyi akşamlar!"
+          }
+        }
+      }
+    },
     "Good morning!" : {
       "localizations" : {
         "tr" : {
@@ -1398,16 +1448,6 @@
         }
       }
     },
-    "Hi! What can I do for you?" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selam! Senin için ne yapabilirim?"
-          }
-        }
-      }
-    },
     "Hi, I'm Momo!" : {
       "localizations" : {
         "tr" : {
@@ -1454,16 +1494,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tek anahtarla yüzlerce model."
-          }
-        }
-      }
-    },
-    "I can keep your tasks, notes and habits, remember things and answer questions." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Görevlerini, notlarını ve alışkanlıklarını tutabilir, bir şeyleri hatırlayabilir ve sorularını cevaplayabilirim."
           }
         }
       }
@@ -1900,6 +1930,16 @@
         }
       }
     },
+    "More" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daha fazla"
+          }
+        }
+      }
+    },
     "Most requests" : {
       "localizations" : {
         "tr" : {
@@ -2069,6 +2109,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bu Mac'te"
+          }
+        }
+      }
+    },
+    "One thing left to do." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir iş kaldı."
           }
         }
       }
@@ -2827,16 +2877,6 @@
         }
       }
     },
-    "Settings" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ayarlar"
-          }
-        }
-      }
-    },
     "Settings…" : {
       "localizations" : {
         "tr" : {
@@ -3385,6 +3425,16 @@
         }
       }
     },
+    "Up late?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geç saatlere mi kaldın?"
+          }
+        }
+      }
+    },
     "Update to Momo %@…" : {
       "localizations" : {
         "tr" : {
@@ -3525,6 +3575,16 @@
         }
       }
     },
+    "What can I do for you?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senin için ne yapabilirim?"
+          }
+        }
+      }
+    },
     "What's on my list?" : {
       "localizations" : {
         "tr" : {
@@ -3561,6 +3621,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geri döndüğünde Momo kendiliğinden tekrar kontrol eder."
+          }
+        }
+      }
+    },
+    "Who answers" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kim cevap versin"
           }
         }
       }

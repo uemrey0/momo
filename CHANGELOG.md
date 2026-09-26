@@ -9,6 +9,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The panel has a fresh, friendlier design and now grows and shrinks with its content
+  instead of always being the same size. Sections have icons and a sliding highlight, and
+  the brain picker, Settings and Close live in a small "⋯" menu.
+- Chat: Momo's answers come in bubbles next to a tiny, blinking Momo, and messages slide in
+  with a spring. Which brain answered and what Momo did shows when you point at an answer.
+  The empty chat greets you for the time of day with suggestion cards.
+- Today opens with the date and a progress ring, ticking a task pops, finished tasks move to
+  a "Done today" list, and habits show the last seven days.
+- Notes are colourful cards in two columns, with a softer editor that slides in.
+
 - Settings has a sidebar with search, like System Settings, and opens on the new AI page.
   Right-clicking Momo opens a menu with Settings, and Momo points you to AI setup from the
   chat, the menu bar and the sidebar until a brain is connected.
