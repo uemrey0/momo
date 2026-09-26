@@ -60,7 +60,8 @@ flowchart LR
 | `MomoFace`  | Library    | Character engine, SwiftUI renderer, character packs                    | nothing           |
 | `MomoKit`   | Library    | Store, tools, JSON values, personal data masking, brain router, meeting notes logic, versions | nothing |
 | `MomoBrain` | Library    | Providers, CLI bridges, the assistant, system prompt, brain settings   | MomoKit           |
-| `MomoVoice` | Library    | Dictation engines, transcription, meeting audio capture, speech synthesis, wake word, cloud realtime voice | nothing |
+| `MomoVoice` | Library    | Dictation engines, transcription, meeting audio capture, speech synthesis, wake word, live conversation, cloud realtime voice | MomoLiveProtocol |
+| `MomoLiveProtocol` | Library | The JSON-lines protocol between Momo and the `momo-voice` helper | nothing |
 | `MomoMCP`   | Library    | MCP server and client                                                  | MomoKit           |
 | `momo-mcp`  | Executable | Serves Momo's store over stdio MCP; shipped inside the app bundle      | MomoMCP, MomoKit  |
 | `MomoApp`   | Executable | The app: notch, panel, settings, voice, context, system tools          | everything        |
@@ -137,6 +138,62 @@ under the notch, and consent or confirmation questions are asked aloud and answe
 spoken yes or no (`SpeechText.answer(in:)`). `DictationEngineSelector` turns the user's
 choice into an engine (cloud engines only with a key). The wake word always uses Apple Speech on the Mac. Cloud requests use the keys of the
 OpenAI and Gemini brains and are listed in the privacy log.
+
+## Live conversation
+
+With "Live conversation" on (Settings → Voice, the default), ⌥⇧Space and "Hey Momo" start a
+conversation that feels live instead of a single request: Momo listens all the time, speaks
+the reply while it streams in, stops when the user talks over it and keeps listening for a
+follow-up. It has two layers:
+
+```mermaid
+flowchart LR
+  Mic["Microphone"] --> IO
+  IO["LiveSpeechIO\nlistening, turns, barge-in,\nstreamed speech"] -- "turn" --> Live
+  Live["LiveConversation\nsentences, acknowledgements,\nfollow-ups, questions"] -- "speak(id, text)" --> IO
+  Live -- "send(turn)" --> Brain["AssistantLiveBrain\n→ AssistantController"]
+  Brain -- "text, tools, prompts" --> Live
+  IO --> Speaker["Speaker"]
+```
+
+- **The speech layer** (`LiveSpeechIO`) listens, decides when a turn ends, speaks and
+  handles barge-in. It never thinks. Its commands (`start`, `speak(id:text:isFinal:)`,
+  `cancelSpeech`, `pauseListening`, `resumeListening`, `stop`, plus `endTurn` for push to
+  talk) and events (`listening`, `level`, `speechStarted`, `partial`, `turn`,
+  `speakingStarted`, `mouth`, `speakingFinished`, `interrupted`, `error`, `stopped`) mirror
+  `MomoLiveProtocol`, so engines map one to one. Utterances play in the order they were
+  first spoken to; `cancelSpeech` drops everything without reporting it as finished.
+- **The live layer** (`LiveConversation`) sends each turn to the brain at once, with a spoken
+  reply style in the system prompt (short sentences, no Markdown or URLs, numbers as people
+  say them; the full text still lands in the chat). `SpeechSentenceSplitter` cuts the
+  streaming reply into speakable sentences (abbreviations, decimals, times, lists, Markdown
+  and emoji, in English and Turkish), flushing at tool calls, so the first sentence plays as
+  soon as it exists. `LiveReplyPlanner` masks latency: when the brain has said nothing after
+  0.8 s, Momo says a short acknowledgement written by the fastest ready on-device brain
+  (`LiveAcknowledgement`, Apple Intelligence first) or a canned phrase, or the running
+  tool's activity label, and cancels it the moment the answer's first sentence is ready.
+
+Talking over Momo cancels the reply and makes what the user says the next message; words
+added before the answer started are merged into the turn instead. After a reply Momo listens
+for a follow-up (8 s by default); the conversation ends in silence, on Esc or the shortcut,
+or on a closing phrase (`SpeechText.isClosingPhrase`: "thanks, that's all", "teşekkürler",
+"tamam bu kadar"). Consent and confirmation questions are spoken and answered with a spoken
+yes or no; an unclear answer is asked once more, then the bubble's buttons take over and
+listening pauses. With push to talk, holding the shortcut interrupts Momo and listens,
+letting go ends the turn, and turns are only listened to while the key is down.
+
+Engines (`LiveEngineSelector`; Automatic picks the helper when its models are downloaded):
+
+| Engine | How |
+| ------ | --- |
+| `AppleLiveSpeechIO` | Every Mac, no downloads. One `AVAudioEngine` with voice processing on the input node (Apple's echo cancellation) and Momo's voice on a player node of the same engine, so the canceller has the reference. Recognition runs per turn with `SpeechAnalyzer` when the language's model is installed (macOS 26), Apple Speech otherwise. `LiveTurnDetector` ends a turn after about 0.6 s of quiet when the words sound complete, longer when they trail off ("and", "çünkü", a comma), and when unchanged words stall in a noisy room. Replies are rendered per sentence with `AVSpeechSynthesizer.write` (or an OpenAI voice streamed as PCM) into the player; the mouth follows the output level. Barge-in needs a louder, longer sound while Momo talks, stops playback at once and replays the last half second of audio into the new recognition session. |
+| `HelperLiveSpeechIO` | The open source engine in the `momo-voice` helper (shipped next to the app's executable, macOS 15+ on Apple silicon). `LiveVoiceHelperClient` launches it, checks the protocol version in the handshake, shares it between users and lets it quit when idle; a helper that crashes mid-session is restarted once. `LiveVoiceModels` lists, downloads (only when the user presses Download) and deletes its models for Settings. |
+| Cloud realtime | `LiveEngineChoice.cloudRealtime` is reserved for OpenAI Realtime or Gemini Live used as a speech layer; it is not offered yet. |
+
+Everything runs on the Mac with the Apple and helper engines, except what the user already
+chose to send elsewhere: an OpenAI voice (each spoken sentence, logged in Privacy) and the
+brain itself. (Like dictation, Apple Speech falls back to Apple's servers only for languages
+it can't recognise on the Mac.)
 
 ### Cloud realtime voice
 

@@ -226,6 +226,14 @@ struct ProviderStatus: Identifiable, Equatable {
     var id: String { info.id }
 }
 
+/// What a reply reports while it streams, for speaking it in a live conversation.
+enum ReplyStreamEvent: Equatable {
+    case text(String)
+    /// A tool started; `label` is its activity label.
+    case toolStarted(label: String)
+    case toolFinished
+}
+
 /// Runs conversations from the chat panel and keeps the character in sync.
 @MainActor
 @Observable
@@ -275,6 +283,15 @@ final class AssistantController {
     @ObservationIgnored var onPrompt: (() -> Void)?
     /// Called when a request ends, whether it was answered, failed or was cancelled.
     @ObservationIgnored var onRequestFinished: (() -> Void)?
+    /// Called when a consent or confirmation question was answered, by voice or a button.
+    @ObservationIgnored var onPromptAnswered: (() -> Void)?
+    /// Called while a reply streams: its text and tools, for a live conversation.
+    @ObservationIgnored var onReplyEvent: ((ReplyStreamEvent) -> Void)?
+    /// Why the latest request failed, or `nil` when it didn't.
+    @ObservationIgnored private(set) var lastRequestError: String?
+    /// Whether the current request is answered in a live voice conversation, which asks the
+    /// brain for short spoken replies.
+    @ObservationIgnored private var isSpokenRequest = false
 
     @ObservationIgnored private let assistant = Assistant()
     /// Labels tools describe themselves with, from the latest configuration.
@@ -304,10 +321,14 @@ final class AssistantController {
 
     // MARK: - Conversation
 
-    func send(_ text: String? = nil) {
+    /// Sends `text` (or the draft). With `spoken`, the reply is read aloud in a live voice
+    /// conversation, so the brain is asked for a short spoken answer.
+    func send(_ text: String? = nil, spoken: Bool = false) {
         let message = (text ?? draft).trimmingCharacters(in: .whitespacesAndNewlines)
         let attachments = pendingAttachments
         guard !message.isEmpty || !attachments.isEmpty, !isBusy else { return }
+        isSpokenRequest = spoken
+        lastRequestError = nil
         draft = ""
         pendingAttachments = []
         attachmentNotice = nil
@@ -330,6 +351,8 @@ final class AssistantController {
         messages.append(ChatMessage(role: .user, text: message))
         isBusy = true
         isInBackground = true
+        isSpokenRequest = false
+        lastRequestError = nil
         sendingImages = false
         character?.showWorking()
         let run = UUID()
@@ -490,13 +513,12 @@ final class AssistantController {
                     if reply.isEmpty { character?.showSpeaking() }
                     reply += chunk
                     update { $0.text += chunk }
+                    onReplyEvent?(.text(chunk))
                 case .toolStarted(let name):
-                    update {
-                        $0.activities.append(
-                            ToolActivity(
-                                toolName: name, state: .running,
-                                customLabel: activityLabels[name]))
-                    }
+                    let activity = ToolActivity(
+                        toolName: name, state: .running, customLabel: activityLabels[name])
+                    update { $0.activities.append(activity) }
+                    onReplyEvent?(.toolStarted(label: activity.label))
                 case .toolFinished(let name, let succeeded, let permission):
                     update { answer in
                         guard
@@ -507,6 +529,7 @@ final class AssistantController {
                         answer.activities[activity].state = succeeded ? .succeeded : .failed
                         answer.activities[activity].missingPermission = permission
                     }
+                    onReplyEvent?(.toolFinished)
                     if succeeded, ["add_task", "complete_task", "log_habit"].contains(name) {
                         character?.celebrate()
                     }
@@ -528,6 +551,7 @@ final class AssistantController {
             guard currentRun == run else { return nil }
             update { $0.isStreaming = false }
             messages.append(ChatMessage(role: .error, text: error.localizedDescription))
+            lastRequestError = error.localizedDescription
             character?.showTrouble()
             reply = ""
         }
@@ -568,7 +592,8 @@ final class AssistantController {
             masksPersonalData: preferences.brains.masksPersonalData,
             systemPrompt: SystemPrompt.make(
                 memories: memories, languageName: preferredLanguageName,
-                personality: preferences.personality.instruction, message: message))
+                personality: preferences.personality.instruction, message: message,
+                isSpoken: isSpokenRequest))
     }
 
     // MARK: - Background jobs
@@ -652,10 +677,12 @@ final class AssistantController {
     }
 
     func answerConsent(_ answer: RemoteConsent) {
+        let wasAsking = consentContinuation != nil
         consentPrompt = nil
         consentContinuation?.resume(returning: answer)
         consentContinuation = nil
         if answer != .cancel { character?.showWorking() }
+        if wasAsking { onPromptAnswered?() }
     }
 
     private func askConfirmation(_ summary: String) async -> Bool {
@@ -669,9 +696,32 @@ final class AssistantController {
     }
 
     func answerConfirmation(_ approved: Bool) {
+        let wasAsking = confirmationContinuation != nil
         confirmationPrompt = nil
         confirmationContinuation?.resume(returning: approved)
         confirmationContinuation = nil
+        if wasAsking { onPromptAnswered?() }
+    }
+
+    // MARK: - Live conversation
+
+    /// One short sentence Momo can say while the brain works on `turn` ("Takvimine
+    /// bakıyorum."), from the fastest ready on-device brain (Apple Intelligence first), or
+    /// `nil` when none is ready in time. Nothing leaves the Mac.
+    func quickAcknowledgement(for turn: String) async -> String? {
+        let ready = Set(
+            providerStatuses.filter { $0.availability.isReady && $0.info.kind == .local }
+                .map(\.info.id))
+        guard !ready.isEmpty else { return nil }
+        let providers = BrainCatalog.providers(
+            settings: settings.preferences.brains, keys: settings.keys, mcpServerPath: nil,
+            workingDirectory: AppSettings.cliWorkspace
+        )
+        .filter { ready.contains($0.info.id) && $0.info.kind == .local }
+        let provider =
+            providers.first { $0.info.id == AppleIntelligence.providerID } ?? providers.first
+        guard let provider else { return nil }
+        return await LiveAcknowledgement.make(for: turn, with: provider)
     }
 
     // MARK: - Brains

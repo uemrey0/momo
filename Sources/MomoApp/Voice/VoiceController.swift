@@ -12,6 +12,11 @@ struct VoiceSession: Equatable {
 
 /// Connects dictation, spoken replies and the wake word to the assistant and the character.
 ///
+/// With live conversation on (the default), the shortcut and "Hey Momo" start a
+/// ``LiveConversation`` instead: Momo listens continuously, speaks the reply while it
+/// streams, can be interrupted, and listens for a follow-up. Otherwise a spoken request is
+/// transcribed, sent, and the finished reply read aloud.
+///
 /// Spoken requests from the shortcut or "Hey Momo" run in voice mode: Momo listens in the
 /// notch, the caption bubble shows the transcript and the answer, and consent or
 /// confirmation questions are asked aloud and can be answered with a spoken yes or no. The
@@ -61,10 +66,27 @@ final class VoiceController {
     /// Whether the current message was spoken, so the reply is spoken too.
     @ObservationIgnored private var lastMessageWasSpoken = false
 
+    /// The live conversation's state, while one runs.
+    private(set) var liveState: LiveConversation.State?
+    /// The open source engine's models, for Settings.
+    let liveModels: LiveVoiceModels
+    @ObservationIgnored private var live: LiveConversation?
+    @ObservationIgnored private let liveBrain: AssistantLiveBrain
+    /// The `momo-voice` helper, when it is installed and runs on this Mac.
+    @ObservationIgnored private let liveHelper: LiveVoiceHelperClient?
+    @ObservationIgnored private var liveReleasedWhileStarting = false
+
     init(settings: AppSettings, assistant: AssistantController, character: CharacterController) {
         self.settings = settings
         self.assistant = assistant
         self.character = character
+        liveBrain = AssistantLiveBrain(assistant: assistant)
+        if LiveVoiceHelperClient.isSupportedOnThisMac, let path = AppSettings.liveVoiceHelperPath {
+            liveHelper = LiveVoiceHelperClient(executableURL: URL(fileURLWithPath: path))
+        } else {
+            liveHelper = nil
+        }
+        liveModels = LiveVoiceModels(client: liveHelper)
 
         appleVoice.onStart = { [weak self] in self?.speechStarted() }
         appleVoice.onWord = { [weak self] in self?.character?.engine.pulseMouth() }
@@ -78,6 +100,7 @@ final class VoiceController {
         assistant.onReply = { [weak self] reply in self?.replyFinished(reply) }
         assistant.onPrompt = { [weak self] in self?.promptAppeared() }
         assistant.onRequestFinished = { [weak self] in self?.requestFinished() }
+        assistant.onPromptAnswered = { [weak self] in self?.liveBrain.promptAnswered() }
     }
 
     // MARK: - Shortcut
@@ -85,7 +108,23 @@ final class VoiceController {
     /// The talk shortcut was pressed: starts or finishes a spoken request, or cancels one
     /// that is being answered. With push to talk, listening lasts while the key is held.
     func shortcutPressed() {
-        if settings.preferences.pushToTalk {
+        let pushToTalk = settings.preferences.pushToTalk
+        if let live {
+            if pushToTalk {
+                isHoldingToTalk = true
+                live.interrupt()
+                live.holdsWindowOpen = true
+            } else {
+                cancelVoiceSession()
+            }
+            return
+        }
+        if usesLiveConversation {
+            isHoldingToTalk = pushToTalk
+            startLive(firstTurn: nil, pushToTalk: pushToTalk)
+            return
+        }
+        if pushToTalk {
             if session != nil, !isListening { cancelVoiceSession() }
             isHoldingToTalk = true
             beginSpokenRequest(continuous: true)
@@ -102,6 +141,15 @@ final class VoiceController {
     func shortcutReleased() {
         guard settings.preferences.pushToTalk, isHoldingToTalk else { return }
         isHoldingToTalk = false
+        if let live {
+            if liveState == .starting {
+                liveReleasedWhileStarting = true
+            } else {
+                live.holdsWindowOpen = false
+                live.endTurn()
+            }
+            return
+        }
         if isStarting {
             releasedWhileStarting = true
         } else if isListening {
@@ -133,6 +181,7 @@ final class VoiceController {
 
     func startDictation(continuous: Bool = false) {
         guard !isListening, !isStarting else { return }
+        live?.end()
         stopListeningForAnswer()
         stopSpeaking()
         errorMessage = nil
@@ -309,6 +358,11 @@ final class VoiceController {
     /// Cancels the spoken request: stops listening, speaking and answering, and hides the
     /// bubble. Escape and the shortcut do this.
     func cancelVoiceSession() {
+        if let live {
+            live.end()
+            endVoiceSession()
+            return
+        }
         guard session != nil else { return }
         dictationGeneration += 1
         engine?.stop(deliver: false)
@@ -335,6 +389,7 @@ final class VoiceController {
 
     /// The chat panel opened, so it takes over from the bubble.
     func chatPanelDidOpen() {
+        live?.end()
         guard session != nil else { return }
         stopListeningForAnswer()
         endVoiceSession()
@@ -359,6 +414,10 @@ final class VoiceController {
     }
 
     private func requestFinished() {
+        if live != nil {
+            liveBrain.requestFinished()
+            return
+        }
         guard session != nil else { return }
         // A reply that is spoken ends the session when speech ends; anything else (an error,
         // a cancelled request) fades out now.
@@ -370,6 +429,11 @@ final class VoiceController {
     /// A consent or confirmation question appeared: in voice mode, ask it aloud and listen
     /// for a yes or no.
     private func promptAppeared() {
+        if live != nil {
+            bubble?.show()
+            liveBrain.promptAppeared()
+            return
+        }
         guard session != nil, let assistant else { return }
         bubble?.show()
         let question: String
@@ -439,6 +503,11 @@ final class VoiceController {
     // MARK: - Speaking
 
     private func replyFinished(_ reply: String) {
+        guard live == nil else {
+            // The live conversation spoke the reply while it streamed.
+            lastMessageWasSpoken = false
+            return
+        }
         let shouldSpeak =
             settings.preferences.speaksReplies || lastMessageWasSpoken || session != nil
         lastMessageWasSpoken = false
@@ -514,6 +583,7 @@ final class VoiceController {
     }
 
     func stopSpeaking() {
+        live?.interrupt()
         appleVoice.stop()
         cloudVoice?.stop()
     }
@@ -521,11 +591,14 @@ final class VoiceController {
     // MARK: - Wake word
 
     /// Whether Momo itself has the microphone open (dictation, a spoken answer, the wake word).
-    var usesMicrophone: Bool { isListening || isAwaitingAnswer || wakeWord.isRunning }
+    var usesMicrophone: Bool {
+        isListening || isAwaitingAnswer || wakeWord.isRunning || live != nil
+    }
 
     /// Turns the wake word off while meeting notes are taken, and back on afterwards.
     func meetingNotesChanged() {
         if isTakingMeetingNotes() {
+            live?.end()
             wakeWord.stop()
         } else {
             startWakeWordIfEnabled()
@@ -538,7 +611,9 @@ final class VoiceController {
             wakeWord.stop()
             return
         }
-        guard !isListening, !isStarting, !isSpeaking, !isAwaitingAnswer else { return }
+        guard !isListening, !isStarting, !isSpeaking, !isAwaitingAnswer, live == nil else {
+            return
+        }
         if wakeWord.isRunning {
             wakeWord.resume()
             return
@@ -555,6 +630,11 @@ final class VoiceController {
 
     private func woke(command: String) {
         character?.showCurious()
+        if usesLiveConversation {
+            let hasCommand = command.split(separator: " ").count >= 2
+            startLive(firstTurn: hasCommand ? command : nil, pushToTalk: false)
+            return
+        }
         guard command.split(separator: " ").count >= 2 else {
             beginSpokenRequest(continuous: false)
             return
@@ -570,7 +650,215 @@ final class VoiceController {
     }
 }
 
-extension OpenAISpeechRequest {
-    /// The name shown in the privacy log.
-    var displayName: String { "OpenAI \(model) (\(voice))" }
+// MARK: - Live conversation
+
+extension VoiceController {
+    /// Whether spoken requests run as a live conversation in the bubble.
+    var usesLiveConversation: Bool {
+        settings.preferences.liveConversation && !settings.preferences.opensChatForSpokenRequests
+            && !isPanelVisible()
+    }
+
+    /// Whether a live conversation runs.
+    var isLive: Bool { live != nil }
+
+    /// Whether the bubble should show Momo listening to a turn.
+    var showsListening: Bool {
+        isListening || liveState == .listening || liveState == .starting
+    }
+
+    /// Whether Momo listens for a follow-up after answering.
+    var isListeningForFollowUp: Bool { liveState == .followUp }
+
+    /// Starts a live conversation in the bubble; `firstTurn` came with "Hey Momo".
+    private func startLive(firstTurn: String?, pushToTalk: Bool) {
+        stopListeningForAnswer()
+        stopSpeaking()
+        errorMessage = nil
+        wakeWord.stop()
+        if engine != nil {
+            engine?.stop(deliver: false)
+            engine = nil
+            isListening = false
+        }
+        session = VoiceSession(transcript: firstTurn ?? "")
+        bubble?.show()
+        character?.showListening()
+        liveState = .starting
+        liveReleasedWhileStarting = false
+        Task {
+            let (io, kind) = await makeLiveIO()
+            launchLive(io: io, kind: kind, firstTurn: firstTurn, pushToTalk: pushToTalk)
+        }
+    }
+
+    private func launchLive(
+        io: any LiveSpeechIO, kind: LiveEngineKind, firstTurn: String?, pushToTalk: Bool
+    ) {
+        guard session != nil, liveState == .starting else { return }
+        let conversation = makeLiveConversation(io: io, pushToTalk: pushToTalk)
+        live = conversation
+        conversation.holdsWindowOpen = pushToTalk && isHoldingToTalk
+        Task {
+            do {
+                try await conversation.start(firstTurn: firstTurn)
+                guard live === conversation else { return }
+                if liveReleasedWhileStarting {
+                    liveReleasedWhileStarting = false
+                    conversation.holdsWindowOpen = false
+                    conversation.endTurn()
+                }
+            } catch {
+                guard live === conversation else { return }
+                live = nil
+                if kind == .openSource {
+                    errorMessage = String(
+                        format: L(
+                            "The open source voice engine couldn't start, so Momo used Apple's built-in one. %@"
+                        ), error.localizedDescription)
+                    liveState = .starting
+                    launchLive(
+                        io: makeAppleLiveIO(), kind: .apple, firstTurn: firstTurn,
+                        pushToTalk: pushToTalk)
+                    return
+                }
+                errorMessage = error.localizedDescription
+                liveState = nil
+                isHoldingToTalk = false
+                character?.showTrouble()
+                bubble?.hide(after: .seconds(4)) { [weak self] in self?.endSession() }
+                startWakeWordIfEnabled()
+            }
+        }
+    }
+
+    /// The speech engine for the user's choice.
+    private func makeLiveIO() async -> (any LiveSpeechIO, LiveEngineKind) {
+        let choice = settings.preferences.liveEngine
+        if liveHelper != nil, choice == .automatic || choice == .openSource,
+            liveModels.models.isEmpty
+        {
+            await liveModels.refresh()
+        }
+        let selection = LiveEngineSelector.select(
+            choice, helperReady: liveHelper != nil && liveModels.isReady,
+            cloudRealtimeReady: false)
+        if selection.isFallback {
+            errorMessage =
+                choice == .openSource
+                ? L(
+                    "The open source voice engine isn't ready (download its models in Settings), so Momo used Apple's built-in one."
+                )
+                : L(
+                    "Cloud realtime voices aren't available yet, so Momo used Apple's built-in engine."
+                )
+        }
+        if selection.kind == .openSource, let liveHelper {
+            return (HelperLiveSpeechIO(client: liveHelper), .openSource)
+        }
+        return (makeAppleLiveIO(), .apple)
+    }
+
+    private func makeAppleLiveIO() -> AppleLiveSpeechIO {
+        let io = AppleLiveSpeechIO()
+        io.onCloudSpeech = { [weak self] service, characters in
+            self?.assistant?.recordOutbound(service: service, characters: characters)
+        }
+        return io
+    }
+
+    private func makeLiveConversation(io: any LiveSpeechIO, pushToTalk: Bool) -> LiveConversation {
+        let preferences = settings.preferences
+        let voice: LiveVoiceOutput
+        if preferences.speechVoice == .openAI, let key = openAIKey {
+            voice = .openAI(
+                OpenAISpeechRequest(
+                    apiKey: key, voice: preferences.openAIVoice,
+                    instructions:
+                        "Speak warmly and naturally, like a friendly little companion, at a lively conversational pace."
+                ))
+        } else {
+            voice = .apple(
+                identifier: preferences.voiceIdentifier.isEmpty ? nil : preferences.voiceIdentifier,
+                rate: 1)
+        }
+        let phrases = LiveConversationPhrases(
+            acknowledgements: [
+                L("One moment."), L("Let me check."), L("Let me see."), L("On it."),
+            ],
+            unclearAnswer: L("Sorry, was that a yes or a no?"),
+            farewells: [L("Talk to you later!"), L("Bye for now!")],
+            failure: L("Sorry, that didn't work."))
+        let conversation = LiveConversation(
+            io: io, brain: liveBrain, phrases: phrases,
+            settings: .init(
+                speech: LiveSpeechConfiguration(
+                    locale: Locale.current, voice: voice, endsTurnsOnPause: !pushToTalk),
+                followUpWindow: max(0, preferences.liveFollowUpSeconds)),
+            firstPhrase: Int.random(in: 0..<4))
+        conversation.onStateChange = { [weak self] state in self?.liveStateChanged(state) }
+        conversation.onSpeakingChange = { [weak self] speaking in
+            self?.liveSpeakingChanged(speaking)
+        }
+        conversation.onPartial = { [weak self] text in self?.livePartial(text) }
+        conversation.onTurn = { [weak self] text in self?.liveTurnSent(text) }
+        conversation.onLevel = { [weak self] level in self?.level = level }
+        conversation.onMouth = { [weak self] level in
+            self?.character?.engine.pulseMouth(strength: min(1, level * 1.3))
+        }
+        conversation.onError = { [weak self] message in self?.errorMessage = message }
+        conversation.onEnded = { [weak self, weak conversation] in
+            guard let self, let conversation, self.live === conversation else { return }
+            self.liveEnded()
+        }
+        return conversation
+    }
+
+    private func liveStateChanged(_ state: LiveConversation.State) {
+        liveState = state
+        isAwaitingAnswer = state == .awaitingAnswer
+        switch state {
+        case .listening, .followUp, .awaitingAnswer:
+            if !isSpeaking { character?.showListening() }
+        case .thinking:
+            if !isSpeaking { character?.showWorking() }
+        case .idle, .starting, .speaking, .awaitingButtons, .closing:
+            break
+        }
+    }
+
+    private func liveSpeakingChanged(_ speaking: Bool) {
+        isSpeaking = speaking
+        character?.engine.setVoiceDriven(speaking)
+        if speaking {
+            character?.showSpeaking()
+            bubble?.show()
+        } else if [.listening, .followUp, .awaitingAnswer].contains(liveState) {
+            character?.showListening()
+        }
+    }
+
+    private func livePartial(_ text: String) {
+        // A new turn starts: the bubble shows it instead of the last reply.
+        if session?.messageID != nil { session?.messageID = nil }
+        session?.transcript = text
+    }
+
+    private func liveTurnSent(_ text: String) {
+        session?.transcript = text
+        session?.messageID = assistant?.messages.last { $0.role == .user }?.id
+    }
+
+    private func liveEnded() {
+        live = nil
+        liveState = nil
+        isSpeaking = false
+        isAwaitingAnswer = false
+        isHoldingToTalk = false
+        level = 0
+        character?.engine.setVoiceDriven(false)
+        if assistant?.isBusy != true { character?.showIdle() }
+        bubble?.hide(after: .seconds(1.5)) { [weak self] in self?.endSession() }
+        startWakeWordIfEnabled()
+    }
 }

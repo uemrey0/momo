@@ -60,6 +60,7 @@ struct VoiceSettingsView: View {
         Form {
             repliesSection
             voiceModeSection
+            LiveConversationSection(settings: settings, models: model.voice?.liveModels)
             listeningSection
         }
         .formStyle(.grouped)
