@@ -454,6 +454,16 @@
         }
       }
     },
+    "Brave Search API key" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brave Search API anahtarı"
+          }
+        }
+      }
+    },
     "Built into macOS. Nothing to install." : {
       "localizations" : {
         "tr" : {
@@ -1296,6 +1306,16 @@
         }
       }
     },
+    "Get a Brave Search API key" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brave Search API anahtarı al"
+          }
+        }
+      }
+    },
     "Get an API key" : {
       "localizations" : {
         "tr" : {
@@ -1885,6 +1905,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo ekranına yalnızca sen istediğinde bakar ve her seferinde önce sorar. Metin Mac'inde okunur."
+          }
+        }
+      }
+    },
+    "Momo searches the web with DuckDuckGo, no key needed. With a Brave Search API key it uses Brave instead. The key is stored in your macOS Keychain and only sent to Brave." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo web'de anahtar gerektirmeden DuckDuckGo ile arar. Brave Search API anahtarı eklersen bunun yerine Brave'i kullanır. Anahtar macOS Anahtar Zinciri'nde saklanır ve yalnızca Brave'e gönderilir."
           }
         }
       }
@@ -2494,6 +2524,16 @@
         }
       }
     },
+    "Reading a web page" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web sayfası okunuyor"
+          }
+        }
+      }
+    },
     "Reading the clipboard" : {
       "localizations" : {
         "tr" : {
@@ -2783,6 +2823,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notlarda ara"
+          }
+        }
+      }
+    },
+    "Searching the web" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web'de aranıyor"
           }
         }
       }
@@ -3561,6 +3611,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ses"
+          }
+        }
+      }
+    },
+    "Web search" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web araması"
           }
         }
       }

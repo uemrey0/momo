@@ -1,3 +1,4 @@
+import MomoKit
 import SwiftUI
 
 /// Connects Momo with other agents in both directions over MCP.
@@ -64,6 +65,8 @@ struct ConnectionsSettingsView: View {
                         "Momo starts these servers on your Mac and offers their tools to its brains. Only add servers you trust."
                     ))
             }
+
+            WebSearchSection(settings: settings)
         }
         .formStyle(.grouped)
         .onChange(of: settings.preferences.mcpServers) { refresh() }
@@ -101,6 +104,40 @@ struct ConnectionsSettingsView: View {
 
     private func refresh() {
         Task { await model.connections.refresh() }
+    }
+}
+
+/// The optional Brave Search key for web searches.
+struct WebSearchSection: View {
+    var settings: AppSettings
+    @State private var key = ""
+    @State private var saved = false
+
+    private var storedKey: String { settings.keys.key(for: WebSearcher.braveKeyID) ?? "" }
+
+    var body: some View {
+        Section {
+            HStack {
+                SecureField(L("Brave Search API key"), text: $key)
+                Button(saved ? L("Saved") : L("Save")) {
+                    settings.keys.setKey(key, for: WebSearcher.braveKeyID)
+                    saved = true
+                }
+                .disabled(key == storedKey)
+            }
+            if let url = URL(string: "https://api-dashboard.search.brave.com/") {
+                Link(L("Get a Brave Search API key"), destination: url).font(.caption)
+            }
+        } header: {
+            Text(verbatim: L("Web search"))
+        } footer: {
+            Text(
+                verbatim: L(
+                    "Momo searches the web with DuckDuckGo, no key needed. With a Brave Search API key it uses Brave instead. The key is stored in your macOS Keychain and only sent to Brave."
+                ))
+        }
+        .onAppear { key = storedKey }
+        .onChange(of: key) { saved = false }
     }
 }
 

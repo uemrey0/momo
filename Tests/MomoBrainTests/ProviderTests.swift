@@ -252,6 +252,7 @@ struct PromptAndSettingsTests {
         #expect(prompt.contains("The user's name is Emre"))
         #expect(prompt.contains("1970-01-01T00:00"))
         #expect(prompt.contains("Turkish"))
+        #expect(prompt.contains("search the web"))
     }
 
     @Test("decodes old settings and adds new brains")
