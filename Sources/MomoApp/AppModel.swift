@@ -25,6 +25,8 @@ final class AppModel {
     @ObservationIgnored private var hotKeys: [GlobalHotKey] = []
     @ObservationIgnored private var onboarding: OnboardingWindowController?
     @ObservationIgnored private lazy var settingsWindow = SettingsWindowController(model: self)
+    /// Which Settings pane is showing.
+    let settingsNavigation = SettingsNavigation()
 
     init() {
         settings = AppSettings()
@@ -51,13 +53,26 @@ final class AppModel {
         self.voice = voice
         let panel = ChatPanelController(
             assistant: assistant, today: today, notes: notes, state: panelState, voice: voice,
-            character: character, openSettings: { [weak self] in self?.openSettings() })
+            character: character, openSettings: { [weak self] in self?.openSettings($0) })
         chatPanel = panel
         voice.showPanel = { [weak panel] in panel?.show(tab: .chat) }
         character.onClick = { [weak panel, weak voice] in
             voice?.stopSpeaking()
             panel?.toggle()
         }
+        character.onMenuItem = { [weak self] item in
+            guard let self else { return }
+            switch item {
+            case .talk: openChat(tab: .chat)
+            case .today: openChat(tab: .today)
+            case .notes: openChat(tab: .notes)
+            case .setUpAI: openSettings(.ai)
+            case .settings: openSettings()
+            case .hide: character.isVisible = false
+            }
+        }
+        character.needsAISetup = { [weak self] in self?.hasReadyBrain == false }
+        Task { await assistant.refreshProviders() }
         hotKeys = [
             GlobalHotKey(keyCode: kVK_Space, modifiers: optionKey) { [weak panel] in
                 panel?.toggle()
@@ -109,9 +124,17 @@ final class AppModel {
         chatPanel?.show(tab: tab)
     }
 
-    func openSettings() {
+    /// Opens Settings, on `pane` if given.
+    func openSettings(_ pane: SettingsPane? = nil) {
+        if let pane { settingsNavigation.pane = pane }
         chatPanel?.hide()
         settingsWindow.show()
+    }
+
+    /// Whether at least one brain is ready to answer. `nil` until the brains were checked.
+    var hasReadyBrain: Bool? {
+        let statuses = assistant.providerStatuses
+        return statuses.isEmpty ? nil : statuses.contains { $0.availability.isReady }
     }
 
     func showOnboarding() {

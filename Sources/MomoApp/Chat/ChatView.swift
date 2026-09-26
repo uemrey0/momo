@@ -7,12 +7,21 @@ struct ChatView: View {
     @Bindable var assistant: AssistantController
     @Bindable var state: PanelState
     var voice: VoiceController? = nil
+    var setUpAI: () -> Void = {}
     @FocusState private var isComposerFocused: Bool
+
+    /// Whether the brains were checked and none of them can answer yet.
+    private var needsAISetup: Bool {
+        !assistant.providerStatuses.isEmpty
+            && !assistant.providerStatuses.contains { $0.availability.isReady }
+    }
     @Environment(\.snapshotMode) private var snapshotMode
 
     var body: some View {
         VStack(spacing: 0) {
-            if assistant.messages.isEmpty {
+            if assistant.messages.isEmpty && needsAISetup {
+                SetUpAICard(setUp: setUpAI)
+            } else if assistant.messages.isEmpty {
                 EmptyChatView { suggestion in assistant.send(suggestion) }
             } else {
                 messageList
@@ -171,6 +180,41 @@ struct MicrophoneButton: View {
 }
 
 /// What the chat shows before the first message.
+/// Shown instead of suggestions until Momo has a brain to think with.
+struct SetUpAICard: View {
+    var setUp: () -> Void
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Spacer()
+            Image(systemName: "sparkles")
+                .font(.system(size: 30, weight: .semibold))
+                .foregroundStyle(Theme.accent)
+            Text(verbatim: L("Let's give me a brain!"))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+            Text(
+                verbatim: L(
+                    "Connect ChatGPT, Gemini, Claude or a free model on this Mac. It takes about a minute, no Terminal needed."
+                )
+            )
+            .font(.system(size: 13))
+            .multilineTextAlignment(.center)
+            .foregroundStyle(Theme.secondaryText)
+            .frame(maxWidth: 300)
+            Button(action: setUp) {
+                Label(L("Set up AI"), systemImage: "arrow.right.circle.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .padding(.horizontal, 6)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            Spacer()
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+    }
+}
+
 struct EmptyChatView: View {
     var send: (String) -> Void
 

@@ -4,6 +4,11 @@ import MomoKit
 import Observation
 import SwiftUI
 
+/// The items of the menu shown when right-clicking the character.
+enum CharacterMenuItem {
+    case talk, today, notes, setUpAI, settings, hide
+}
+
 /// Owns the character: its engine, the notch panel it lives in, and the settings the menu bar
 /// exposes.
 @MainActor
@@ -46,6 +51,10 @@ final class CharacterController {
     @ObservationIgnored let engine = FaceEngine()
     /// Called when the user clicks the character.
     @ObservationIgnored var onClick: (() -> Void)?
+    /// Called when the user picks an item from the character's right-click menu.
+    @ObservationIgnored var onMenuItem: ((CharacterMenuItem) -> Void)?
+    /// Whether the right-click menu should offer to set up AI.
+    @ObservationIgnored var needsAISetup: () -> Bool = { false }
     @ObservationIgnored private var panel: NotchPanel?
     @ObservationIgnored private var hostingView: ClickThroughHostingView<AnyView>?
     @ObservationIgnored private(set) var geometry: NotchGeometry?
@@ -206,7 +215,24 @@ final class CharacterController {
                 input: { [weak self] in self?.makeInput(layout: layout) ?? FaceEngine.Input() },
                 onTap: { [weak self] in self?.onClick?() }
             )
-            .accessibilityLabel(Text("Momo", bundle: .module)))
+            .accessibilityLabel(Text("Momo", bundle: .module))
+            .contextMenu { contextMenu })
+    }
+
+    /// The menu shown when the user right-clicks or Control-clicks Momo.
+    @ViewBuilder
+    private var contextMenu: some View {
+        let pick: (CharacterMenuItem) -> Void = { [weak self] in self?.onMenuItem?($0) }
+        Button(L("Talk to Momo")) { pick(.talk) }
+        Button(L("Today")) { pick(.today) }
+        Button(L("Notes")) { pick(.notes) }
+        Divider()
+        if needsAISetup() {
+            Button(L("Set Up AI…")) { pick(.setUpAI) }
+        }
+        Button(L("Settings…")) { pick(.settings) }
+        Divider()
+        Button(L("Hide Momo")) { pick(.hide) }
     }
 
     private func updateVisibility() {

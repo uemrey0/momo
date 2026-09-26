@@ -118,7 +118,7 @@
             func panel() -> some View {
                 PanelView(
                     assistant: assistant, today: today, notes: notes, state: state,
-                    openSettings: {}, close: {}
+                    openSettings: { _ in }, close: {}
                 )
                 .environment(\.snapshotMode, true)
                 .padding(24)
