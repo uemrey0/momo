@@ -18,6 +18,9 @@ public struct OpenAICompatibleProvider: ChatProvider {
         info: ProviderInfo, baseURL: URL, model: String, apiKey: String? = nil,
         extraHeaders: [String: String] = [:], session: URLSession = .shared
     ) {
+        var info = info
+        info.supportsImages =
+            info.supportsImages || Self.modelSupportsImages(model, providerID: info.id)
         self.info = info
         self.baseURL = baseURL
         self.model = model
@@ -144,7 +147,7 @@ public struct OpenAICompatibleProvider: ChatProvider {
     ) async throws {
         var messages: [JSONValue] = [["role": "system", "content": .string(request.systemPrompt)]]
         messages += request.turns.map {
-            ["role": .string($0.role.rawValue), "content": .string($0.contextText)]
+            ["role": .string($0.role.rawValue), "content": content(of: $0)]
         }
         var tools = request.tools
         for _ in 0..<maximumToolRounds {
@@ -187,6 +190,45 @@ public struct OpenAICompatibleProvider: ChatProvider {
             }
         }
         continuation.yield(.text(toolRoundLimitNotice))
+    }
+
+    // MARK: - Images
+
+    /// A turn's message content: plain text, or text and `image_url` parts with data URIs
+    /// when the turn has images and the model can see them.
+    func content(of turn: ChatTurn) -> JSONValue {
+        let images = turn.images
+        guard info.supportsImages, !images.isEmpty else { return .string(turn.contextText) }
+        var parts: [JSONValue] = []
+        let text = turn.context(imagesVisible: true)
+        if !text.isEmpty { parts.append(["type": "text", "text": .string(text)]) }
+        for image in images {
+            let url = "data:\(image.mimeType);base64,\(image.data.base64EncodedString())"
+            parts.append(["type": "image_url", "image_url": ["url": .string(url)]])
+        }
+        return .array(parts)
+    }
+
+    /// Model name fragments of vision models served through OpenAI-compatible APIs.
+    static let visionModelHints = [
+        "vision", "-vl", "vl-", "llava", "moondream", "minicpm-v", "gemma3", "gemma-3",
+        "qwen2.5vl", "qwen3-vl", "pixtral", "llama-4", "llama4", "mistral-small3",
+        "mistral-small-3",
+        "claude", "gemini", "gpt-4o", "gpt-4.1", "gpt-5", "grok-4", "o4-mini",
+    ]
+
+    /// Whether a model can plausibly look at images, judged from its name. Gemini models all
+    /// can; OpenAI's current chat models can, except small reasoning models.
+    public static func modelSupportsImages(_ model: String, providerID: String) -> Bool {
+        let name = model.lowercased()
+        if providerID == "gemini-api" { return true }
+        if providerID == "openai",
+            ["o1", "o3", "o4", "chatgpt"].contains(where: name.hasPrefix),
+            !name.hasPrefix("o1-mini"), !name.hasPrefix("o3-mini")
+        {
+            return true
+        }
+        return visionModelHints.contains { name.contains($0) }
     }
 
     private struct Round {

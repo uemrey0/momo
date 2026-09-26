@@ -7,7 +7,8 @@ import MomoKit
 /// Runs `codex exec --json` in a read-only sandbox. When the Momo MCP server is available,
 /// Codex can use Momo's tasks, notes and memory tools through it.
 public struct CodexProvider: ChatProvider {
-    public let info = ProviderInfo(id: "codex", name: "ChatGPT (Codex)", kind: .subscription)
+    public let info = ProviderInfo(
+        id: "codex", name: "ChatGPT (Codex)", kind: .subscription, supportsImages: true)
     public let model: String?
     /// Path to the `momo-mcp` executable, offered to Codex as an MCP server.
     public let mcpServerPath: String?
@@ -60,12 +61,15 @@ public struct CodexProvider: ChatProvider {
                     continuation.finish(throwing: ProviderError("Codex was not found."))
                     return
                 }
-                let prompt = CLIPrompt.make(request)
+                let images = Self.writeImages(of: request)
+                defer { if let images { try? FileManager.default.removeItem(at: images.folder) } }
+                let prompt = CLIPrompt.make(request, imagesVisible: images != nil)
                 var parser = CodexEventParser()
                 do {
                     for try await line in CommandRunner.lines(
-                        executable: executable, arguments: arguments(), input: prompt,
-                        workingDirectory: workingDirectory)
+                        executable: executable,
+                        arguments: Self.adding(images: images?.paths ?? [], to: arguments()),
+                        input: prompt, workingDirectory: workingDirectory)
                     {
                         for event in try parser.consume(line) { continuation.yield(event) }
                     }
@@ -86,6 +90,43 @@ public struct CodexProvider: ChatProvider {
         "\""
             + value.replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+    }
+}
+
+// MARK: - Images
+
+extension CodexProvider {
+    /// Writes the latest turn's images to a private temporary folder for `codex exec -i`.
+    /// `nil` when there are none or they could not be written.
+    static func writeImages(of request: ChatRequest) -> (folder: URL, paths: [String])? {
+        let images = request.turns.last?.images ?? []
+        guard !images.isEmpty else { return nil }
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("momo-images-\(UUID().uuidString)", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(
+                at: folder, withIntermediateDirectories: true,
+                attributes: [.posixPermissions: 0o700])
+            let paths = try images.enumerated().map { index, image in
+                let suffix = image.mimeType == "image/png" ? "png" : "jpg"
+                let url = folder.appendingPathComponent("image-\(index + 1).\(suffix)")
+                try image.data.write(to: url, options: [.atomic])
+                return url.path
+            }
+            return (folder, paths)
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            return nil
+        }
+    }
+
+    /// Adds `-i` with the image paths right after `exec`, where a following option ends the
+    /// list, so it can't swallow the prompt argument.
+    static func adding(images paths: [String], to arguments: [String]) -> [String] {
+        guard !paths.isEmpty, let exec = arguments.firstIndex(of: "exec") else { return arguments }
+        var arguments = arguments
+        arguments.insert(contentsOf: ["-i", paths.joined(separator: ",")], at: exec + 1)
+        return arguments
     }
 }
 
@@ -229,14 +270,14 @@ public struct GeminiCLIProvider: ChatProvider {
 
 /// Builds single-shot prompts for CLI agents and explains their failures.
 enum CLIPrompt {
-    static func make(_ request: ChatRequest) -> String {
+    static func make(_ request: ChatRequest, imagesVisible: Bool = false) -> String {
         """
         \(request.systemPrompt)
 
         You are answering through a command line bridge. Do not modify files or run shell \
         commands; just answer.
 
-        \(PromptFlattener.prompt(for: request.turns, budget: 60_000))
+        \(PromptFlattener.prompt(for: request.turns, budget: 60_000, imagesVisible: imagesVisible))
         """
     }
 

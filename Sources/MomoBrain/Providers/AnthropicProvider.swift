@@ -26,7 +26,8 @@ public struct AnthropicProvider: ChatProvider {
         self.model = model
         self.session = session
         self.endpoint = endpoint
-        self.info = ProviderInfo(id: "anthropic", name: "Claude · \(model)", kind: .apiKey)
+        self.info = ProviderInfo(
+            id: "anthropic", name: "Claude · \(model)", kind: .apiKey, supportsImages: true)
     }
 
     public func availability() async -> ProviderAvailability {
@@ -58,7 +59,7 @@ public struct AnthropicProvider: ChatProvider {
         continuation: AsyncThrowingStream<ChatEvent, any Error>.Continuation
     ) async throws {
         var messages: [JSONValue] = ChatTurn.alternating(request.turns).map {
-            ["role": .string($0.role.rawValue), "content": .string($0.contextText)]
+            ["role": .string($0.role.rawValue), "content": Self.content(of: $0)]
         }
         for _ in 0..<maximumToolRounds {
             try Task.checkCancellation()
@@ -164,6 +165,25 @@ public struct AnthropicProvider: ChatProvider {
         return accumulator.turn
     }
 
+    /// A turn's message content: plain text, or image blocks followed by the text when the
+    /// turn has images.
+    static func content(of turn: ChatTurn) -> JSONValue {
+        let images = turn.images
+        guard !images.isEmpty else { return .string(turn.contextText) }
+        var blocks: [JSONValue] = images.map { image in
+            [
+                "type": "image",
+                "source": [
+                    "type": "base64", "media_type": .string(image.mimeType),
+                    "data": .string(image.data.base64EncodedString()),
+                ],
+            ]
+        }
+        let text = turn.context(imagesVisible: true)
+        if !text.isEmpty { blocks.append(["type": "text", "text": .string(text)]) }
+        return .array(blocks)
+    }
+
     static func supportsServerSideFallback(_ model: String) -> Bool {
         model == "claude-opus-5" || model == "claude-fable-5-1"
     }
@@ -253,6 +273,7 @@ extension ChatTurn {
                 let separator = last.text.isEmpty || turn.text.isEmpty ? "" : "\n\n"
                 result[result.count - 1].text += separator + turn.text
                 result[result.count - 1].toolRecords += turn.toolRecords
+                result[result.count - 1].attachments += turn.attachments
             } else {
                 result.append(turn)
             }

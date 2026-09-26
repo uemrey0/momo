@@ -14,23 +14,26 @@ public struct ChatTurn: Sendable, Hashable {
     /// The tools an assistant turn used and what they returned, kept compact so follow-up
     /// questions can refer to their results.
     public var toolRecords: [ToolRecord]
+    /// Files and images the user attached to this turn.
+    public var attachments: [ChatAttachment]
 
-    public init(role: Role, text: String, toolRecords: [ToolRecord] = []) {
+    public init(
+        role: Role, text: String, toolRecords: [ToolRecord] = [],
+        attachments: [ChatAttachment] = []
+    ) {
         self.role = role
         self.text = text
         self.toolRecords = toolRecords
+        self.attachments = attachments
     }
 
-    /// The text providers send for this turn: the reply followed by a short account of the
-    /// tools it used, if any.
-    public var contextText: String {
-        let tools = ToolRecord.render(toolRecords)
-        guard !tools.isEmpty else { return text }
-        return text.isEmpty ? tools : text + "\n\n" + tools
-    }
+    /// The text providers without vision send for this turn: attached documents, the
+    /// message, notes for images and a short account of the tools it used, if any.
+    public var contextText: String { context(imagesVisible: false) }
 
-    /// The turn with its text and tool records passed through `transform`, for example to
-    /// mask personal data before it leaves the Mac.
+    /// The turn with its text, attached documents and tool records passed through
+    /// `transform`, for example to mask personal data before it leaves the Mac. Images
+    /// can't be masked and are kept as they are.
     public func mapText(_ transform: (String) -> String) -> ChatTurn {
         ChatTurn(
             role: role, text: transform(text),
@@ -38,6 +41,13 @@ public struct ChatTurn: Sendable, Hashable {
                 ToolRecord(
                     name: record.name, arguments: transform(record.arguments),
                     result: transform(record.result), isError: record.isError)
+            },
+            attachments: attachments.map { attachment in
+                var attachment = attachment
+                if case .file(let text) = attachment.content {
+                    attachment.content = .file(text: transform(text))
+                }
+                return attachment
             })
     }
 }
@@ -87,8 +97,14 @@ public struct ProviderInfo: Sendable, Hashable, Identifiable {
     public var kind: BrainKind
     /// Roughly how many characters of input the brain handles well.
     public var comfortableLength: Int
+    /// Whether the brain can look at attached images.
+    public var supportsImages: Bool
 
-    public init(id: String, name: String, kind: BrainKind, comfortableLength: Int = 100_000) {
+    public init(
+        id: String, name: String, kind: BrainKind, comfortableLength: Int = 100_000,
+        supportsImages: Bool = false
+    ) {
+        self.supportsImages = supportsImages
         self.id = id
         self.name = name
         self.kind = kind
