@@ -7,3 +7,5 @@
 "NSRemindersFullAccessUsageDescription" = "Momo, istediğinde Anımsatıcılar uygulamasındaki anımsatıcıları okur ve yenilerini ekler.";
 "NSRemindersUsageDescription" = "Momo, istediğinde Anımsatıcılar uygulamasındaki anımsatıcıları okur ve yenilerini ekler.";
 "NSContactsUsageDescription" = "Momo, birine mesaj ya da e-posta göndermek istediğinde kişilerinde arama yapar.";
+"NSLocationUsageDescription" = "Momo konumunu yalnızca, istediğinde bağlı olduğun Wi-Fi ağının adını söylemek için kullanır.";
+"NSLocationWhenInUseUsageDescription" = "Momo konumunu yalnızca, istediğinde bağlı olduğun Wi-Fi ağının adını söylemek için kullanır.";

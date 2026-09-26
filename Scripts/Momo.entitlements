@@ -10,6 +10,9 @@
 	<true/>
 	<key>com.apple.security.personal-information.addressbook</key>
 	<true/>
+	<!-- Only for the Wi-Fi network's name, which macOS shares with apps that have Location. -->
+	<key>com.apple.security.personal-information.location</key>
+	<true/>
 	<!-- Covers Reminders as well as calendars. -->
 	<key>com.apple.security.personal-information.calendars</key>
 	<true/>

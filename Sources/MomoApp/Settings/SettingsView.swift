@@ -4,7 +4,8 @@ import SwiftUI
 
 /// The sections of the Settings window, in sidebar order.
 enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
-    case ai, character, voice, reactions, routines, connections, privacy, general, about
+    case ai, character, voice, reactions, routines, connections, permissions, privacy, general,
+        about
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .reactions: L("Reactions")
         case .routines: L("Routines")
         case .connections: L("Connections")
+        case .permissions: L("Permissions")
         case .privacy: L("Privacy")
         case .general: L("General")
         case .about: L("About")
@@ -30,6 +32,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .reactions: "bell.badge"
         case .routines: "clock.arrow.circlepath"
         case .connections: "point.3.connected.trianglepath.dotted"
+        case .permissions: "lock.shield.fill"
         case .privacy: "hand.raised.fill"
         case .general: "gearshape"
         case .about: "info.circle"
@@ -44,6 +47,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .reactions: Color(red: 1.0, green: 0.6, blue: 0.2)
         case .routines: Color(red: 0.36, green: 0.7, blue: 0.95)
         case .connections: Color(red: 0.25, green: 0.55, blue: 0.98)
+        case .permissions: Color(red: 0.2, green: 0.62, blue: 0.4)
         case .privacy: Color(red: 0.3, green: 0.5, blue: 0.9)
         case .general: .gray
         case .about: Color(red: 0.45, green: 0.47, blue: 0.52)
@@ -62,6 +66,10 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .reactions: L("calendar, meetings, music, battery, late night, sleep, doze")
         case .routines: L("schedule, automation, every day, morning brief, recurring prompt")
         case .connections: L("MCP, server, tools, agents, Claude Code, Claude Desktop")
+        case .permissions:
+            L(
+                "access, allow, denied, privacy, microphone, calendar, reminders, contacts, screen recording, accessibility, automation, notifications, location, System Settings"
+            )
         case .privacy: L("data, personal details, screen, log, erase, local only")
         case .general: L("personality, shortcut, login, updates, welcome tour")
         case .about: L("version, license, website, report a problem")
@@ -83,6 +91,17 @@ final class SettingsNavigation {
     var pane: SettingsPane = .ai
     /// The AI option whose setup sheet is open.
     var setupOption: BrainOption?
+    /// The setting that is briefly highlighted, by its ``View/settingsAnchor(_:)`` id.
+    var highlight: String?
+    /// Changes with every request to show a setting, so the same one can be shown again.
+    private(set) var highlightRequest = 0
+
+    /// Opens `pane`, scrolls to the setting with the anchor `id` and highlights it.
+    func show(_ pane: SettingsPane, highlighting id: String?) {
+        self.pane = pane
+        highlight = id
+        highlightRequest += 1
+    }
 }
 
 /// The Settings window: a sidebar of panes, like System Settings.
@@ -121,8 +140,12 @@ struct SettingsView: View {
             }
             .navigationSplitViewColumnWidth(min: 190, ideal: 210, max: 260)
         } detail: {
-            detail
-                .navigationTitle(navigation.pane.title)
+            ScrollViewReader { proxy in
+                detail
+                    .navigationTitle(navigation.pane.title)
+                    .environment(navigation)
+                    .task(id: navigation.highlightRequest) { await reveal(with: proxy) }
+            }
         }
         .frame(minWidth: 760, minHeight: 540)
     }
@@ -136,10 +159,22 @@ struct SettingsView: View {
         case .reactions: ReactionsSettingsView(model: model)
         case .routines: RoutinesSettingsView(model: model)
         case .connections: ConnectionsSettingsView(model: model)
+        case .permissions: PermissionsSettingsView(model: model)
         case .privacy: PrivacySettingsView(model: model)
         case .general: GeneralSettingsView(model: model)
         case .about: AboutView()
         }
+    }
+
+    /// Scrolls to the highlighted setting once its pane is laid out, then lets the highlight
+    /// fade.
+    private func reveal(with proxy: ScrollViewProxy) async {
+        guard let id = navigation.highlight else { return }
+        try? await Task.sleep(for: .milliseconds(250))
+        withAnimation { proxy.scrollTo(id, anchor: .center) }
+        try? await Task.sleep(for: .seconds(2))
+        guard !Task.isCancelled, navigation.highlight == id else { return }
+        navigation.highlight = nil
     }
 
     /// A reminder in the sidebar when something needs attention.

@@ -16,6 +16,7 @@ final class AppModel {
     let notes: NotesModel
     let panelState = PanelState()
     let calendar = CalendarService()
+    let permissions = PermissionCenter()
     let focus: FocusController
     let connections: MCPConnections
     let updates: UpdateChecker
@@ -179,6 +180,13 @@ final class AppModel {
     /// Opens Settings, on `pane` if given.
     func openSettings(_ pane: SettingsPane? = nil) {
         if let pane { settingsNavigation.pane = pane }
+        chatPanel?.hide()
+        settingsWindow.show()
+    }
+
+    /// Opens Settings on the Permissions pane, highlighting `permission` if given.
+    func openPermissions(_ permission: MacPermission? = nil) {
+        settingsNavigation.show(.permissions, highlighting: permission?.anchor)
         chatPanel?.hide()
         settingsWindow.show()
     }
