@@ -12,13 +12,15 @@ public enum SystemPrompt {
     ///   - personality: An optional extra line describing the chosen personality.
     ///   - message: The message being answered. When there are more memories than fit, the
     ///     prompt keeps a few core ones and those most related to this message.
+    ///   - canDraw: Whether the `generate_image` and `edit_image` tools are offered.
     ///   - isSpoken: The reply is read aloud in a live voice conversation, so it must be short
     ///     and sound natural when spoken. The full text still lands in the chat.
     ///   - ranker: Ranks memories against the message.
     ///   - now: The current date, injectable for tests.
     public static func make(
         memories: [Memory], languageName: String, personality: String? = nil,
-        message: String = "", isSpoken: Bool = false, ranker: MemoryRanker = MemoryRanker(),
+        message: String = "", canDraw: Bool = false, isSpoken: Bool = false,
+        ranker: MemoryRanker = MemoryRanker(),
         now: Date = Date(),
         timeZone: TimeZone = .current
     ) -> String {
@@ -42,6 +44,9 @@ public enum SystemPrompt {
             "",
             "Current time: \(FlexibleDate.format(now, timeZone: timeZone)) (\(weekday.string(from: now)), \(timeZone.identifier)).",
         ]
+        if canDraw {
+            lines.insert(drawingInstruction, at: 5)
+        }
         if let personality, !personality.isEmpty {
             lines.append("Personality: \(personality)")
         }
@@ -59,6 +64,10 @@ public enum SystemPrompt {
         }
         return lines.joined(separator: "\n")
     }
+
+    /// How to make pictures, the same way with every brain.
+    static let drawingInstruction =
+        "When the user asks for a picture (draw, paint, sketch, illustrate, make an image), call generate_image, and edit_image to change one, instead of drawing with text or another tool. The pictures appear in the chat, so just add a short line about them."
 
     /// How to answer in a live voice conversation, where the reply is heard, not read.
     static let spokenStyle = [
