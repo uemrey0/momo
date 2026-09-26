@@ -169,8 +169,8 @@ public struct Memory: Codable, Sendable, Hashable, Identifiable {
 /// written back in the current format on the next change.
 public struct MomoData: Codable, Sendable, Equatable {
     /// The format written today. Version 2 added memory categories, repeating tasks with
-    /// priority and tags, and routines.
-    public static let currentVersion = 2
+    /// priority and tags, and routines; version 3 added meetings.
+    public static let currentVersion = 3
 
     public var version: Int
     public var tasks: [TaskItem]
@@ -178,10 +178,11 @@ public struct MomoData: Codable, Sendable, Equatable {
     public var habits: [Habit]
     public var memories: [Memory]
     public var routines: [Routine]
+    public var meetings: [Meeting]
 
     public init(
         tasks: [TaskItem] = [], notes: [Note] = [], habits: [Habit] = [], memories: [Memory] = [],
-        routines: [Routine] = []
+        routines: [Routine] = [], meetings: [Meeting] = []
     ) {
         self.version = Self.currentVersion
         self.tasks = tasks
@@ -189,6 +190,7 @@ public struct MomoData: Codable, Sendable, Equatable {
         self.habits = habits
         self.memories = memories
         self.routines = routines
+        self.meetings = meetings
     }
 
     public init(from decoder: any Decoder) throws {
@@ -200,6 +202,9 @@ public struct MomoData: Codable, Sendable, Equatable {
         habits = try container.decodeIfPresent([Habit].self, forKey: .habits) ?? []
         memories = try container.decodeIfPresent([Memory].self, forKey: .memories) ?? []
         routines = try container.decodeIfPresent([Routine].self, forKey: .routines) ?? []
+        // Meetings hold long transcripts, so a damaged one is skipped rather than failing the
+        // whole file.
+        meetings = container.lossy(Meeting.self, .meetings)
     }
 }
 

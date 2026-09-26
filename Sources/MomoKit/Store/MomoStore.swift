@@ -1,6 +1,6 @@
 import Foundation
 
-/// Stores tasks, notes, habits, memories and routines in a single JSON file.
+/// Stores tasks, notes, habits, memories, routines and meetings in a single JSON file.
 ///
 /// The file may be shared with other processes (the MCP server), so the store reloads it
 /// whenever it changed on disk and writes atomically.
@@ -405,6 +405,101 @@ public actor MomoStore {
         return try Self.index(
             in: data.routines, reference: reference, kind: "routine", id: \.id, title: \.title,
             isEligible: { _ in true })
+    }
+
+    // MARK: - Meetings
+
+    /// Meetings, most recent first.
+    public func meetings() -> [Meeting] {
+        reloadIfNeeded()
+        return data.meetings.sorted { $0.startedAt > $1.startedAt }
+    }
+
+    /// The meeting with exactly this ID.
+    public func meeting(id: String) -> Meeting? {
+        reloadIfNeeded()
+        return data.meetings.first { $0.id == id }
+    }
+
+    /// Finds a meeting by ID or title; "latest" (or "last") is the most recent one. Several
+    /// meetings often share a title (a daily stand-up), so the newest match wins.
+    public func findMeeting(_ reference: String) throws -> Meeting {
+        let sorted = meetings()
+        let needle = reference.trimmingCharacters(in: .whitespacesAndNewlines)
+        if ["latest", "last", "recent", "most recent"].contains(needle.lowercased()) {
+            guard let latest = sorted.first else { throw ToolError("No meetings yet.") }
+            return latest
+        }
+        if let exact = sorted.first(where: { $0.id == needle.lowercased() }) { return exact }
+        if let titled = sorted.first(where: {
+            $0.title.localizedCaseInsensitiveCompare(needle) == .orderedSame
+        }) {
+            return titled
+        }
+        if let partial = sorted.first(where: { $0.title.localizedCaseInsensitiveContains(needle) })
+        {
+            return partial
+        }
+        throw ToolError("No meeting matches '\(reference)'. Use list_meetings to see them.")
+    }
+
+    /// Replaces a meeting, or adds it when no meeting has its ID.
+    @discardableResult
+    public func saveMeeting(_ meeting: Meeting) throws -> Meeting {
+        reloadIfNeeded()
+        if let index = data.meetings.firstIndex(where: { $0.id == meeting.id }) {
+            try mutate { $0.meetings[index] = meeting }
+        } else {
+            try mutate { $0.meetings.append(meeting) }
+        }
+        return meeting
+    }
+
+    @discardableResult
+    public func deleteMeeting(_ reference: String) throws -> Meeting {
+        let meeting = try findMeeting(reference)
+        try mutate { $0.meetings.removeAll { $0.id == meeting.id } }
+        return meeting
+    }
+
+    /// Adds a meeting's action items to the task list, once each: items that already became
+    /// tasks are skipped. `itemIDs` limits it to some items; `nil` adds them all.
+    ///
+    /// Each task notes who owns it and which meeting it came from, keeps the deadline when
+    /// one was said, and is tagged "meeting".
+    @discardableResult
+    public func addActionItemsAsTasks(
+        meetingID: String, itemIDs: Set<String>? = nil
+    ) throws -> [TaskItem] {
+        reloadIfNeeded()
+        guard let index = data.meetings.firstIndex(where: { $0.id == meetingID }) else {
+            throw ToolError("No meeting has the ID '\(meetingID)'.")
+        }
+        let meeting = data.meetings[index]
+        var items = meeting.actionItems
+        var added: [TaskItem] = []
+        for position in items.indices {
+            let item = items[position]
+            guard item.taskID == nil, itemIDs?.contains(item.id) ?? true else { continue }
+            var details: [String] = []
+            if let owner = item.owner, !owner.isEmpty { details.append("Owner: \(owner)") }
+            if item.dueDate == nil, let due = item.dueText, !due.isEmpty {
+                details.append("Due: \(due)")
+            }
+            details.append(
+                "From the meeting “\(meeting.title)” on \(DayKey.string(for: meeting.startedAt))")
+            let task = TaskItem(
+                title: item.text, notes: details.joined(separator: "\n"), dueDate: item.dueDate,
+                tags: ["meeting"])
+            items[position].taskID = task.id
+            added.append(task)
+        }
+        guard !added.isEmpty else { return [] }
+        try mutate {
+            $0.tasks.append(contentsOf: added)
+            $0.meetings[index].actionItems = items
+        }
+        return added
     }
 
     /// Deletes everything.
