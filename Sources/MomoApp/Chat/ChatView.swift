@@ -437,9 +437,27 @@ struct MessageRow: View {
         message.activities.filter { $0.state == .failed }
     }
 
+    /// The steps shown in the answer: while Momo works, the latest ones so progress on a long
+    /// job stays visible; afterwards only the ones that failed.
+    private var visibleSteps: [ToolActivity] {
+        message.isStreaming ? Array(message.activities.suffix(Self.visibleStepCount)) : failedTools
+    }
+
+    private static let visibleStepCount = 4
+
     private var bubble: some View {
         VStack(alignment: .leading, spacing: 6) {
-            ForEach(runningTools + failedTools) { activity in
+            if message.isStreaming, message.activities.count > Self.visibleStepCount {
+                Text(
+                    verbatim: String(
+                        format: L("%d earlier steps"),
+                        message.activities.count - Self.visibleStepCount)
+                )
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Theme.tertiaryText)
+                .contentTransition(.numericText())
+            }
+            ForEach(visibleSteps) { activity in
                 ToolActivityRow(activity: activity)
             }
             if message.text.isEmpty && message.isStreaming {

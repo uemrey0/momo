@@ -21,6 +21,16 @@
         }
       }
     },
+    "%d earlier steps" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d önceki adım"
+          }
+        }
+      }
+    },
     "%lld characters" : {
       "localizations" : {
         "tr" : {
@@ -423,6 +433,16 @@
         }
       }
     },
+    "Back to the chat" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sohbete dön"
+          }
+        }
+      }
+    },
     "Balanced" : {
       "localizations" : {
         "tr" : {
@@ -664,6 +684,16 @@
         }
       }
     },
+    "Clear" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temizle"
+          }
+        }
+      }
+    },
     "Clear log" : {
       "localizations" : {
         "tr" : {
@@ -824,6 +854,16 @@
         }
       }
     },
+    "Conversations" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sohbetler"
+          }
+        }
+      }
+    },
     "Copied" : {
       "localizations" : {
         "tr" : {
@@ -900,6 +940,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sil"
+          }
+        }
+      }
+    },
+    "Delete this conversation" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu sohbeti sil"
           }
         }
       }
@@ -1095,12 +1145,12 @@
         }
       }
     },
-    "Erase all tasks, notes, habits and memories?" : {
+    "Erase all tasks, notes, habits, memories and conversations?" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tüm görevler, notlar, alışkanlıklar ve hatıralar silinsin mi?"
+            "value" : "Tüm görevler, notlar, alışkanlıklar, anılar ve sohbetler silinsin mi?"
           }
         }
       }
@@ -1991,6 +2041,16 @@
         }
       }
     },
+    "New" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeni"
+          }
+        }
+      }
+    },
     "New Email" : {
       "comment" : "Simulated event",
       "localizations" : {
@@ -2018,6 +2078,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yeni not"
+          }
+        }
+      }
+    },
+    "No conversation matches your search." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aramanla eşleşen bir sohbet yok."
           }
         }
       }
@@ -2139,6 +2209,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yalnızca çok uzun istekler"
+          }
+        }
+      }
+    },
+    "Open" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aç"
           }
         }
       }
@@ -2763,6 +2843,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ara"
+          }
+        }
+      }
+    },
+    "Search conversations" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sohbetlerde ara"
           }
         }
       }
@@ -3701,6 +3791,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Giriş yapman için tarayıcın açılır. Momo şifreni asla görmez."
+          }
+        }
+      }
+    },
+    "Your conversations will show up here." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sohbetlerin burada görünecek."
           }
         }
       }
