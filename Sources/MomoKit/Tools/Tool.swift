@@ -10,15 +10,19 @@ public struct ToolDefinition: Sendable, Hashable {
     public var parameters: JSONValue
     /// Whether the user must approve each call before it runs.
     public var requiresConfirmation: Bool
+    /// A short, localized phrase shown while the tool runs ("Checking the weather"). `nil`
+    /// falls back to a generic label.
+    public var activityLabel: String?
 
     public init(
         name: String, description: String, parameters: JSONValue = JSONSchema.object(),
-        requiresConfirmation: Bool = false
+        requiresConfirmation: Bool = false, activityLabel: String? = nil
     ) {
         self.name = name
         self.description = description
         self.parameters = parameters
         self.requiresConfirmation = requiresConfirmation
+        self.activityLabel = activityLabel
     }
 }
 

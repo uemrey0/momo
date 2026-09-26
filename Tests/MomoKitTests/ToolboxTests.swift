@@ -21,6 +21,16 @@ struct ToolboxTests {
         #expect(!result.isError)
     }
 
+    @Test("keeps the label a tool describes itself with")
+    func keepsActivityLabels() {
+        let labelled = ClosureTool(
+            ToolDefinition(
+                name: "weather", description: "Weather", activityLabel: "Looking outside")
+        ) { _ in "sunny" }
+        let box = Toolbox([echo, labelled])
+        #expect(box.definitions.map(\.activityLabel) == [nil, "Looking outside"])
+    }
+
     @Test("reports unknown tools and bad JSON as errors")
     func reportsErrors() async {
         let box = Toolbox([echo])

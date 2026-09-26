@@ -32,8 +32,10 @@ struct ToolActivity: Identifiable, Equatable {
     let id = UUID()
     var toolName: String
     var state: State
+    /// The label the tool describes itself with, if it has one.
+    var customLabel: String?
 
-    var label: String { ToolActivity.label(for: toolName) }
+    var label: String { customLabel ?? ToolActivity.label(for: toolName) }
 
     static func label(for name: String) -> String {
         switch name {
@@ -138,6 +140,8 @@ final class AssistantController {
     @ObservationIgnored var onReply: ((String) -> Void)?
 
     @ObservationIgnored private let assistant = Assistant()
+    /// Labels tools describe themselves with, from the latest configuration.
+    @ObservationIgnored private var activityLabels: [String: String] = [:]
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var consentContinuation: CheckedContinuation<RemoteConsent, Never>?
     @ObservationIgnored private var confirmationContinuation: CheckedContinuation<Bool, Never>?
@@ -180,6 +184,11 @@ final class AssistantController {
 
     private func run(_ message: String) async {
         let configuration = await makeConfiguration()
+        activityLabels = Dictionary(
+            configuration.toolbox.definitions.compactMap { definition in
+                definition.activityLabel.map { (definition.name, $0) }
+            },
+            uniquingKeysWith: { first, _ in first })
         var index: Int?
         var reply = ""
         do {
@@ -208,7 +217,10 @@ final class AssistantController {
                     messages[index].text += chunk
                 case .toolStarted(let name):
                     guard let index else { continue }
-                    messages[index].activities.append(ToolActivity(toolName: name, state: .running))
+                    messages[index].activities.append(
+                        ToolActivity(
+                            toolName: name, state: .running,
+                            customLabel: activityLabels[name]))
                 case .toolFinished(let name, let succeeded):
                     guard let index,
                         let activity = messages[index].activities.lastIndex(where: {
