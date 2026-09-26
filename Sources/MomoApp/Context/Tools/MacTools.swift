@@ -6,6 +6,7 @@ import MomoKit
 enum MacTools {
     static func all() -> [any MomoTool] {
         FileTools.all() + RemindersTools.all(RemindersService()) + ContactsTools.all()
-            + CommunicationTools.all() + MusicTools.all()
+            + CommunicationTools.all() + MusicTools.all() + SystemControlTools.all()
+            + WeatherTool.all()
     }
 }

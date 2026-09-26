@@ -223,6 +223,16 @@
         }
       }
     },
+    "Adjusting the volume" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesi ayarlıyorum"
+          }
+        }
+      }
+    },
     "Advanced: order, models and routing" : {
       "localizations" : {
         "tr" : {
@@ -594,6 +604,16 @@
         }
       }
     },
+    "Checking the weather" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hava durumuna bakıyorum"
+          }
+        }
+      }
+    },
     "Checking what I remember" : {
       "localizations" : {
         "tr" : {
@@ -610,6 +630,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Neler kullanılabilir, bakılıyor…"
+          }
+        }
+      }
+    },
+    "Checking your Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac'ine bakıyorum"
           }
         }
       }
@@ -1713,6 +1743,16 @@
         }
       }
     },
+    "Locking the screen" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekranı kilitliyorum"
+          }
+        }
+      }
+    },
     "Logging a habit" : {
       "localizations" : {
         "tr" : {
@@ -2523,6 +2563,16 @@
         }
       }
     },
+    "Quit %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kapatılsın"
+          }
+        }
+      }
+    },
     "Quit Momo" : {
       "comment" : "Menu item that quits the app",
       "localizations" : {
@@ -2530,6 +2580,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo'dan Çık"
+          }
+        }
+      }
+    },
+    "Quitting an app" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uygulamadan çıkıyorum"
           }
         }
       }
@@ -3352,6 +3412,16 @@
         }
       }
     },
+    "Switching the appearance" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görünümü değiştiriyorum"
+          }
+        }
+      }
+    },
     "Talk to Momo" : {
       "localizations" : {
         "tr" : {
@@ -3541,6 +3611,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kapalı"
+          }
+        }
+      }
+    },
+    "Turning off the display" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekranı kapatıyorum"
           }
         }
       }
