@@ -135,7 +135,8 @@ public protocol LiveSpeechIO: AnyObject {
 
 /// The live conversation engine the user picked in Settings.
 public enum LiveEngineChoice: String, Codable, CaseIterable, Sendable, Identifiable {
-    /// The open source helper when its models are downloaded, otherwise Apple.
+    /// The open source helper when it answers and its models are downloaded and warm,
+    /// otherwise Apple.
     case automatic
     /// Apple's speech recognition and voices with the Mac's echo cancellation.
     case apple
@@ -157,6 +158,21 @@ public enum LiveEngineKind: Sendable, Equatable {
     case cloudRealtime
 }
 
+/// Where the open source helper stands for the conversation language.
+public enum LiveHelperStatus: Sendable, Equatable {
+    /// The helper is not installed or can't run on this Mac.
+    case unavailable
+    /// The helper didn't start or didn't answer in time.
+    case notResponding
+    /// Models the conversation language needs are not downloaded.
+    case modelsMissing
+    /// The models are downloaded but this helper build hasn't loaded them yet. The first
+    /// load compiles them, which takes far longer than a conversation may wait.
+    case preparing
+    /// The helper answers, the models are downloaded and warm.
+    case ready
+}
+
 /// Decides which live engine runs for a choice.
 public enum LiveEngineSelector {
     /// The outcome of a selection.
@@ -174,12 +190,14 @@ public enum LiveEngineSelector {
 
     /// Picks the engine for `choice`.
     /// - Parameters:
-    ///   - helperReady: The helper exists, runs on this Mac and has the models for the
-    ///     conversation language.
+    ///   - helper: Where the open source helper stands. Automatic only picks it when it is
+    ///     ``LiveHelperStatus/ready``, so a conversation never waits on a helper that can't
+    ///     start quickly.
     ///   - cloudRealtimeReady: A cloud realtime engine is set up with a key.
     public static func select(
-        _ choice: LiveEngineChoice, helperReady: Bool, cloudRealtimeReady: Bool
+        _ choice: LiveEngineChoice, helper: LiveHelperStatus, cloudRealtimeReady: Bool
     ) -> Selection {
+        let helperReady = helper == .ready
         switch choice {
         case .automatic:
             return Selection(kind: helperReady ? .openSource : .apple)
@@ -191,6 +209,117 @@ public enum LiveEngineSelector {
         case .cloudRealtime:
             return cloudRealtimeReady
                 ? Selection(kind: .cloudRealtime) : Selection(kind: .apple, isFallback: true)
+        }
+    }
+
+    /// Picks the engine for `choice`.
+    /// - Parameters:
+    ///   - helperReady: The helper exists, runs on this Mac, answers and has warm models for
+    ///     the conversation language.
+    ///   - cloudRealtimeReady: A cloud realtime engine is set up with a key.
+    public static func select(
+        _ choice: LiveEngineChoice, helperReady: Bool, cloudRealtimeReady: Bool
+    ) -> Selection {
+        select(
+            choice, helper: helperReady ? .ready : .unavailable,
+            cloudRealtimeReady: cloudRealtimeReady)
+    }
+}
+
+/// Why a live engine couldn't start, in terms of what the user can do about it.
+public enum LiveStartProblem: Sendable, Equatable {
+    /// Momo may not use the microphone.
+    case microphoneDenied
+    /// Momo may not use speech recognition.
+    case speechRecognitionDenied
+    /// The open source engine's models are not downloaded.
+    case modelsMissing
+    /// The open source helper didn't start listening in time.
+    case timedOut
+    /// The microphone or the speakers couldn't be opened.
+    case audioDevice
+    /// Speech recognition doesn't understand the conversation language.
+    case unsupportedLanguage
+    /// Anything else, with the engine's own words.
+    case other(String)
+
+    /// Whether another on-device engine may still work. A missing permission stops them
+    /// all, so trying another one only delays the message that says what to do.
+    public var allowsFallback: Bool {
+        switch self {
+        case .microphoneDenied, .speechRecognitionDenied: false
+        default: true
+        }
+    }
+
+    /// The problem behind an error thrown by ``LiveSpeechIO/start(_:)``.
+    public static func classify(_ error: any Error) -> LiveStartProblem {
+        switch error {
+        case let error as DictationError:
+            switch error {
+            case .microphoneDenied: return .microphoneDenied
+            case .speechRecognitionDenied: return .speechRecognitionDenied
+            case .unsupportedLanguage: return .unsupportedLanguage
+            case .unavailable: return .audioDevice
+            }
+        case let error as LiveVoiceHelperError:
+            switch error {
+            case .noAnswer: return .timedOut
+            case .failed(let message): return classifyHelper(message)
+            case .notRunning, .incompatible: return .other(error.localizedDescription)
+            }
+        case is LiveAudioError:
+            return .audioDevice
+        default:
+            let error = error as NSError
+            // AVAudioEngine and Core Audio report OSStatus codes, such as -10875 when the
+            // voice processing unit can't be set up for the current devices.
+            if error.domain == "com.apple.coreaudio.avfaudio"
+                || error.domain == NSOSStatusErrorDomain
+            {
+                return .audioDevice
+            }
+            return .other(error.localizedDescription)
+        }
+    }
+
+    /// The problem behind a fatal error message from the helper.
+    static func classifyHelper(_ message: String) -> LiveStartProblem {
+        let text = message.lowercased()
+        if text.contains("microphone") && (text.contains("not allowed") || text.contains("denied"))
+        {
+            return .microphoneDenied
+        }
+        if text.contains("no microphone") { return .audioDevice }
+        if text.contains("need to be downloaded") || text.contains("modelsmissing") {
+            return .modelsMissing
+        }
+        if text.contains("understands") || text.contains("unsupportedlanguage") {
+            return .unsupportedLanguage
+        }
+        return .other(message)
+    }
+}
+
+/// What runs after a live engine failed to start.
+public enum LiveFallbackPlan: Sendable, Equatable {
+    /// Apple's live engine, which needs no downloads and no key.
+    case appleLive
+    /// The classic voice flow: one recorded request, and the finished reply read aloud.
+    case classic
+    /// Nothing: the user has to allow something first.
+    case stop
+
+    /// The next step after `kind` failed with `problem`.
+    public static func next(
+        after kind: LiveEngineKind, problem: LiveStartProblem
+    )
+        -> LiveFallbackPlan
+    {
+        guard problem.allowsFallback else { return .stop }
+        switch kind {
+        case .openSource, .cloudRealtime: return .appleLive
+        case .apple: return .classic
         }
     }
 }

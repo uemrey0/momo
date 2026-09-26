@@ -240,6 +240,81 @@ struct LiveEngineSelectionTests {
         #expect(LiveEngineChoice.cloudRealtime.isRemote)
         #expect(!LiveEngineChoice.openSource.isRemote)
     }
+
+    @Test(
+        "automatic only picks the helper when it answers and its models are downloaded and warm",
+        arguments: [
+            LiveHelperStatus.unavailable, .notResponding, .modelsMissing, .preparing,
+        ])
+    func automaticNeedsAReadyHelper(status: LiveHelperStatus) {
+        #expect(
+            LiveEngineSelector.select(.automatic, helper: status, cloudRealtimeReady: true)
+                == .init(kind: .apple))
+        #expect(
+            LiveEngineSelector.select(.openSource, helper: status, cloudRealtimeReady: false)
+                == .init(kind: .apple, isFallback: true))
+        #expect(
+            LiveEngineSelector.select(.automatic, helper: .ready, cloudRealtimeReady: false)
+                == .init(kind: .openSource))
+    }
+}
+
+@Suite("Live start problems")
+struct LiveStartProblemTests {
+    @Test("classifies permission, language and audio errors")
+    func dictation() {
+        #expect(LiveStartProblem.classify(DictationError.microphoneDenied) == .microphoneDenied)
+        #expect(
+            LiveStartProblem.classify(DictationError.speechRecognitionDenied)
+                == .speechRecognitionDenied)
+        #expect(
+            LiveStartProblem.classify(DictationError.unsupportedLanguage("xx"))
+                == .unsupportedLanguage)
+        #expect(LiveStartProblem.classify(LiveAudioError.noMicrophone) == .audioDevice)
+        #expect(
+            LiveStartProblem.classify(LiveAudioError.engineFailed(code: -10875)) == .audioDevice)
+        // What AVAudioEngine throws when voice processing can't be set up.
+        let engine = NSError(domain: "com.apple.coreaudio.avfaudio", code: -10875)
+        #expect(LiveStartProblem.classify(engine) == .audioDevice)
+    }
+
+    @Test("classifies the helper's failures from its messages")
+    func helper() {
+        #expect(LiveStartProblem.classify(LiveVoiceHelperError.noAnswer) == .timedOut)
+        #expect(
+            LiveStartProblem.classify(
+                LiveVoiceHelperError.failed(
+                    "These models need to be downloaded first: kokoro-82m, silero-vad."))
+                == .modelsMissing)
+        #expect(
+            LiveStartProblem.classify(
+                LiveVoiceHelperError.failed("Momo is not allowed to use the microphone."))
+                == .microphoneDenied)
+        #expect(
+            LiveStartProblem.classify(
+                LiveVoiceHelperError.failed("No speech recognition model understands xx."))
+                == .unsupportedLanguage)
+        #expect(
+            LiveStartProblem.classify(LiveVoiceHelperError.failed("Something odd."))
+                == .other("Something odd."))
+    }
+
+    @Test("falls back from the helper to Apple, from Apple to the classic flow")
+    func fallbackPlan() {
+        #expect(LiveFallbackPlan.next(after: .openSource, problem: .timedOut) == .appleLive)
+        #expect(LiveFallbackPlan.next(after: .cloudRealtime, problem: .other("x")) == .appleLive)
+        #expect(LiveFallbackPlan.next(after: .apple, problem: .audioDevice) == .classic)
+        #expect(LiveFallbackPlan.next(after: .apple, problem: .other("x")) == .classic)
+    }
+
+    @Test("stops when a permission is missing, because no engine can listen")
+    func permissionsStop() {
+        for kind in [LiveEngineKind.openSource, .apple, .cloudRealtime] {
+            #expect(LiveFallbackPlan.next(after: kind, problem: .microphoneDenied) == .stop)
+            #expect(
+                LiveFallbackPlan.next(after: kind, problem: .speechRecognitionDenied) == .stop)
+        }
+    }
 }
 
 @Suite("Apple live engine plumbing")

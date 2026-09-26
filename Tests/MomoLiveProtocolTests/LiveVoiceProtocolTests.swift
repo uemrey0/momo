@@ -11,6 +11,7 @@ struct LiveVoiceProtocolTests {
             .hello(version: liveVoiceProtocolVersion),
             .listModels(locale: "tr-TR"),
             .downloadModels(ids: ["kokoro", "silero-vad"]),
+            .prepare(LiveSessionConfiguration(locale: "tr-TR")),
             .start(LiveSessionConfiguration(locale: "tr-TR", voice: "af_heart")),
             .speak(id: "1", text: "Merhaba, \"nasılsın\"?\nİyi misin?", isFinal: false),
             .cancelSpeech, .stop, .quit,
@@ -32,7 +33,7 @@ struct LiveVoiceProtocolTests {
         let events: [LiveVoiceEvent] = [
             .ready(version: 1, languages: ["en", "tr"]), .models([model]),
             .downloadProgress(id: "nemotron", fraction: 0.5), .partial("yarın"),
-            .turn("yarın hava nasıl"), .interrupted(id: "3"),
+            .turn("yarın hava nasıl"), .interrupted(id: "3"), .prepared,
             .error(message: "no microphone", isFatal: true),
         ]
         for event in events {

@@ -8,6 +8,10 @@ cancellation and speech synthesis. It ships inside `Momo.app/Contents/MacOS` nex
 one command per line on standard input, one event per line on standard output. Diagnostics go
 to standard error.
 
+The first load of a new helper build compiles the models with Core ML, which took about 30 s
+on an M1 (Nemotron alone about 22 s); later loads take 3 to 5 s. Momo therefore sends
+`prepare` in the background before relying on a new build for a conversation.
+
 It is a separate Swift package because the engine needs macOS 15, Apple Silicon and
 [speech-swift](https://github.com/soniqo/speech-swift) (MLX and Core ML), while Momo itself
 stays on macOS 14 with no third-party dependencies. See
@@ -132,6 +136,7 @@ speech-swift is pinned to release 0.0.28 (`231f8eb`); `Package.resolved` pins ev
 ```sh
 momo-voice --list-models tr-TR                 # * = needed for tr-TR, ✓ = downloaded
 momo-voice --download silero-vad smart-turn-v3 nemotron-streaming-multilingual supertonic-3
+momo-voice --prepare tr-TR                     # loads and warms the models, no microphone
 momo-voice --say "Merhaba, nasılsın?" --locale tr-TR
 momo-voice --listen --locale tr-TR [--levels]  # prints partials and turns until Ctrl-C
 momo-voice --delete kokoro-82m

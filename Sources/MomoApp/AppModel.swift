@@ -80,6 +80,8 @@ final class AppModel {
         meetings.onRecordingChanged = { [weak voice] in voice?.meetingNotesChanged() }
         voice.showPanel = { [weak panel] in panel?.show(tab: .chat) }
         voice.isPanelVisible = { [weak panel] in panel?.isVisible ?? false }
+        voice.openSettings = { [weak self] in self?.openSettings($0) }
+        voice.openPermissions = { [weak self] in self?.openPermissions($0) }
         panel.onShow = { [weak voice] in voice?.chatPanelDidOpen() }
         let bubble = VoiceBubbleController(
             voice: voice, assistant: assistant, character: character,

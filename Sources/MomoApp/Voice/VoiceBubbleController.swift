@@ -177,6 +177,11 @@ struct VoiceBubbleView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.tertiaryText)
                     .fixedSize(horizontal: false, vertical: true)
+                if let action = voice.errorAction {
+                    Button(action.title) { voice.performNoticeAction() }
+                        .buttonStyle(.link)
+                        .font(.system(size: 11, weight: .semibold))
+                }
             }
         }
         .padding(.horizontal, 14)
@@ -311,6 +316,7 @@ struct VoiceBubbleView: View {
     }
 
     private var statusText: String {
+        if voice.liveState == .starting { return L("Getting ready…") }
         if voice.showsListening {
             return voice.isHoldingToTalk ? L("Listening… let go to send") : L("Listening…")
         }
