@@ -12,11 +12,20 @@ public struct TaskItem: Codable, Sendable, Hashable, Identifiable {
     public var isDone: Bool
     public var createdAt: Date
     public var completedAt: Date?
+    /// How the task repeats. Completing a repeating task creates its next occurrence.
+    public var recurrence: Recurrence?
+    public var priority: TaskPriority
+    /// Short labels such as "work" or "home", lowercased.
+    public var tags: [String]
+    /// The occurrence created when this repeating task was completed, so undoing the
+    /// completion can remove it again.
+    public var nextOccurrenceID: String?
 
     public init(
         id: String = ShortID.make(), title: String, notes: String? = nil, dueDate: Date? = nil,
         remindAt: Date? = nil, isDone: Bool = false, createdAt: Date = Date(),
-        completedAt: Date? = nil
+        completedAt: Date? = nil, recurrence: Recurrence? = nil, priority: TaskPriority = .normal,
+        tags: [String] = [], nextOccurrenceID: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -26,6 +35,26 @@ public struct TaskItem: Codable, Sendable, Hashable, Identifiable {
         self.isDone = isDone
         self.createdAt = createdAt
         self.completedAt = completedAt
+        self.recurrence = recurrence
+        self.priority = priority
+        self.tags = tags
+        self.nextOccurrenceID = nextOccurrenceID
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        notes = container.lenient(String.self, .notes)
+        dueDate = container.lenient(Date.self, .dueDate)
+        remindAt = container.lenient(Date.self, .remindAt)
+        isDone = container.lenient(Bool.self, .isDone) ?? false
+        createdAt = container.lenient(Date.self, .createdAt) ?? Date()
+        completedAt = container.lenient(Date.self, .completedAt)
+        recurrence = container.lenient(Recurrence.self, .recurrence)
+        priority = container.lenient(TaskPriority.self, .priority) ?? .normal
+        tags = container.lenient([String].self, .tags) ?? []
+        nextOccurrenceID = container.lenient(String.self, .nextOccurrenceID)
     }
 }
 
@@ -90,35 +119,94 @@ public struct Habit: Codable, Sendable, Hashable, Identifiable {
     }
 }
 
+/// What kind of thing a memory is about.
+public enum MemoryCategory: String, Codable, Sendable, CaseIterable {
+    /// How the user likes things done ("prefers short answers").
+    case preference
+    /// Someone in the user's life ("Ayşe is the user's sister").
+    case person
+    /// Something the user is working on.
+    case project
+    /// Anything else worth remembering.
+    case fact
+
+    /// Reads unknown values as `.fact`, so newer files still load.
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = MemoryCategory(rawValue: raw.lowercased()) ?? .fact
+    }
+}
+
 /// A fact Momo remembers about the user.
 public struct Memory: Codable, Sendable, Hashable, Identifiable {
     public var id: String
     public var text: String
     public var createdAt: Date
+    public var category: MemoryCategory
 
-    public init(id: String = ShortID.make(), text: String, createdAt: Date = Date()) {
+    public init(
+        id: String = ShortID.make(), text: String, category: MemoryCategory = .fact,
+        createdAt: Date = Date()
+    ) {
         self.id = id
         self.text = text
+        self.category = category
         self.createdAt = createdAt
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        text = try container.decode(String.self, forKey: .text)
+        createdAt = container.lenient(Date.self, .createdAt) ?? Date()
+        category = container.lenient(MemoryCategory.self, .category) ?? .fact
     }
 }
 
 /// Everything Momo stores, persisted as one JSON document.
+///
+/// Older files load too: fields added later decode with their defaults, and the file is
+/// written back in the current format on the next change.
 public struct MomoData: Codable, Sendable, Equatable {
+    /// The format written today. Version 2 added memory categories, repeating tasks with
+    /// priority and tags, and routines.
+    public static let currentVersion = 2
+
     public var version: Int
     public var tasks: [TaskItem]
     public var notes: [Note]
     public var habits: [Habit]
     public var memories: [Memory]
+    public var routines: [Routine]
 
     public init(
-        tasks: [TaskItem] = [], notes: [Note] = [], habits: [Habit] = [], memories: [Memory] = []
+        tasks: [TaskItem] = [], notes: [Note] = [], habits: [Habit] = [], memories: [Memory] = [],
+        routines: [Routine] = []
     ) {
-        self.version = 1
+        self.version = Self.currentVersion
         self.tasks = tasks
         self.notes = notes
         self.habits = habits
         self.memories = memories
+        self.routines = routines
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Decoding migrates older formats, so the value in memory is always current.
+        version = Self.currentVersion
+        tasks = try container.decodeIfPresent([TaskItem].self, forKey: .tasks) ?? []
+        notes = try container.decodeIfPresent([Note].self, forKey: .notes) ?? []
+        habits = try container.decodeIfPresent([Habit].self, forKey: .habits) ?? []
+        memories = try container.decodeIfPresent([Memory].self, forKey: .memories) ?? []
+        routines = try container.decodeIfPresent([Routine].self, forKey: .routines) ?? []
+    }
+}
+
+extension KeyedDecodingContainer {
+    /// Decodes an optional value, treating a missing or unreadable value as `nil`.
+    func lenient<T: Decodable>(_ type: T.Type, _ key: Key) -> T? {
+        (try? decodeIfPresent(type, forKey: key)) ?? nil
     }
 }
 
