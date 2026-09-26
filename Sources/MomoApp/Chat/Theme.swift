@@ -194,3 +194,21 @@ func greeting(for date: Date = Date()) -> String {
     default: L("Up late?")
     }
 }
+
+/// The panel's rounded outline, showing only its top `visibleHeight` points. Animating the
+/// visible height reveals a growing panel from the top without changing its layout.
+struct PanelShape: Shape {
+    var visibleHeight: CGFloat
+
+    var animatableData: CGFloat {
+        get { visibleHeight }
+        set { visibleHeight = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var visible = rect
+        visible.size.height = min(rect.height, max(Theme.cornerRadius * 2, visibleHeight))
+        return RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+            .path(in: visible)
+    }
+}

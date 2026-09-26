@@ -35,6 +35,10 @@ final class PanelState {
     var focusRequest = 0
     /// Bumped each time the panel opens, to play its entrance.
     var presentations = 0
+    /// The height the panel's content is laid out at. Changes without animation.
+    var layoutHeight: CGFloat = 420
+    /// How much of the panel shows, from the top. Animates when the panel grows or shrinks.
+    var visibleHeight = CGFloat.greatestFiniteMagnitude
 }
 
 /// A floating panel that can take keyboard input without activating the app, like Spotlight.
@@ -79,6 +83,7 @@ final class ChatPanelController {
     static let minimumHeight: CGFloat = 240
     private var height: CGFloat = 420
     private var isResizeScheduled = false
+    private var shrink: DispatchWorkItem?
 
     private let window = ChatWindow()
     private let assistant: AssistantController
@@ -121,6 +126,12 @@ final class ChatPanelController {
 
     func show(tab: PanelTab? = nil) {
         if let tab { state.tab = tab }
+        // Only a panel that is opening plays its entrance; an open one just switches tabs.
+        guard !window.isVisible else {
+            window.makeKey()
+            state.focusRequest += 1
+            return
+        }
         position()
         state.presentations += 1
         if !window.isVisible {
@@ -154,7 +165,13 @@ final class ChatPanelController {
 
     private func position() {
         guard let frame = currentScreen?.frame else { return }
-        setWindowHeight(clamped(height, on: frame), on: frame)
+        let target = clamped(height, on: frame)
+        shrink?.cancel()
+        withTransaction(Self.still) {
+            state.layoutHeight = target
+            state.visibleHeight = target
+        }
+        setWindowHeight(target, on: frame)
     }
 
     private var currentScreen: NSScreen? {
@@ -196,25 +213,53 @@ final class ChatPanelController {
         }
     }
 
-    /// Grows or shrinks the panel to fit its content, keeping its top edge in place. The
-    /// window animates; the panel inside always fills it from the top.
+    private static var still: Transaction {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        return transaction
+    }
+
+    /// Grows or shrinks the panel to fit its content, keeping its top edge in place.
+    ///
+    /// Only the panel's visible outline animates. Growing lays the content out at the new
+    /// size and enlarges the window at once, then unrolls the outline; shrinking rolls the
+    /// outline up first and makes the window smaller afterwards. Nothing is re-laid out
+    /// during the animation, so nothing slides. (Animating the window lets the content lag
+    /// behind it, and animating SwiftUI layout in this window trips AppKit's constraint
+    /// pass limit.)
     private func resize(to preferred: CGFloat) {
         guard let screen = currentScreen?.frame else { return }
         let target = clamped(preferred, on: screen)
-        var frame = window.frame
-        guard abs(frame.height - target) > 1 else { return }
-        frame.origin.y += frame.height - target
-        frame.size.height = target
+        guard abs(state.layoutHeight - target) > 1 || abs(state.visibleHeight - target) > 1
+        else { return }
+        shrink?.cancel()
         guard window.isVisible else {
-            window.setFrame(frame, display: false)
+            withTransaction(Self.still) {
+                state.layoutHeight = target
+                state.visibleHeight = target
+            }
+            setWindowHeight(target, on: screen)
             return
         }
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.28
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
-            window.animator().setFrame(frame, display: true)
-        } completionHandler: { [window] in
-            MainActor.assumeIsolated { window.invalidateShadow() }
+        if target > window.frame.height {
+            let shown = min(state.visibleHeight, window.frame.height)
+            withTransaction(Self.still) {
+                state.visibleHeight = shown
+                state.layoutHeight = target
+            }
+            setWindowHeight(target, on: screen)
+            DispatchQueue.main.async { [weak self] in
+                withAnimation(Theme.spring) { self?.state.visibleHeight = target }
+            }
+        } else {
+            withAnimation(Theme.spring) { state.visibleHeight = target }
+            let finish = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                withTransaction(Self.still) { self.state.layoutHeight = target }
+                self.setWindowHeight(target, on: screen)
+            }
+            shrink = finish
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: finish)
         }
     }
 }
