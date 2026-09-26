@@ -1,3 +1,5 @@
+import AppKit
+import ApplicationServices
 import MomoKit
 import SwiftUI
 
@@ -6,6 +8,7 @@ struct PrivacySettingsView: View {
     @Bindable var settings: AppSettings
     var model: AppModel
     @State private var confirmingErase = false
+    @State private var isAccessibilityTrusted = AXIsProcessTrusted()
 
     init(model: AppModel) {
         self.model = model
@@ -35,10 +38,35 @@ struct PrivacySettingsView: View {
                         Button(L("Allow…")) { ScreenReader.requestPermission() }
                     }
                 }
+                LabeledContent(L("Selected text")) {
+                    if isAccessibilityTrusted {
+                        Text(verbatim: L("Allowed")).foregroundStyle(.secondary)
+                    } else {
+                        Button(L("Allow…")) { requestAccessibility() }
+                    }
+                }
             } footer: {
                 Text(
                     verbatim: L(
                         "Momo only looks at your screen when you ask it to, and always asks first. The text is read on your Mac."
+                    ) + " "
+                        + L(
+                            "With Accessibility access, Momo can read the text you select when you ask about “this”."
+                        ))
+            }
+
+            Section {
+                Toggle(
+                    L("Hide Momo from screen recordings and sharing"),
+                    isOn: $settings.preferences.hidesFromScreenCapture
+                )
+                .onChange(of: settings.preferences.hidesFromScreenCapture) {
+                    model.applyPreferences()
+                }
+            } footer: {
+                Text(
+                    verbatim: L(
+                        "Momo and its chat panel stay visible to you but don't appear in screenshots, recordings or when you share your screen."
                     ))
             }
 
@@ -100,6 +128,17 @@ struct PrivacySettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .onReceive(
+            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+        ) {
+            _ in isAccessibilityTrusted = AXIsProcessTrusted()
+        }
+    }
+
+    /// Shows the system prompt that leads to System Settings → Accessibility.
+    private func requestAccessibility() {
+        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+        isAccessibilityTrusted = AXIsProcessTrustedWithOptions(options)
     }
 }
 

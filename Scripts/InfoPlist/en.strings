@@ -3,3 +3,7 @@
 "NSSpeechRecognitionUsageDescription" = "Momo turns what you say into text, on your Mac whenever possible.";
 "NSCalendarsFullAccessUsageDescription" = "Momo reads your calendar to plan your day and remind you before meetings.";
 "NSCalendarsUsageDescription" = "Momo reads your calendar to plan your day and remind you before meetings.";
+"NSAppleEventsUsageDescription" = "Momo controls apps like Mail, Messages, Music and your browser when you ask it to, and always asks before sending anything.";
+"NSRemindersFullAccessUsageDescription" = "Momo reads and adds reminders in the Reminders app when you ask it to.";
+"NSRemindersUsageDescription" = "Momo reads and adds reminders in the Reminders app when you ask it to.";
+"NSContactsUsageDescription" = "Momo looks up people in your contacts when you ask it to message or email someone.";

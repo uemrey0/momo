@@ -47,6 +47,7 @@ struct Preferences: Codable, Equatable {
     var voiceIdentifier = ""
     var mcpServers: [MCPServerConfiguration] = []
     var checksForUpdates = true
+    var hidesFromScreenCapture = true
 
     init() {}
 
@@ -70,6 +71,7 @@ struct Preferences: Codable, Equatable {
         voiceIdentifier = value(.voiceIdentifier, defaults.voiceIdentifier)
         mcpServers = value(.mcpServers, defaults.mcpServers)
         checksForUpdates = value(.checksForUpdates, defaults.checksForUpdates)
+        hidesFromScreenCapture = value(.hidesFromScreenCapture, defaults.hidesFromScreenCapture)
     }
 }
 

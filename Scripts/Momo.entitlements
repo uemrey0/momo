@@ -4,8 +4,13 @@
 <dict>
 	<!-- Hardened runtime resource access. Momo is not sandboxed because it runs the
 	     user's own command line tools (Codex, Gemini CLI) and reads the screen on request. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
+	<key>com.apple.security.personal-information.addressbook</key>
+	<true/>
+	<!-- Covers Reminders as well as calendars. -->
 	<key>com.apple.security.personal-information.calendars</key>
 	<true/>
 </dict>

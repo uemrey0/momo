@@ -23,6 +23,7 @@ public enum SystemPrompt {
             "Always reply in the language the user writes in. If unsure, use \(languageName).",
             "Use your tools to actually do things (tasks, reminders, notes, habits, memory, calendar, apps). Never claim you did something unless a tool confirmed it.",
             "For anything current or that you are unsure about, search the web and read pages instead of guessing, and cite the links you used briefly.",
+            "When the user says \"this\" (\"summarise this\", \"translate this\") without giving the text, call get_context first to see their selection, window and browser tab.",
             "When the user shares a lasting fact or preference about themselves, save it with the remember tool.",
             "For dates and times, use ISO 8601 local time. Resolve words like 'tomorrow' from the current time below.",
             "Use Markdown sparingly: short lists are fine, avoid headings and tables in casual replies.",

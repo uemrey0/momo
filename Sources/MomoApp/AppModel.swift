@@ -45,7 +45,7 @@ final class AppModel {
         applyPreferences()
         assistant.character = character
         today.onTaskCompleted = { [weak character] in character?.celebrate() }
-        let systemTools = SystemTools.all(calendar: calendar, focus: focus)
+        let systemTools = SystemTools.all(calendar: calendar, focus: focus) + MacTools.all()
         assistant.systemTools = { [weak connections] in systemTools + (connections?.tools ?? []) }
         Task { await connections.refresh() }
 
@@ -104,6 +104,7 @@ final class AppModel {
     /// Pushes settings that live outside the settings object into the running app.
     func applyPreferences() {
         character.setSleepDelay(minutes: settings.preferences.sleepDelayMinutes)
+        CapturePrivacy.hidesWindows = settings.preferences.hidesFromScreenCapture
         character.appearance =
             availableCharacters.first { $0.id == settings.preferences.characterID } ?? .classic
     }
