@@ -18,6 +18,7 @@ final class AppModel {
     let calendar = CalendarService()
     let focus: FocusController
     let connections: MCPConnections
+    let updates: UpdateChecker
     @ObservationIgnored private var context: ContextMonitor?
     @ObservationIgnored private(set) var chatPanel: ChatPanelController?
     @ObservationIgnored private(set) var voice: VoiceController?
@@ -33,6 +34,7 @@ final class AppModel {
         notes = NotesModel(store: store)
         focus = FocusController(character: character)
         connections = MCPConnections(settings: settings)
+        updates = UpdateChecker(settings: settings)
     }
 
     func start() {
@@ -77,6 +79,7 @@ final class AppModel {
         self.context = context
         focus.onFinish = { [weak self] _ in self?.character.simulate(.taskCompleted) }
 
+        updates.checkIfDue()
         if !settings.preferences.hasCompletedOnboarding {
             showOnboarding()
         }

@@ -374,6 +374,26 @@
         }
       }
     },
+    "Check for updates automatically" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Güncellemeleri otomatik denetle"
+          }
+        }
+      }
+    },
+    "Check now" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Şimdi denetle"
+          }
+        }
+      }
+    },
     "Checking the time" : {
       "localizations" : {
         "tr" : {
@@ -1138,6 +1158,16 @@
     "Momo" : {
       "comment" : "The app and character name",
       "shouldTranslate" : false
+    },
+    "Momo asks GitHub once a day whether a new version is out. Nothing else is sent." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo günde bir kez GitHub'a yeni sürüm olup olmadığını sorar. Başka hiçbir şey gönderilmez."
+          }
+        }
+      }
     },
     "Momo falls asleep when you step away and wakes up when you're back." : {
       "localizations" : {
@@ -2271,6 +2301,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Başlıksız"
+          }
+        }
+      }
+    },
+    "Update to Momo %@…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo %@ sürümüne güncelle…"
           }
         }
       }

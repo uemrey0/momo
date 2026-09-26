@@ -2,76 +2,150 @@
 
 [![CI](https://github.com/uemrey0/momo/actions/workflows/ci.yml/badge.svg)](https://github.com/uemrey0/momo/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
 
-**A tiny, living companion that sits in your Mac's notch and helps you get things done.**
+**A tiny, living companion that sits in your Mac's notch and gets things done.**
 
-Momo runs on your Mac first. It handles everyday tasks with on-device AI. When a job needs a
-bigger brain, it asks before borrowing the subscription you already pay for (ChatGPT via Codex,
-Google Gemini) or an API key you bring yourself. There is no Momo server, no account and no
-paywall.
+Momo keeps your tasks, notes and habits, remembers what matters to you and answers questions,
+privately on your Mac whenever it can. When a job needs a bigger brain, it asks before
+borrowing the ChatGPT or Gemini plan you already pay for, or an API key you bring. There is no
+Momo server, no account and no subscription.
 
-> **Status: pre-alpha (Phase 0).** Right now Momo is only a character: it breathes, blinks,
-> follows your cursor, gets sleepy when you step away and reacts when you poke it. The assistant
-> features land in the phases listed in the [roadmap](docs/roadmap.md).
+![Momo hanging from the notch with its chat panel open](docs/images/hero.jpg)
 
-## Highlights
+## Why Momo
 
-- **Alive, not animated.** A procedural character engine (springs, layered behaviours, particles)
-  makes Momo feel present without ever becoming distracting.
-- **Local first.** Tasks, notes, reminders, voice and chat work offline on your Mac.
-- **Bring your own brain.** Use your existing ChatGPT or Gemini plan through their official CLIs,
-  or plug in an Anthropic, OpenAI, Google or OpenRouter API key. See
-  [ADR 0003](docs/adr/0003-bring-your-own-subscription.md) for what is and isn't possible.
-- **Private by default.** Nothing leaves your Mac without your consent, and personal data is
-  masked before it does.
-- **Multilingual from day one.** English and Turkish today, more through community translations.
-- **Open and extensible.** Character packs, skills and translations are designed for
-  contributors.
+- **It feels alive.** Momo breathes, blinks, glances at your cursor, giggles when you poke it,
+  dozes off when you step away, dances when music plays and yawns when it gets late. Every
+  motion is procedural, so it never loops the same way twice.
+- **Local first.** Apple Intelligence, Ollama or LM Studio answer everyday requests on your
+  Mac. Tasks, notes, memories and voice all work offline.
+- **Your own subscription.** Bigger jobs can go to ChatGPT through the official Codex CLI or to
+  Gemini through the Gemini CLI, signed in with *your* account, or to Claude, OpenAI, Gemini or
+  OpenRouter with your API key. Momo always asks first.
+- **Private by default.** Before anything leaves your Mac, emails, phone numbers, IBANs, card
+  numbers, national ID numbers and names are replaced with placeholders, and put back in the
+  answer. A log shows everything that was sent.
+- **Does things, not just talks.** Tasks with reminders, notes, habits with streaks, calendar
+  events, focus sessions, opening apps and links, running Shortcuts, reading the screen (when
+  you ask). Anything irreversible needs your OK.
+- **Talk to it.** Press ⌥⇧Space or say "Hey Momo". Replies are read aloud in their own language
+  and Momo's mouth moves with every word.
+- **Works with your agents.** Momo ships an MCP server, so Claude, Codex and other agents can
+  use your tasks and notes, and it can use your own MCP servers too.
+- **Speaks your language.** English and Turkish today; translations are a single file.
+- **Make it yours.** Seven looks built in, and your own with a few lines of JSON.
 
-## Requirements
+<p align="center">
+  <img src="docs/images/panel-today.png" width="32%" alt="Today: tasks and habits">
+  <img src="docs/images/panel-chat.png" width="32%" alt="Chat with brain labels and tools">
+  <img src="docs/images/panel-notes.png" width="32%" alt="Notes">
+</p>
 
-- macOS 14 Sonoma or later (some features need macOS 26)
-- Apple silicon or Intel Mac
-- Xcode 16 or later to build from source
+![The built-in characters](docs/images/characters.png)
 
-## Build and run
+## Get started
+
+### Install
+
+Download the latest `Momo-x.y.z.dmg` from
+[Releases](https://github.com/uemrey0/momo/releases), open it and drag Momo into
+Applications. If macOS says the app is from an unidentified developer, right-click Momo and
+choose **Open** once.
+
+Or build it yourself (Xcode 16 or later):
 
 ```bash
 git clone https://github.com/uemrey0/momo.git
 cd momo
-make run          # build and launch from the command line (English UI only)
-make app          # build dist/Momo.app with all localizations
-make test         # run the test suite
+make app      # builds dist/Momo.app
+open dist/Momo.app
 ```
 
-`make run` uses `swift run`, which is the fastest loop while developing. SwiftPM does not
-compile String Catalogs on the command line, so use `make app` when you work on translations.
+### Give Momo a brain
 
-You can also open `Package.swift` in Xcode and run the `Momo` scheme.
+Momo walks you through this on first launch; everything lives in **Settings → Brains**.
 
-Momo lives in the menu bar (look for the smiling face). Use that menu to change moods, simulate
-events or quit.
+| Brain | What you need |
+| ----- | ------------- |
+| Apple Intelligence | macOS 26 with Apple Intelligence turned on. Nothing to install. |
+| Ollama | [ollama.com](https://ollama.com), then for example `ollama pull qwen3:8b` |
+| LM Studio | [lmstudio.ai](https://lmstudio.ai) with its local server running |
+| ChatGPT plan | `npm install -g @openai/codex`, then `codex login` |
+| Google account | `npm install -g @google/gemini-cli`, then run `gemini` once |
+| Claude, OpenAI, Gemini, OpenRouter | An API key, stored in your Keychain |
+
+Claude subscriptions can't be used by third-party apps. To use your Claude plan with Momo,
+connect Momo to Claude instead (below).
+
+### Use it
+
+| Shortcut | What it does |
+| -------- | ------------ |
+| ⌥Space | Open or close the panel |
+| ⌥⇧Space | Talk to Momo |
+| Click Momo | Open the panel (and tickle it) |
+| "Hey Momo" | Optional wake word (Settings → Voice) |
+
+Try "Remind me to call Ayşe tomorrow at 3", "What's on my calendar today?", "Start a 25-minute
+focus session", "Note that the Wi-Fi password is on the fridge" or "What's on my screen?".
+
+### Use Momo from Claude, Codex and other agents
+
+```bash
+claude mcp add momo -- /Applications/Momo.app/Contents/MacOS/momo-mcp
+```
+
+For Claude Desktop, add `"momo": { "command": "/Applications/Momo.app/Contents/MacOS/momo-mcp" }`
+under `mcpServers` in `claude_desktop_config.json`. Tools that delete data are only offered
+with `--allow-destructive`.
+
+## Privacy
+
+- Requests go to a remote brain only when needed, and Momo asks first (you can allow a whole
+  conversation, or turn on local-only mode).
+- Personal details are masked before they leave your Mac and restored locally.
+- API keys stay in your Keychain; Codex and Gemini keep their own credentials, which Momo never
+  reads.
+- Speech is recognised on your Mac. The screen is only read when you ask, with confirmation.
+- No telemetry. The only other network request is a daily update check against GitHub, which
+  you can turn off.
+
+Your data is a single JSON file in `~/Library/Application Support/Momo`.
 
 ## Project layout
 
 ```
 Sources/
-  MomoFace/     Character engine and renderer (usable on its own)
-  MomoApp/      The macOS app: notch panel, menu bar, localization
-Tests/
-  MomoFaceTests/
-docs/           Architecture, roadmap and architecture decision records (ADRs)
-Scripts/        Build and packaging scripts
+  MomoFace/    Character engine, renderer and character packs (no dependencies)
+  MomoKit/     Data store, tools, personal data masking, brain router
+  MomoBrain/   Brain providers, CLI bridges and the assistant
+  MomoVoice/   Speech recognition, speech synthesis and the wake word
+  MomoMCP/     MCP server and client
+  momo-mcp/    The MCP server command shipped inside the app
+  MomoApp/     The macOS app
+Tests/         Swift Testing suites for every library
+docs/          Architecture, roadmap, ADRs and guides
+Scripts/       Build, packaging, icon and localization scripts
 ```
 
-More modules (`MomoBrain`, `MomoVoice`, `MomoTools`) arrive with later phases. The
-[architecture overview](docs/architecture.md) explains how they fit together.
+Read the [architecture overview](docs/architecture.md), the
+[character engine guide](docs/character-engine.md) and the
+[character pack format](docs/character-packs.md).
 
 ## Contributing
 
-Contributions are welcome, from code to character packs to translations. Please read
-[CONTRIBUTING.md](CONTRIBUTING.md) and our [Code of Conduct](CODE_OF_CONDUCT.md) first.
-To report a security issue, follow [SECURITY.md](SECURITY.md).
+Contributions are very welcome: code, translations, character packs, docs and bug reports.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+Security issues go through [SECURITY.md](SECURITY.md).
+
+```bash
+make test       # run the tests
+make run        # launch from the command line
+make lint       # check formatting
+make l10n       # check translations
+make snapshots  # regenerate the README images
+```
 
 ## Acknowledgements
 
@@ -80,4 +154,4 @@ affiliated with Taby, Apple, OpenAI, Google or Anthropic.
 
 ## License
 
-Momo is licensed under the [Apache License 2.0](LICENSE).
+[Apache License 2.0](LICENSE)

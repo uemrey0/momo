@@ -61,6 +61,10 @@
     enum Snapshots {
         static func renderIfRequested() -> Bool {
             let arguments = CommandLine.arguments
+            if let index = arguments.firstIndex(of: "--render-icon"), index + 1 < arguments.count {
+                renderIcon(to: URL(fileURLWithPath: arguments[index + 1]))
+                exit(0)
+            }
             guard let index = arguments.firstIndex(of: "--snapshot"), index + 1 < arguments.count
             else { return false }
             let folder = URL(
@@ -140,6 +144,71 @@
             ]
             save(panel(), "panel-chat", folder)
 
+            let heroEngine = FaceEngine()
+            heroEngine.setMood(.happy)
+            let heroSnapshot = settle(heroEngine)
+            let notch = FaceLayout(topInset: 32, capWidth: 200)
+            let hero = ZStack(alignment: .top) {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.42, green: 0.55, blue: 0.78),
+                        Color(red: 0.86, green: 0.66, blue: 0.72),
+                        Color(red: 0.98, green: 0.82, blue: 0.66),
+                    ], startPoint: .topLeading, endPoint: .bottomTrailing)
+                HStack {
+                    Text(verbatim: "  Finder    File    Edit    View    Go    Window")
+                    Spacer()
+                    Text(verbatim: "Sat 09:41  ")
+                }
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.9))
+                .frame(height: 32)
+                .background(.black.opacity(0.18))
+                PanelView(
+                    assistant: assistant, today: today, notes: notes, state: PanelState(),
+                    openSettings: {}, close: {}
+                )
+                .environment(\.snapshotMode, true)
+                .shadow(color: .black.opacity(0.35), radius: 30, y: 16)
+                .padding(.top, 150)
+                Canvas { context, _ in
+                    FaceRenderer.draw(heroSnapshot, in: &context, layout: notch)
+                }
+                .frame(width: notch.canvasSize.width, height: notch.canvasSize.height)
+            }
+            .frame(width: 1280, height: 780)
+            .clipped()
+            save(hero, "hero", folder, jpeg: true)
+
+            let characters = LazyVGrid(
+                columns: Array(repeating: GridItem(.fixed(250), spacing: 0), count: 4), spacing: 0
+            ) {
+                ForEach(CharacterAppearance.builtIns) { look in
+                    let face = settle(FaceEngine(), pointer: SIMD2(0, 200))
+                    let layout = FaceLayout(topInset: 0, capWidth: 0, scale: 0.75)
+                    VStack(spacing: 4) {
+                        Canvas { context, _ in
+                            FaceRenderer.draw(face, in: &context, layout: layout, appearance: look)
+                        }
+                        .frame(width: layout.canvasSize.width, height: 78)
+                        .clipped()
+                        Text(verbatim: look.localizedName(for: "en"))
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.black.opacity(0.7))
+                    }
+                    .padding(.vertical, 12)
+                }
+            }
+            .padding(20)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.8, green: 0.86, blue: 0.93),
+                        Color(red: 0.93, green: 0.87, blue: 0.9),
+                    ],
+                    startPoint: .top, endPoint: .bottom))
+            save(characters, "characters", folder)
+
             state.tab = .today
             save(panel(), "panel-today", folder)
             state.tab = .notes
@@ -163,17 +232,73 @@
             print("Snapshots written to \(folder.path)")
         }
 
-        private static func save(_ view: some View, _ name: String, _ folder: URL) {
+        /// Runs an engine until it has settled, with the eyes open (not mid-blink).
+        private static func settle(_ engine: FaceEngine, pointer: SIMD2<Double>? = nil) -> FaceState
+        {
+            engine.isLifeEnabled = false
+            engine.reducesMotion = true
+            let input = FaceEngine.Input(pointer: pointer)
+            var face = FaceState.resting
+            for _ in 0..<90 { face = engine.advance(by: 1 / 60, input: input) }
+            for _ in 0..<600 where face.eyeOpenness < 0.99 {
+                face = engine.advance(by: 1 / 60, input: input)
+            }
+            return face
+        }
+
+        /// Renders the 1024 × 1024 app icon: Momo smiling on a soft gradient squircle.
+        private static func renderIcon(to url: URL) {
+            let engine = FaceEngine()
+            engine.isLifeEnabled = false
+            engine.setMood(.happy)
+            engine.reducesMotion = true
+            var face = FaceState.resting
+            for _ in 0..<120 { face = engine.advance(by: 1 / 60, input: .init()) }
+            let snapshot = face
+            // Momo hangs from a notch at the top of the squircle, as it does on the Mac.
+            let layout = FaceLayout(topInset: 110, capWidth: 400, scale: 4.3)
+            let squircle = RoundedRectangle(cornerRadius: 185, style: .continuous)
+            let icon = ZStack(alignment: .top) {
+                squircle.fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.45, green: 0.91, blue: 0.80),
+                            Color(red: 0.62, green: 0.60, blue: 0.98),
+                        ], startPoint: .topLeading, endPoint: .bottomTrailing))
+                Canvas { context, _ in
+                    FaceRenderer.draw(snapshot, in: &context, layout: layout)
+                }
+                .frame(width: layout.canvasSize.width, height: layout.canvasSize.height)
+            }
+            .frame(width: 824, height: 824)
+            .clipShape(squircle)
+            .shadow(color: .black.opacity(0.25), radius: 18, y: 10)
+            .frame(width: 1024, height: 1024)
+            let renderer = ImageRenderer(content: icon)
+            renderer.scale = 1
+            guard let image = renderer.nsImage, let tiff = image.tiffRepresentation,
+                let bitmap = NSBitmapImageRep(data: tiff),
+                let png = bitmap.representation(using: .png, properties: [:])
+            else { return }
+            try? png.write(to: url)
+            print("Icon written to \(url.path)")
+        }
+
+        private static func save(
+            _ view: some View, _ name: String, _ folder: URL, jpeg: Bool = false
+        ) {
             let renderer = ImageRenderer(content: view)
             renderer.scale = 2
             guard let image = renderer.nsImage, let tiff = image.tiffRepresentation,
                 let bitmap = NSBitmapImageRep(data: tiff),
-                let png = bitmap.representation(using: .png, properties: [:])
+                let data = bitmap.representation(
+                    using: jpeg ? .jpeg : .png,
+                    properties: jpeg ? [.compressionFactor: 0.82] : [:])
             else {
                 print("Could not render \(name)")
                 return
             }
-            try? png.write(to: folder.appendingPathComponent("\(name).png"))
+            try? data.write(to: folder.appendingPathComponent("\(name).\(jpeg ? "jpg" : "png")"))
         }
     }
 #endif

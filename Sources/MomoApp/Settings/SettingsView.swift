@@ -87,6 +87,22 @@ struct GeneralSettingsView: View {
             }
             ReactionsSection(settings: settings, calendar: model.calendar)
             Section {
+                Toggle(
+                    L("Check for updates automatically"),
+                    isOn: $settings.preferences.checksForUpdates)
+                Button(L("Check now")) { Task { await model.updates.check() } }
+                if let update = model.updates.availableUpdate {
+                    Button(String(format: L("Update to Momo %@…"), update.version)) {
+                        model.updates.openReleasePage()
+                    }
+                }
+            } footer: {
+                Text(
+                    verbatim: L(
+                        "Momo asks GitHub once a day whether a new version is out. Nothing else is sent."
+                    ))
+            }
+            Section {
                 Button(L("Show the welcome tour again")) { model.showOnboarding() }
             }
         }

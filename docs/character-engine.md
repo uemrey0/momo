@@ -45,7 +45,8 @@ Targets are computed in five layers. Later layers override earlier ones.
 1. Add a case to `Mood`.
 2. Give it channel targets in `Mood.targets`.
 3. Optionally add procedural motion or particles in `FaceEngine.applyMoodMotion`.
-4. Add a localized display name in `MomoApp` and a test.
+4. Add a localized display name in `Sources/MomoApp/Support/DisplayNames.swift`, a Turkish
+   translation, and a test.
 
 ## Adding an idle behaviour
 

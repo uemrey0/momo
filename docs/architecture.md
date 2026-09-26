@@ -1,107 +1,120 @@
 # Architecture
 
-This document describes how Momo is put together. It covers the target architecture; modules
-that don't exist yet are marked with the phase that introduces them.
+Momo is a native Swift app built from small library modules. This document explains how they
+fit together; the [ADRs](adr/README.md) explain why.
 
 ## Overview
 
 ```mermaid
 flowchart LR
-  subgraph App["Momo (Swift, macOS)"]
-    Face["MomoFace\ncharacter engine"]
-    Shell["MomoApp\nnotch panel, menu bar, panel UI"]
-    Brain{"MomoBrain\nrouter (Phase 2)"}
-    PII["Personal data masking (Phase 2)"]
-    Tools["MomoTools\ntasks, notes, calendar (Phase 1+)"]
-    MCPS["MCP server (Phase 4)"]
+  subgraph App["MomoApp"]
+    Face["Character in the notch"]
+    Panel["Chat, Today, Notes"]
+    Voice["Voice controller"]
+    Context["Context monitor\ncalendar, music, battery, reminders"]
+    System["System tools\ncalendar, apps, Shortcuts, screen"]
   end
-  subgraph Local["On this Mac"]
-    AFM["Apple Foundation Models"]
-    MLX["MLX / llama.cpp model"]
-    OLL["Ollama, LM Studio"]
+  subgraph Brain["MomoBrain"]
+    Assistant["Assistant\nrouting, consent, privacy"]
+    Providers["Providers"]
   end
-  subgraph Sub["User's own subscription"]
-    CDX["Codex CLI (ChatGPT plan)"]
-    GEM["Gemini CLI (Google account)"]
+  subgraph Kit["MomoKit"]
+    Store[("Store\ntasks, notes, habits, memories")]
+    Tools["Store tools"]
+    Router{"Brain router"}
+    Masker["Personal data masker"]
   end
-  subgraph Keys["User's API keys"]
-    ANT["Anthropic"]
-    OAI["OpenAI"]
-    ORT["OpenRouter, Google"]
+  subgraph MCP["MomoMCP"]
+    Server["momo-mcp server"]
+    Client["MCP client"]
   end
-  CL["Claude Desktop / Claude Code"]
-  Shell --- Face
-  Shell --> Brain
-  Brain --> Local
-  Brain --> PII
-  PII --> Sub
-  PII --> Keys
-  Brain --> Tools
-  CL -- MCP --> MCPS
-  MCPS --> Tools
+  Local["Apple Intelligence · Ollama · LM Studio"]
+  Sub["Codex CLI · Gemini CLI\n(user's own plan)"]
+  Keys["Anthropic · OpenAI · Gemini · OpenRouter\n(user's API keys)"]
+  Agents["Claude, Codex, other agents"]
+  Theirs["User's MCP servers"]
+
+  Panel --> Assistant
+  Voice --> Assistant
+  Assistant --> Router
+  Assistant --> Masker
+  Assistant --> Providers
+  Providers --> Local
+  Providers --> Sub
+  Providers --> Keys
+  Assistant --> Tools
+  Assistant --> System
+  Tools --> Store
+  Context --> Face
+  Assistant --> Face
+  Agents -- MCP --> Server --> Tools
+  Sub -- MCP --> Server
+  Client -- MCP --> Theirs
+  Assistant --> Client
 ```
 
 ## Modules
 
-| Module      | Kind                | Responsibility                                                    | Phase |
-| ----------- | ------------------- | ----------------------------------------------------------------- | ----- |
-| `MomoFace`  | Library             | Procedural character engine and SwiftUI renderer                  | 0     |
-| `MomoApp`   | Executable          | App lifecycle, notch panel, menu bar, settings, localization      | 0     |
-| `MomoTools` | Library             | Tasks, notes, reminders, habits, calendar, MCP server and client  | 1, 4  |
-| `MomoBrain` | Library             | Provider adapters, brain router, personal data masking            | 1, 2  |
-| `MomoVoice` | Library             | Wake word, speech recognition, speech synthesis, lip sync         | 3     |
+| Module      | Kind       | Responsibility                                                         | Depends on        |
+| ----------- | ---------- | ---------------------------------------------------------------------- | ----------------- |
+| `MomoFace`  | Library    | Character engine, SwiftUI renderer, character packs                    | nothing           |
+| `MomoKit`   | Library    | Store, tools, JSON values, personal data masking, brain router, versions | nothing         |
+| `MomoBrain` | Library    | Providers, CLI bridges, the assistant, system prompt, brain settings   | MomoKit           |
+| `MomoVoice` | Library    | Speech recognition, speech synthesis, wake word                        | nothing           |
+| `MomoMCP`   | Library    | MCP server and client                                                  | MomoKit           |
+| `momo-mcp`  | Executable | Serves Momo's store over stdio MCP; shipped inside the app bundle      | MomoMCP, MomoKit  |
+| `MomoApp`   | Executable | The app: notch, panel, settings, voice, context, system tools          | everything        |
 
-Dependencies point one way: `MomoApp` depends on everything, and library modules never depend
-on `MomoApp`. `MomoFace` has no dependencies and can be reused by other apps.
+Library modules never depend on the app, contain no AppKit code except where the job is
+inherently Mac-specific, and are covered by Swift Testing suites.
 
-## MomoFace
+## How a message flows
 
-The character is drawn procedurally, not from pre-rendered frames. See
-[ADR 0004](adr/0004-procedural-character-engine.md) and
-[the character engine guide](character-engine.md).
+1. The panel (or the voice controller) calls `AssistantController.send`.
+2. The controller builds an `Assistant.Configuration`: the enabled providers from
+   `BrainCatalog`, a `Toolbox` with the store tools, system tools and tools from connected
+   MCP servers, the routing policy and the system prompt (persona, time, memories).
+3. `Assistant` checks each provider's availability and asks `BrainRouter` for a decision:
+   the user's explicit choice, the local-only lock, availability, length, and an estimated
+   difficulty from 1 to 5 (`DifficultyEstimator`).
+4. For a remote brain it asks the user for consent (once, for the conversation, or stay local)
+   and masks personal data in the instructions, history and every tool result.
+5. The provider streams text and runs tool calls through the assistant's `ToolRunner`, which
+   restores masked values in the arguments, asks for confirmation when the tool needs it, and
+   masks the output.
+6. Events stream back to the UI; the character thinks, speaks (with lip sync when replies are
+   read aloud) and celebrates when tasks are added or completed.
 
-- `Spring`: a damped spring. Every visual property eases towards its target through one.
-- `FaceChannel`: the animatable properties (gaze, eye size, lids, smile, squash, sway...).
-- `Mood`: persistent emotional states that set channel targets.
-- `FaceAction`: one-shot behaviours such as yawning or peeking into the notch.
-- `FaceEvent`: things that happen on the Mac (meeting soon, low battery) mapped to reactions.
-- `FaceEngine`: combines the layers every frame and produces a `FaceState` snapshot.
-- `FaceRenderer` / `FaceView`: draw a `FaceState` with SwiftUI `Canvas`.
+## Providers
 
-The engine advances inside the view's `TimelineView`, so it stops using CPU whenever the
-character isn't on screen.
+| Provider | Kind | How |
+| -------- | ---- | --- |
+| `AppleIntelligenceProvider` | local | Foundation Models (macOS 26); tools bridged with dynamic schemas |
+| `OpenAICompatibleProvider` | local or API key | Chat Completions streaming with function calling: Ollama, LM Studio, OpenAI, Gemini, OpenRouter |
+| `AnthropicProvider` | API key | Messages API streaming; replays thinking and tool use blocks; handles refusals |
+| `CodexProvider` | subscription | `codex exec --json` in a read-only sandbox, with `momo-mcp` offered for tools |
+| `GeminiCLIProvider` | subscription | `gemini --output-format json` |
 
-## MomoApp
+Every provider implements `ChatProvider`: `availability()` and
+`respond(to:runTool:) -> AsyncThrowingStream<ChatEvent, Error>`.
 
-- `NotchPanel`: a borderless, non-activating `NSPanel` above the menu bar that joins all
-  Spaces and full-screen apps. It ignores mouse events except over the character's body, so it
-  never blocks clicks on the menu bar.
-- `ScreenGeometry`: finds the notch using `NSScreen.auxiliaryTopLeftArea` and
-  `auxiliaryTopRightArea`. On displays without a notch, Momo hangs from the top centre and
-  draws its own notch cap.
-- `CharacterController`: owns the engine and the panel, feeds cursor position and system idle
-  time into the engine, and exposes controls to the menu bar.
+## The character
 
-## Brain routing (Phase 2)
+`MomoFace` draws the character procedurally: every visual property is a spring-driven
+channel, and five layers (life, mood, action, reaction, particles) set their targets each
+frame. See the [character engine guide](character-engine.md) and
+[character packs](character-packs.md).
 
-Each request passes these checks in order. The first rule that matches decides.
+In the app, `CharacterController` hosts the face in a borderless `NSPanel` above the menu bar,
+sized to the hardware notch (`NotchGeometry`), and lets clicks through everywhere except the
+body. Moods come from three places, in order of priority: the conversation (thinking,
+speaking), the mood the user picked, and the ambient mood (music, focus).
 
-1. **Privacy lock.** "Local only" mode or a private conversation never leaves the Mac.
-2. **Availability.** Which brains are reachable: network, CLI sign-ins, API keys, remaining
-   plan limits.
-3. **Capability.** Image generation, deep web research or documents too long for the local
-   model need a remote brain, after the user confirms.
-4. **Difficulty.** The local model classifies the intent and a difficulty from 1 to 5. Levels
-   4 and 5 suggest a remote brain, after the user confirms. The threshold is configurable.
-5. **Personal data masking.** Names, national ID numbers, IBANs, emails and phone numbers are
-   masked before sending and restored locally in the answer.
-6. **Local failure.** If local tool calls fail twice, Momo offers to retry remotely.
+## Data and privacy
 
-The eye colour shows which brain is active, and a log lists everything that left the Mac.
-
-## Privacy principles
-
-- Local by default; remote only with consent, and personal data masked.
-- Credentials stay in the macOS Keychain or in the official CLIs; Momo never reads CLI tokens.
-- No telemetry. Crash reports are opt-in and user-reviewed.
-- Irreversible actions (sending, deleting, paying) always require confirmation.
+- `MomoStore` keeps everything in `~/Library/Application Support/Momo/data.json`, written
+  atomically and reloaded when another process (`momo-mcp`) changes it.
+- API keys live in the Keychain (`KeychainStore`); CLI tools keep their own credentials.
+- Remote requests are logged (brain, time, size, whether masking was on) in the Privacy tab.
+- Irreversible or sensitive tools (deleting, running Shortcuts, adding calendar events,
+  reading the clipboard or the screen) require confirmation in the chat.

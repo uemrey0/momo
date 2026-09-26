@@ -46,6 +46,7 @@ struct Preferences: Codable, Equatable {
     var wakeWordEnabled = false
     var voiceIdentifier = ""
     var mcpServers: [MCPServerConfiguration] = []
+    var checksForUpdates = true
 
     init() {}
 
@@ -68,6 +69,7 @@ struct Preferences: Codable, Equatable {
         wakeWordEnabled = value(.wakeWordEnabled, defaults.wakeWordEnabled)
         voiceIdentifier = value(.voiceIdentifier, defaults.voiceIdentifier)
         mcpServers = value(.mcpServers, defaults.mcpServers)
+        checksForUpdates = value(.checksForUpdates, defaults.checksForUpdates)
     }
 }
 

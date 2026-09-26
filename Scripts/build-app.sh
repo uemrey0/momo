@@ -35,6 +35,7 @@ cp "$PRODUCTS/Momo" "$APP/Contents/MacOS/Momo"
 # The MCP server lives next to the app so agents can launch it by path.
 cp "$PRODUCTS/momo-mcp" "$APP/Contents/MacOS/momo-mcp"
 cp "$ROOT/Scripts/Info.plist" "$APP/Contents/Info.plist"
+cp "$ROOT/Scripts/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 for bundle in "$PRODUCTS"/*.bundle; do
     cp -R "$bundle" "$APP/Contents/Resources/"
 done

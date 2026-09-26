@@ -31,4 +31,5 @@ Examples of issues we especially want to hear about:
 - Data leaving the Mac without the user's consent, or without personal data masking
 - API keys or provider credentials exposed outside the macOS Keychain
 - Actions performed on the user's computer without the required confirmation
-- Code execution through character packs, skills or MCP servers
+- Code execution through character packs or MCP servers
+- The `momo-mcp` server offering destructive tools without `--allow-destructive`
