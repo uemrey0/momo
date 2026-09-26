@@ -1,4 +1,5 @@
 import MomoBrain
+import MomoFace
 import MomoKit
 import SwiftUI
 
@@ -9,80 +10,113 @@ struct ChatView: View {
     var voice: VoiceController? = nil
     var setUpAI: () -> Void = {}
     @FocusState private var isComposerFocused: Bool
+    @Environment(\.snapshotMode) private var snapshotMode
+    @State private var messagesHeight: CGFloat = 0
+    @State private var footerHeight: CGFloat = 0
 
     /// Whether the brains were checked and none of them can answer yet.
     private var needsAISetup: Bool {
         !assistant.providerStatuses.isEmpty
             && !assistant.providerStatuses.contains { $0.availability.isReady }
     }
-    @Environment(\.snapshotMode) private var snapshotMode
+
+    /// The height the chat would like: its messages and the composer, or a comfortable
+    /// size for the welcome screen.
+    private var preferredHeight: CGFloat {
+        if assistant.messages.isEmpty { return needsAISetup ? 380 : 430 }
+        return messagesHeight + footerHeight
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             if assistant.messages.isEmpty && needsAISetup {
                 SetUpAICard(setUp: setUpAI)
+                    .transition(.opacity)
             } else if assistant.messages.isEmpty {
-                EmptyChatView { suggestion in assistant.send(suggestion) }
+                EmptyChatView { suggestion in
+                    withAnimation(Theme.spring) { assistant.send(suggestion) }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.97)))
             } else {
                 messageList
             }
-            if let prompt = assistant.consentPrompt {
-                ConsentCard(prompt: prompt) { assistant.answerConsent($0) }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            VStack(spacing: 8) {
+                if let prompt = assistant.consentPrompt {
+                    ConsentCard(prompt: prompt) { assistant.answerConsent($0) }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                if let prompt = assistant.confirmationPrompt {
+                    ConfirmationCard(prompt: prompt) { assistant.answerConfirmation($0) }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                composer
             }
-            if let prompt = assistant.confirmationPrompt {
-                ConfirmationCard(prompt: prompt) { assistant.answerConfirmation($0) }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-            composer
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
+            .padding(.top, 6)
+            .measureHeight($footerHeight)
         }
-        .animation(.spring(duration: 0.3), value: assistant.consentPrompt)
-        .animation(.spring(duration: 0.3), value: assistant.confirmationPrompt)
+        .preference(key: PanelHeightKey.self, value: preferredHeight)
+        .animation(Theme.spring, value: assistant.consentPrompt)
+        .animation(Theme.spring, value: assistant.confirmationPrompt)
+        .animation(Theme.spring, value: assistant.messages.isEmpty)
         .onChange(of: state.focusRequest, initial: true) { isComposerFocused = true }
+    }
+
+    private var messages: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(Array(assistant.messages.enumerated()), id: \.element.id) { index, message in
+                MessageRow(
+                    message: message, isLatest: index == assistant.messages.count - 1
+                )
+                .id(message.id)
+                .transition(
+                    .asymmetric(
+                        insertion: .opacity
+                            .combined(with: .offset(y: 14))
+                            .combined(with: .scale(scale: 0.96, anchor: anchor(for: message))),
+                        removal: .opacity))
+            }
+            Color.clear.frame(height: 1).id("bottom")
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 10)
+        .padding(.bottom, 4)
+        .animation(Theme.spring, value: assistant.messages.count)
+    }
+
+    private func anchor(for message: ChatMessage) -> UnitPoint {
+        message.role == .user ? .bottomTrailing : .bottomLeading
     }
 
     @ViewBuilder
     private var messageList: some View {
         if snapshotMode {
-            VStack(alignment: .leading, spacing: 14) {
-                ForEach(assistant.messages) { MessageRow(message: $0) }
+            VStack(spacing: 0) {
+                messages
                 Spacer(minLength: 0)
             }
-            .padding(14)
         } else {
-            scrollingMessageList
+            ScrollViewReader { proxy in
+                ScrollView {
+                    messages.measureHeight($messagesHeight)
+                }
+                .scrollIndicators(.never)
+                .defaultScrollAnchor(.bottom)
+                .onChange(of: assistant.messages) {
+                    withAnimation(Theme.spring) { proxy.scrollTo("bottom", anchor: .bottom) }
+                }
+                .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
+            }
         }
     }
 
-    private var scrollingMessageList: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 14) {
-                    ForEach(assistant.messages) { message in
-                        MessageRow(message: message).id(message.id)
-                    }
-                    Color.clear.frame(height: 1).id("bottom")
-                }
-                .padding(.horizontal, 14)
-                .padding(.top, 14)
-                .padding(.bottom, 6)
-            }
-            .scrollIndicators(.never)
-            .onChange(of: assistant.messages) {
-                withAnimation(.easeOut(duration: 0.15)) {
-                    proxy.scrollTo("bottom", anchor: .bottom)
-                }
-            }
-            .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
-        }
+    private var canSend: Bool {
+        !assistant.draft.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .bottom, spacing: 6) {
             Group {
                 if snapshotMode {
                     Text(verbatim: L("Ask Momo anything…"))
@@ -98,12 +132,12 @@ struct ChatView: View {
                     .textFieldStyle(.plain)
                     .lineLimit(1...6)
                     .focused($isComposerFocused)
-                    .onSubmit { assistant.send() }
+                    .onSubmit { send() }
                 }
             }
             .font(.system(size: 13.5))
-            .padding(.vertical, 9)
-            .padding(.leading, 12)
+            .padding(.vertical, 10)
+            .padding(.leading, 14)
 
             if let voice, !assistant.isBusy {
                 MicrophoneButton(voice: voice)
@@ -113,40 +147,52 @@ struct ChatView: View {
                     assistant.stop()
                 } label: {
                     Image(systemName: "stop.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .frame(width: 28, height: 28)
+                        .font(.system(size: 10, weight: .bold))
+                        .frame(width: 30, height: 30)
                         .background(Theme.cardStrong, in: Circle())
                 }
                 .buttonStyle(.plain)
                 .help(L("Stop"))
                 .accessibilityLabel(L("Stop"))
                 .padding(4)
+                .transition(.scale.combined(with: .opacity))
             } else {
-                Button {
-                    assistant.send()
-                } label: {
+                Button(action: send) {
                     Image(systemName: "arrow.up")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.black)
-                        .frame(width: 28, height: 28)
-                        .background(
-                            assistant.draft.isEmpty ? Theme.tertiaryText : Theme.accent,
-                            in: Circle())
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(canSend ? Color.black.opacity(0.8) : Theme.tertiaryText)
+                        .frame(width: 30, height: 30)
+                        .background {
+                            if canSend {
+                                Circle().fill(Theme.userBubble)
+                            } else {
+                                Circle().fill(Theme.cardStrong)
+                            }
+                        }
+                        .scaleEffect(canSend ? 1 : 0.88)
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.return, modifiers: [])
-                .disabled(assistant.draft.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(!canSend)
                 .help(L("Send"))
                 .accessibilityLabel(L("Send"))
                 .padding(4)
+                .animation(Theme.quickSpring, value: canSend)
             }
         }
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.white.opacity(isComposerFocused ? 0.16 : 0.06))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(
+                    isComposerFocused ? Theme.accent.opacity(0.45) : Color.white.opacity(0.07))
         )
-        .padding(12)
+        .animation(Theme.quickSpring, value: isComposerFocused)
+        .animation(Theme.quickSpring, value: assistant.isBusy)
+    }
+
+    private func send() {
+        guard canSend else { return }
+        withAnimation(Theme.spring) { assistant.send() }
     }
 }
 
@@ -179,19 +225,21 @@ struct MicrophoneButton: View {
     }
 }
 
-/// What the chat shows before the first message.
 /// Shown instead of suggestions until Momo has a brain to think with.
 struct SetUpAICard: View {
     var setUp: () -> Void
+    @State private var engine = FaceEngine()
 
     var body: some View {
-        VStack(spacing: 14) {
-            Spacer()
-            Image(systemName: "sparkles")
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(Theme.accent)
+        VStack(spacing: 12) {
+            Spacer(minLength: 0)
+            FaceView(engine: engine, layout: FaceLayout(scale: 0.42))
+                .frame(height: 70)
+                .clipped()
+                .allowsHitTesting(false)
+                .onAppear { engine.setMood(.sleepy) }
             Text(verbatim: L("Let's give me a brain!"))
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.system(size: 19, weight: .bold, design: .rounded))
             Text(
                 verbatim: L(
                     "Connect ChatGPT, Gemini, Claude or a free model on this Mac. It takes about a minute, no Terminal needed."
@@ -202,132 +250,227 @@ struct SetUpAICard: View {
             .foregroundStyle(Theme.secondaryText)
             .frame(maxWidth: 300)
             Button(action: setUp) {
-                Label(L("Set up AI"), systemImage: "arrow.right.circle.fill")
+                Label(L("Set up AI"), systemImage: "sparkles")
                     .font(.system(size: 13, weight: .semibold))
-                    .padding(.horizontal, 6)
+                    .foregroundStyle(.black.opacity(0.8))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Theme.userBubble, in: Capsule())
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            Spacer()
+            .buttonStyle(.plain)
+            .padding(.top, 4)
+            Spacer(minLength: 0)
         }
         .padding(20)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
+/// What the chat shows before the first message: Momo says hello and offers ideas.
 struct EmptyChatView: View {
     var send: (String) -> Void
+    @State private var engine = FaceEngine()
 
-    private var suggestions: [(icon: String, text: String)] {
+    private var suggestions: [(icon: String, text: String, color: Color)] {
         [
-            ("sun.max", L("Plan my day")),
-            ("checklist", L("What's on my list?")),
-            ("bell", L("Remind me to drink water at 3 PM")),
-            ("text.viewfinder", L("What's on my screen?")),
+            ("sun.max.fill", L("Plan my day"), Theme.pastels[0]),
+            ("checklist", L("What's on my list?"), Theme.pastels[1]),
+            ("bell.fill", L("Remind me to drink water at 3 PM"), Theme.pastels[2]),
+            ("text.viewfinder", L("What's on my screen?"), Theme.pastels[4]),
         ]
     }
 
     var body: some View {
-        VStack(spacing: 18) {
-            Spacer()
-            VStack(spacing: 6) {
-                Text(verbatim: L("Hi! What can I do for you?"))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                Text(
-                    verbatim: L(
-                        "I can keep your tasks, notes and habits, remember things and answer questions."
-                    )
-                )
-                .font(.system(size: 12.5))
-                .foregroundStyle(Theme.secondaryText)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 300)
+        VStack(spacing: 14) {
+            Spacer(minLength: 0)
+            FaceView(engine: engine, layout: FaceLayout(scale: 0.42))
+                .frame(height: 70)
+                .clipped()
+                .allowsHitTesting(false)
+                .onAppear { engine.flashMood(.happy, for: 1.6) }
+            VStack(spacing: 5) {
+                Text(verbatim: greeting())
+                    .font(.system(size: 21, weight: .bold, design: .rounded))
+                Text(verbatim: L("What can I do for you?"))
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.secondaryText)
             }
-            VStack(spacing: 8) {
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],
+                spacing: 8
+            ) {
                 ForEach(suggestions, id: \.text) { suggestion in
-                    Button {
+                    SuggestionCard(
+                        icon: suggestion.icon, text: suggestion.text, color: suggestion.color
+                    ) {
                         send(suggestion.text)
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: suggestion.icon)
-                                .foregroundStyle(Theme.accent)
-                                .frame(width: 18)
-                            Text(verbatim: suggestion.text)
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(Theme.tertiaryText)
-                        }
-                        .font(.system(size: 13))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 9)
-                        .background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
                 }
             }
-            .frame(maxWidth: 320)
-            Spacer()
+            .padding(.top, 4)
+            Spacer(minLength: 0)
             Text(verbatim: L("Press ⌥Space anywhere to open me."))
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.tertiaryText)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-/// One message in the conversation.
+private struct SuggestionCard: View {
+    var icon: String
+    var text: String
+    var color: Color
+    var action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(color)
+                    .frame(width: 28, height: 28)
+                    .background(color.opacity(0.16), in: RoundedRectangle(cornerRadius: 8))
+                Text(verbatim: text)
+                    .font(.system(size: 12.5, weight: .medium))
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, minHeight: 78, alignment: .topLeading)
+            .padding(11)
+            .background(
+                isHovering ? Theme.cardStrong : Theme.card,
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
+            .scaleEffect(isHovering ? 1.02 : 1)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in withAnimation(Theme.quickSpring) { isHovering = hovering } }
+    }
+}
+
+/// One message in the conversation. Where an answer came from stays out of the way: it
+/// shows when the pointer rests on the answer.
 struct MessageRow: View {
     var message: ChatMessage
+    var isLatest = false
+    @State private var isHovering = false
+    @State private var copied = false
 
     var body: some View {
         switch message.role {
         case .user:
             HStack {
-                Spacer(minLength: 50)
+                Spacer(minLength: 56)
                 Text(verbatim: message.text)
                     .font(.system(size: 13.5))
+                    .foregroundStyle(.black.opacity(0.85))
                     .textSelection(.enabled)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 13)
                     .padding(.vertical, 8)
                     .background(
-                        Theme.accent.opacity(0.22),
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        Theme.userBubble,
+                        in: UnevenRoundedRectangle(
+                            topLeadingRadius: 18, bottomLeadingRadius: 18, bottomTrailingRadius: 6,
+                            topTrailingRadius: 18, style: .continuous))
             }
         case .assistant:
-            VStack(alignment: .leading, spacing: 7) {
-                if let name = message.brainName {
-                    Pill(text: name, color: Theme.color(for: message.brainKind))
+            HStack(alignment: .bottom, spacing: 8) {
+                MomoAvatar(isAnimated: isLatest)
+                VStack(alignment: .leading, spacing: 4) {
+                    bubble
+                    if isHovering && !message.isStreaming {
+                        details.transition(.opacity.combined(with: .offset(y: -4)))
+                    }
                 }
-                ForEach(message.activities) { activity in
-                    ToolActivityRow(activity: activity)
-                }
-                if message.text.isEmpty && message.isStreaming {
-                    TypingIndicator()
-                } else if !message.text.isEmpty {
-                    Text(Self.markdown(message.text))
-                        .font(.system(size: 13.5))
-                        .lineSpacing(2)
+                Spacer(minLength: 30)
+            }
+            .onHover { hovering in withAnimation(Theme.quickSpring) { isHovering = hovering } }
+        case .error:
+            HStack(alignment: .bottom, spacing: 8) {
+                MomoAvatar(isAnimated: false)
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Theme.danger)
+                    Text(verbatim: message.text)
+                        .font(.system(size: 12.5))
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Theme.danger.opacity(0.14), in: assistantShape)
+                Spacer(minLength: 30)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        case .error:
-            HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Theme.danger)
-                Text(verbatim: message.text)
-                    .font(.system(size: 12.5))
+        }
+    }
+
+    private var assistantShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 18, bottomLeadingRadius: 6, bottomTrailingRadius: 18,
+            topTrailingRadius: 18, style: .continuous)
+    }
+
+    private var runningTools: [ToolActivity] {
+        message.activities.filter { $0.state == .running }
+    }
+
+    private var failedTools: [ToolActivity] {
+        message.activities.filter { $0.state == .failed }
+    }
+
+    private var bubble: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(runningTools + failedTools) { activity in
+                ToolActivityRow(activity: activity)
+            }
+            if message.text.isEmpty && message.isStreaming {
+                if runningTools.isEmpty { TypingIndicator() }
+            } else if !message.text.isEmpty {
+                Text(Self.markdown(message.text))
+                    .font(.system(size: 13.5))
+                    .lineSpacing(2.5)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.danger.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
         }
+        .padding(.horizontal, 13)
+        .padding(.vertical, 9)
+        .background(Theme.card, in: assistantShape)
+        .overlay(assistantShape.strokeBorder(Color.white.opacity(0.05)))
+    }
+
+    /// Who answered and what Momo did, for the curious.
+    private var details: some View {
+        HStack(spacing: 6) {
+            if let name = message.brainName {
+                Circle().fill(Theme.color(for: message.brainKind)).frame(width: 5, height: 5)
+                Text(verbatim: name)
+            }
+            let done = message.activities.filter { $0.state == .succeeded }.map(\.label)
+            if !done.isEmpty {
+                Text(verbatim: "·")
+                Text(verbatim: done.joined(separator: ", ")).lineLimit(1)
+            }
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(message.text, forType: .string)
+                copied = true
+            } label: {
+                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+            }
+            .buttonStyle(.plain)
+            .help(L("Copy"))
+            .accessibilityLabel(L("Copy"))
+        }
+        .font(.system(size: 10.5, weight: .medium))
+        .foregroundStyle(Theme.tertiaryText)
+        .padding(.leading, 6)
     }
 
     static func markdown(_ text: String) -> AttributedString {
@@ -341,7 +484,7 @@ struct MessageRow: View {
     }
 }
 
-/// A tool Momo is using or used.
+/// A tool Momo is using, or one that failed.
 struct ToolActivityRow: View {
     var activity: ToolActivity
 
@@ -369,13 +512,14 @@ struct TypingIndicator: View {
             let time = timeline.date.timeIntervalSinceReferenceDate
             HStack(spacing: 4) {
                 ForEach(0..<3) { index in
+                    let phase = max(0, sin(time * 6 - Double(index) * 0.7))
                     Circle()
-                        .fill(Theme.secondaryText)
+                        .fill(Theme.accent.opacity(0.5 + 0.5 * phase))
                         .frame(width: 6, height: 6)
-                        .offset(y: -3 * max(0, sin(time * 6 - Double(index) * 0.7)))
+                        .offset(y: -3 * phase)
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 5)
         }
         .accessibilityLabel(L("Momo is thinking"))
     }

@@ -91,3 +91,106 @@ extension EnvironmentValues {
     /// Replaces effects that image rendering cannot capture (such as the frosted background).
     @Entry var snapshotMode = false
 }
+
+// MARK: - Panel design
+
+extension Theme {
+    /// The springs the panel uses, so everything moves with the same feel.
+    static let spring = Animation.spring(response: 0.38, dampingFraction: 0.82)
+    static let quickSpring = Animation.spring(response: 0.26, dampingFraction: 0.78)
+
+    /// The user's message bubbles.
+    static let userBubble = LinearGradient(
+        colors: [
+            Color(red: 0.42, green: 0.9, blue: 0.78), Color(red: 0.36, green: 0.8, blue: 0.9),
+        ],
+        startPoint: .topLeading, endPoint: .bottomTrailing)
+
+    /// Soft colours for notes and cards, picked by a stable seed so an item keeps its colour.
+    static let pastels: [Color] = [
+        Color(red: 0.99, green: 0.78, blue: 0.45), Color(red: 0.55, green: 0.85, blue: 0.75),
+        Color(red: 0.62, green: 0.72, blue: 1.0), Color(red: 1.0, green: 0.62, blue: 0.7),
+        Color(red: 0.8, green: 0.66, blue: 1.0), Color(red: 0.55, green: 0.82, blue: 0.98),
+    ]
+
+    static func pastel(for seed: String) -> Color {
+        let value = seed.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
+        return pastels[value % pastels.count]
+    }
+}
+
+/// A tiny, blinking Momo shown next to its messages.
+struct MomoAvatar: View {
+    var size: CGFloat = 22
+    var isAnimated = true
+
+    var body: some View {
+        if isAnimated {
+            TimelineView(.periodic(from: .now, by: 0.1)) { timeline in
+                face(blink: Self.isBlinking(at: timeline.date))
+            }
+        } else {
+            face(blink: false)
+        }
+    }
+
+    private func face(blink: Bool) -> some View {
+        ZStack {
+            UnevenRoundedRectangle(
+                bottomLeadingRadius: size * 0.42, bottomTrailingRadius: size * 0.42,
+                style: .continuous
+            )
+            .fill(Color(red: 0.12, green: 0.125, blue: 0.15))
+            .overlay(
+                UnevenRoundedRectangle(
+                    bottomLeadingRadius: size * 0.42, bottomTrailingRadius: size * 0.42,
+                    style: .continuous
+                )
+                .strokeBorder(Color.white.opacity(0.14), lineWidth: 1))
+            HStack(spacing: size * 0.22) {
+                ForEach(0..<2, id: \.self) { _ in
+                    Capsule()
+                        .fill(Theme.accent)
+                        .frame(width: size * 0.13, height: blink ? size * 0.04 : size * 0.22)
+                }
+            }
+            .offset(y: -size * 0.02)
+        }
+        .frame(width: size * 1.1, height: size)
+        .accessibilityHidden(true)
+    }
+
+    /// Blinks briefly every few seconds.
+    private static func isBlinking(at date: Date) -> Bool {
+        date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4.2) < 0.14
+    }
+}
+
+/// How tall a panel section would like to be, so the panel can grow and shrink with it.
+struct PanelHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+extension View {
+    /// Writes the view's height into `height` whenever it changes.
+    func measureHeight(_ height: Binding<CGFloat>) -> some View {
+        onGeometryChange(for: CGFloat.self) {
+            $0.size.height
+        } action: {
+            height.wrappedValue = $0
+        }
+    }
+}
+
+/// A friendly greeting for the time of day.
+func greeting(for date: Date = Date()) -> String {
+    switch Calendar.current.component(.hour, from: date) {
+    case 5..<12: L("Good morning!")
+    case 12..<18: L("Good afternoon!")
+    case 18..<23: L("Good evening!")
+    default: L("Up late?")
+    }
+}

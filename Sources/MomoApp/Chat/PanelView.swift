@@ -2,7 +2,8 @@ import MomoBrain
 import MomoKit
 import SwiftUI
 
-/// The whole panel: tabs, brain picker and the selected section.
+/// The whole panel: a small header with the sections, and the selected section. The panel
+/// grows and shrinks with its content.
 struct PanelView: View {
     @Bindable var assistant: AssistantController
     var today: TodayModel
@@ -11,32 +12,45 @@ struct PanelView: View {
     var voice: VoiceController? = nil
     var openSettings: (SettingsPane?) -> Void
     var close: () -> Void
+    /// Called with the height the panel would like, header included.
+    var resize: (CGFloat) -> Void = { _ in }
     @Environment(\.snapshotMode) private var snapshotMode
+    @State private var appeared = true
+
+    static let headerHeight: CGFloat = 50
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider().overlay(Color.white.opacity(0.06))
-            Group {
+            ZStack {
                 switch state.tab {
                 case .chat:
                     ChatView(
                         assistant: assistant, state: state, voice: voice,
-                        setUpAI: { openSettings(.ai) })
-                case .today: TodayView(model: today)
-                case .notes: NotesView(model: notes)
+                        setUpAI: { openSettings(.ai) }
+                    )
+                    .transition(tabTransition)
+                case .today:
+                    TodayView(model: today).transition(tabTransition)
+                case .notes:
+                    NotesView(model: notes).transition(tabTransition)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .clipped()
         }
-        .frame(width: ChatPanelController.size.width, height: ChatPanelController.size.height)
+        .frame(width: ChatPanelController.size.width)
+        .frame(
+            height: snapshotMode ? ChatPanelController.size.height : nil, alignment: .top
+        )
+        .frame(maxHeight: .infinity, alignment: .top)
         .background(
             ZStack {
                 if snapshotMode {
                     Theme.panelBackground
                 } else {
                     VisualEffectBackground()
-                    Theme.panelBackground.opacity(0.72)
+                    Theme.panelBackground.opacity(0.74)
                 }
             }
         )
@@ -45,99 +59,125 @@ struct PanelView: View {
             RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.08))
         )
+        .scaleEffect(appeared ? 1 : 0.94, anchor: .top)
+        .opacity(appeared ? 1 : 0)
         .environment(\.colorScheme, .dark)
         .tint(Theme.accent)
+        .animation(Theme.spring, value: state.tab)
+        .onPreferenceChange(PanelHeightKey.self) { height in
+            resize(Self.headerHeight + height)
+        }
+        .onChange(of: state.presentations) {
+            // Drops out of the notch each time the panel opens.
+            appeared = false
+            withAnimation(Theme.spring) { appeared = true }
+        }
+    }
+
+    private var tabTransition: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.combined(with: .offset(y: 8)),
+            removal: .opacity)
     }
 
     private var header: some View {
         HStack(spacing: 6) {
-            HStack(spacing: 2) {
-                ForEach(PanelTab.allCases) { tab in
-                    Button {
-                        state.tab = tab
-                    } label: {
-                        Text(verbatim: tab.title)
-                            .font(.system(size: 12.5, weight: .semibold))
-                            .padding(.horizontal, 11)
-                            .padding(.vertical, 5)
-                            .background(
-                                state.tab == tab ? Theme.cardStrong : .clear, in: Capsule()
-                            )
-                            .foregroundStyle(state.tab == tab ? .white : Theme.secondaryText)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            TabSwitcher(selection: $state.tab)
             Spacer()
-            if state.tab == .chat {
-                BrainMenu(assistant: assistant)
+            if state.tab == .chat && !assistant.messages.isEmpty {
                 IconButton(systemImage: "square.and.pencil", help: L("New conversation")) {
-                    assistant.newConversation()
+                    withAnimation(Theme.spring) { assistant.newConversation() }
                     state.focusRequest += 1
                 }
+                .transition(.scale.combined(with: .opacity))
             }
-            IconButton(systemImage: "gearshape", help: L("Settings")) { openSettings(nil) }
-            IconButton(systemImage: "xmark", help: L("Close")) { close() }
+            PanelMenu(assistant: assistant, openSettings: { openSettings(nil) }, close: close)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 9)
+        .frame(height: Self.headerHeight)
+        .animation(Theme.quickSpring, value: assistant.messages.isEmpty)
     }
 }
 
-/// Lets the user pick a brain for the conversation or leave it automatic.
-struct BrainMenu: View {
-    @Bindable var assistant: AssistantController
-    @Environment(\.snapshotMode) private var snapshotMode
+/// The section switcher: icons with names and a sliding highlight.
+private struct TabSwitcher: View {
+    @Binding var selection: PanelTab
+    @Namespace private var highlight
 
-    private var current: ProviderStatus? {
-        assistant.providerStatuses.first { $0.id == assistant.forcedProviderID }
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(PanelTab.allCases) { tab in
+                Button {
+                    selection = tab
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: tab.systemImage)
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(verbatim: tab.title)
+                    }
+                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 6)
+                    .background {
+                        if selection == tab {
+                            Capsule()
+                                .fill(Theme.cardStrong)
+                                .matchedGeometryEffect(id: "tab", in: highlight)
+                        }
+                    }
+                    .foregroundStyle(selection == tab ? .white : Theme.secondaryText)
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selection == tab ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background(Theme.card, in: Capsule())
     }
+}
+
+/// Everything that isn't needed all the time: which brain answers, Settings and closing.
+private struct PanelMenu: View {
+    @Bindable var assistant: AssistantController
+    var openSettings: () -> Void
+    var close: () -> Void
+    @Environment(\.snapshotMode) private var snapshotMode
 
     var body: some View {
         if snapshotMode {
-            label
+            icon
         } else {
-            menu
-        }
-    }
-
-    private var label: some View {
-        Pill(
-            text: current?.info.name ?? L("Automatic"),
-            color: Theme.color(for: current?.info.kind), systemImage: "brain")
-    }
-
-    private var menu: some View {
-        Menu {
-            Button {
-                assistant.forcedProviderID = nil
-            } label: {
-                if assistant.forcedProviderID == nil {
-                    Label(L("Automatic"), systemImage: "checkmark")
-                } else {
-                    Text(verbatim: L("Automatic"))
-                }
-            }
-            Divider()
-            ForEach(assistant.providerStatuses) { status in
-                Button {
-                    assistant.forcedProviderID = status.id
-                } label: {
-                    if assistant.forcedProviderID == status.id {
-                        Label(status.info.name, systemImage: "checkmark")
-                    } else {
-                        Text(verbatim: status.info.name)
+            Menu {
+                Picker(selection: $assistant.forcedProviderID) {
+                    Text(verbatim: L("Automatic")).tag(String?.none)
+                    ForEach(assistant.providerStatuses.filter(\.availability.isReady)) { status in
+                        Text(verbatim: status.info.name).tag(Optional(status.id))
                     }
+                } label: {
+                    Text(verbatim: L("Who answers"))
                 }
-                .disabled(!status.availability.isReady)
+                .pickerStyle(.inline)
+                Divider()
+                Button(L("Settings…"), action: openSettings)
+                Button(L("Close"), action: close)
+            } label: {
+                icon
             }
-        } label: {
-            label
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help(L("More"))
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help(L("Choose which brain answers"))
+    }
+
+    private var icon: some View {
+        Image(systemName: "ellipsis")
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(assistant.forcedProviderID == nil ? Theme.secondaryText : Theme.accent)
+            .frame(width: 28, height: 28)
+            .background(Theme.card, in: Circle())
+            .contentShape(Circle())
     }
 }
 
