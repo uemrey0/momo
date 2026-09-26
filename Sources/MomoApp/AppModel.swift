@@ -22,6 +22,7 @@ final class AppModel {
     let meetings: MeetingController
     @ObservationIgnored let routines: RoutineScheduler
     @ObservationIgnored private var context: ContextMonitor?
+    @ObservationIgnored private var meetingDetection: MeetingDetectionMonitor?
     @ObservationIgnored private(set) var chatPanel: ChatPanelController?
     @ObservationIgnored private(set) var voice: VoiceController?
     @ObservationIgnored private var hotKeys: [GlobalHotKey] = []
@@ -118,8 +119,27 @@ final class AppModel {
             self?.openChat(tab: .chat)
             if let message { self?.assistant.send(message) }
         }
+        context.openMeetings = { [weak self] in self?.openChat(tab: .meetings) }
+        context.takeMeetingNotes = { [weak meetings] in
+            guard let meetings else { return }
+            Task { await meetings.requestStart(event: meetings.offer?.event) }
+        }
         context.start()
         self.context = context
+
+        let detection = MeetingDetectionMonitor(
+            settings: settings, calendar: calendar, meetings: meetings)
+        detection.isMomoListening = { [weak voice] in voice?.usesMicrophone ?? false }
+        detection.notify = { [weak context] offer in
+            context?.notifyMeetingOffer(
+                id: offer.key, title: L("Should I take notes?"),
+                body: offer.event.map {
+                    String(
+                        format: L("“%@” seems to have started in %@."), $0.title, offer.app.name)
+                } ?? String(format: L("A call seems to have started in %@."), offer.app.name))
+        }
+        detection.start()
+        meetingDetection = detection
         routines.notify = { [weak context] id, title, body in
             context?.notifyOpeningChat(id: id, title: title, body: body)
         }

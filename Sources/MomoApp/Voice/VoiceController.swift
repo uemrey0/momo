@@ -520,6 +520,9 @@ final class VoiceController {
 
     // MARK: - Wake word
 
+    /// Whether Momo itself has the microphone open (dictation, a spoken answer, the wake word).
+    var usesMicrophone: Bool { isListening || isAwaitingAnswer || wakeWord.isRunning }
+
     /// Turns the wake word off while meeting notes are taken, and back on afterwards.
     func meetingNotesChanged() {
         if isTakingMeetingNotes() {
