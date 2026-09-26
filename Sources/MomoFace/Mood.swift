@@ -40,9 +40,9 @@ public enum Mood: String, CaseIterable, Sendable, Codable, Identifiable {
                 .lid: 0.3, .lidTilt: 0.9, .smile: -0.8, .mouthWidth: 14, .eyeScale: 0.95, .lift: 3,
             ])
         case .love:
-            FacePose([.happyEyes: 0.8, .smile: 0.9, .cheek: 1.2])
+            FacePose([.happyEyes: 1, .smile: 0.9, .cheek: 1.2])
         case .music:
-            FacePose([.happyEyes: 0.9, .smile: 0.7, .cheek: 0.5])
+            FacePose([.happyEyes: 1, .smile: 0.7, .cheek: 0.5])
         case .dizzy:
             FacePose([.dizzy: 1, .smile: -0.3, .mouthWidth: 12])
         }

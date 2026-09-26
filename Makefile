@@ -21,8 +21,9 @@ dmg: app ## Build dist/Momo-<version>.dmg
 icon: ## Regenerate the app icon from the character renderer
 	./Scripts/make-icon.sh
 
-snapshots: ## Render the panel and character to docs/images
+snapshots: ## Render the README images and the animated hero into docs/images
 	swift run Momo --snapshot docs/images
+	./Scripts/make-hero-gif.sh
 
 open: app ## Build and open dist/Momo.app
 	open dist/Momo.app

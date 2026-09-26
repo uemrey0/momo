@@ -65,7 +65,7 @@ public enum FaceAction: String, CaseIterable, Sendable, Identifiable {
             pose[.smile] = 0
             pose[.happyEyes] = 0
         case .hum:
-            pose[.happyEyes] = 0.8
+            pose[.happyEyes] = 1
             pose[.smile] = 0.5
             pose[.rotation] = sin(t * 6) * 0.05
         case .stretch:
