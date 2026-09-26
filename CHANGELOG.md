@@ -22,6 +22,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   against the published checksum and starts the Google sign-in. The Gemini API with a key is
   a separate option. ChatGPT can likewise download the official Codex tool when the ChatGPT
   app isn't installed.
+- Pick a model from a list instead of typing its name. Each connection's setup shows the
+  models the provider offers, with readable names, short descriptions and its recommendation;
+  long lists can be searched. The AI page shows which model each connection uses.
 
 - Momo no longer hides in the notch and pops back out on its own, which was distracting.
   Idle behaviours now play every 8–18 seconds instead of every 4–8, quiet ones far more often
