@@ -60,7 +60,7 @@ flowchart LR
 | `MomoFace`  | Library    | Character engine, SwiftUI renderer, character packs                    | nothing           |
 | `MomoKit`   | Library    | Store, tools, JSON values, personal data masking, brain router, meeting notes logic, versions | nothing |
 | `MomoBrain` | Library    | Providers, CLI bridges, the assistant, system prompt, brain settings   | MomoKit           |
-| `MomoVoice` | Library    | Dictation engines, transcription, meeting audio capture, speech synthesis, wake word | nothing |
+| `MomoVoice` | Library    | Dictation engines, transcription, meeting audio capture, speech synthesis, wake word, cloud realtime voice | nothing |
 | `MomoMCP`   | Library    | MCP server and client                                                  | MomoKit           |
 | `momo-mcp`  | Executable | Serves Momo's store over stdio MCP; shipped inside the app bundle      | MomoMCP, MomoKit  |
 | `MomoApp`   | Executable | The app: notch, panel, settings, voice, context, system tools          | everything        |
@@ -137,6 +137,25 @@ under the notch, and consent or confirmation questions are asked aloud and answe
 spoken yes or no (`SpeechText.answer(in:)`). `DictationEngineSelector` turns the user's
 choice into an engine (cloud engines only with a key). The wake word always uses Apple Speech on the Mac. Cloud requests use the keys of the
 OpenAI and Gemini brains and are listed in the privacy log.
+
+### Cloud realtime voice
+
+`RealtimeVoiceSession` (in `MomoVoice/Realtime`) is a live, two-way conversation with a cloud
+speech-to-speech model and the user's own key: OpenAI's Realtime API (`gpt-realtime-2.1`,
+PCM 24 kHz both ways) or Gemini Live (`gemini-3.8-live`, 16 kHz in, 24 kHz out), both over
+`URLSessionWebSocketTask` behind a `RealtimeTransport` protocol so the protocol code is tested
+with a fake socket. The app connects with instructions, a voice, a language hint and one tool,
+streams microphone frames (`RealtimeMicrophoneEncoder`) and reads `RealtimeEvent`s: ready, user
+speech started (barge-in), user and assistant transcripts, assistant audio, response done,
+function calls, errors and closed. The model is the live layer and owns turn-taking: it hears
+the user, answers small talk itself and hands everything real to the brain through
+`ask_momo` (`MomoRealtimeAgent`). `AskMomoCoordinator` runs each request through the assistant
+and carries confirmation questions through the conversation: the pending call returns
+`needs_confirmation`, the model asks aloud and calls `ask_momo` again with the answer. In
+`LiveConversation` this is an engine of its own: the app hosts the `AVAudioEngine`
+(microphone tap in, `RealtimePlaybackBuffer` pulled by a source node out), stops playback and
+calls `interrupt(playedMilliseconds:)` when the user talks over Momo, asks for consent first
+(the audio leaves the Mac, `RealtimeVoicePrivacy`) and logs `usage` with `recordOutbound`.
 
 ## Meeting notes
 
