@@ -305,6 +305,19 @@ public enum FaceRenderer {
                 control: CGPoint(x: centerX, y: centerY + curve))
             var lips = context
             lips.opacity = 1 - listening
+            let tongue = clamp01(state[.tongue])
+            if tongue > 0.02 {
+                // The tip of the tongue peeks out from under the middle of the lips.
+                let top = centerY + curve / 2 - 1.5
+                let rect = CGRect(x: centerX - 3.8, y: top, width: 7.6, height: 2 + tongue * 6)
+                lips.fill(Path(roundedRect: rect, cornerRadius: 3.8), with: .color(tongueColor))
+                var groove = Path()
+                groove.move(to: CGPoint(x: centerX, y: top + 1.5))
+                groove.addLine(to: CGPoint(x: centerX, y: top + 1 + tongue * 4))
+                lips.stroke(
+                    groove, with: .color(.black.opacity(0.18)),
+                    style: StrokeStyle(lineWidth: 1, lineCap: .round))
+            }
             if opening > 0.6 {
                 mouth.addQuadCurve(
                     to: CGPoint(x: centerX - width / 2, y: centerY),

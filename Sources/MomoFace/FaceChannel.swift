@@ -34,6 +34,8 @@ public enum FaceChannel: CaseIterable, Sendable, Hashable {
     case rotation
     /// Right eye closure for a wink (0...1).
     case wink
+    /// How far the tip of the tongue sticks out (0...1).
+    case tongue
     /// Vertical stretch of the body; values below 1 squash it, above 1 stretch it.
     case squash
     /// Eye colour, red component (0...255).
@@ -70,6 +72,7 @@ public enum FaceChannel: CaseIterable, Sendable, Hashable {
         case .squash: (240, 9)
         case .rotation: (55, 4.5)
         case .wink: (320, 24)
+        case .tongue: (220, 20)
         case .eyeRed, .eyeGreen, .eyeBlue: (60, 14)
         default: (140, 16)
         }

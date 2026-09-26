@@ -5,9 +5,10 @@ import Foundation
 /// Every frame, ``advance(by:input:)`` combines five layers into channel targets, steps the
 /// springs and particles, and returns a ``FaceState`` for the renderer:
 ///
-/// 1. **Life:** breathing, blinking and small gaze saccades.
-/// 2. **Mood:** the base expression, plus procedural motion for some moods.
-/// 3. **Action:** one-shot behaviours such as yawning, some chosen at random while idle.
+/// 1. **Life:** breathing, a slow sway, blinking and gaze fixations with micro-saccades.
+/// 2. **Mood:** the base expression, plus procedural motion for each mood.
+/// 3. **Action:** one-shot behaviours such as yawning, some chosen now and then while idle,
+///    quiet ones more often than big ones.
 /// 4. **Reaction:** cursor attention, pokes, falling asleep and waking up, events.
 /// 5. **Particles:** snoozes, notes, hearts and friends.
 ///
@@ -47,6 +48,7 @@ public final class FaceEngine {
 
     private enum ScheduledStep {
         case flash(Mood, duration: Double)
+        case perform(FaceAction)
     }
 
     private var springs: [FaceChannel: Spring]
@@ -55,14 +57,21 @@ public final class FaceEngine {
     private var clock = 0.0
     private var moodElapsed = 0.0
     private var temporaryMoodRemaining: Double?
-    private var action: (kind: FaceAction, elapsed: Double)?
-    private var idleActionCountdown = 3.0
-    private var lastIdleAction: FaceAction?
+    private var action: (kind: FaceAction, elapsed: Double, side: Double)?
+    private var idleActionCountdown = 5.0
+    private var recentIdleActions: [FaceAction] = []
     private var blinkCountdown = 1.2
     private var blinkPhase: Double?
     private var pendingDoubleBlink = false
     private var saccadeCountdown = 0.0
     private var saccade = SIMD2<Double>(0, 0)
+    private var microSaccadeCountdown = 0.0
+    private var microSaccade = SIMD2<Double>(0, 0)
+    private var lastPointer: SIMD2<Double>?
+    private var pointerStillTime = 0.0
+    private var thinkingCountdown = 0.0
+    private var thinkingGaze = SIMD2<Double>(0.7, -0.8)
+    private var readingLine = 0
     private var emissionTimers: [ParticleKind: Double] = [:]
     private var pokeTimes: [Double] = []
     private var fellAsleepOnItsOwn = false
@@ -106,7 +115,8 @@ public final class FaceEngine {
 
     /// Starts a one-shot action, replacing any action in progress.
     public func perform(_ newAction: FaceAction) {
-        action = (newAction, 0)
+        let side: Double = Bool.random(using: &random) ? 1 : -1
+        action = (newAction, 0, side)
     }
 
     /// Reacts to the user clicking the body at horizontal design position `x`.
@@ -140,8 +150,7 @@ public final class FaceEngine {
             flashMood(.surprised, for: 1.6)
             springs[.rotation]?.velocity += 3.2
         case .newMail:
-            perform(.peek)
-            schedule(.flash(.surprised, duration: 1.2), after: 1.25)
+            perform(.notice)
         case .lowBattery:
             flashMood(.sad, for: 3.6)
         case .failure:
@@ -195,23 +204,32 @@ public final class FaceEngine {
         runScheduledSteps(dt)
         expireTemporaryMood(dt)
         expireAction(dt)
+        trackPointerMotion(input.pointer, dt: dt)
 
         var pose = mood.targets
-        var breathing = (rate: 1.7, amplitude: 0.018)
+        var breathing = (period: 3.6, amplitude: 0.02)
         applyMoodMotion(to: &pose, breathing: &breathing, dt: dt)
         let curious = applyAttention(to: &pose, input: input, dt: dt)
         updateLife(input: input, curious: curious, dt: dt)
 
         if let action {
-            action.kind.apply(at: action.elapsed, to: &pose)
+            action.kind.apply(at: action.elapsed, side: action.side, to: &pose)
             if let emission = action.kind.emission {
                 emit(emission.kind, every: emission.interval, dt: dt)
             }
         }
         if isTucked {
             pose[.lift] = FaceGeometry.tuckedLift
+        } else {
+            // The body leans a little towards where Momo looks and, while alive, drifts
+            // slowly like something hanging in a light breeze.
+            pose[.rotation] -= pose[.gazeX] * 0.035
+            if isLifeEnabled && !reducesMotion {
+                pose[.rotation] += Self.wander(clock, 0.11, 0.07, 0.19) * 0.014
+                pose[.lift] += Self.wander(clock + 11, 0.09, 0.05, 0.13) * 0.8
+            }
         }
-        pose[.squash] += sin(clock * breathing.rate * .pi) * breathing.amplitude
+        pose[.squash] += breath(period: breathing.period) * breathing.amplitude
 
         let eye = brain.eyeColor
         pose[.eyeRed] = eye.red
@@ -226,6 +244,9 @@ public final class FaceEngine {
             springs[channel] = spring
             current[channel] = spring.value
         }
+        // Secondary motion: the eyes lag a little behind the swinging, bouncing body.
+        current[.gazeX] += Self.clamp(spring(.rotation).velocity * 0.12, limit: 0.3)
+        current[.gazeY] -= Self.clamp(spring(.lift).velocity * 0.005, limit: 0.3)
 
         let openness = updateBlink(dt)
         for index in particles.indices { particles[index].step(by: dt) }
@@ -240,30 +261,64 @@ public final class FaceEngine {
     // MARK: - Layers
 
     private func applyMoodMotion(
-        to pose: inout FacePose, breathing: inout (rate: Double, amplitude: Double), dt: Double
+        to pose: inout FacePose, breathing: inout (period: Double, amplitude: Double), dt: Double
     ) {
         switch mood {
         case .speaking:
+            let opening: Double
             if isVoiceDriven {
                 // Each word opens the mouth; a quick flutter makes it look like syllables.
                 mouthEnvelope *= exp(-dt * 7)
-                pose[.mouthOpen] = mouthEnvelope * (0.7 + 0.3 * abs(sin(clock * 22)))
+                opening = mouthEnvelope * (0.7 + 0.3 * abs(sin(clock * 22)))
             } else {
                 let syllable = max(0, sin(clock * 13)) * (0.55 + 0.45 * sin(clock * 2.3))
-                pose[.mouthOpen] = sin(clock * 0.9) > 0.75 ? 0 : syllable
+                opening = sin(clock * 0.9) > 0.75 ? 0 : syllable
             }
-            pose[.rotation] = sin(clock * 3) * 0.025
+            pose[.mouthOpen] = opening
+            // Words come with small nods, and the eyes widen on emphasis.
+            pose[.lift] = opening * 1.6
+            pose[.eyeScale] = 1 + max(0, sin(clock * 1.9)) * 0.06
+            pose[.rotation] = sin(clock * 3) * 0.02 + sin(clock * 0.8) * 0.02
             if sin(clock * 1.7) > 0.93 { pose[.happyEyes] = 1 }
+            breathing.period = 2.8
         case .happy:
             pose[.lift] = -abs(sin(clock * 5)) * 4
+            pose[.rotation] = sin(clock * 2.5) * 0.04
             emit(.sparkle, every: 0.6, dt: dt)
+            breathing.period = 2.4
         case .thinking:
-            pose[.gazeX] = 0.7 + sin(clock * 0.8) * 0.25
-            pose[.gazeY] = -0.85 + sin(clock * 1.3) * 0.1
+            // Looks from one spot to another while it thinks, with a "hmm" mouth.
+            thinkingCountdown -= dt
+            if thinkingCountdown <= 0 {
+                thinkingCountdown = Double.random(in: 1.3...3, using: &random)
+                let spots: [SIMD2<Double>] = [
+                    SIMD2(0.75, -0.8), SIMD2(-0.6, -0.75), SIMD2(0.3, -0.95), SIMD2(0.85, -0.45),
+                    SIMD2(-0.2, -0.6),
+                ]
+                let next =
+                    spots.filter { $0 != thinkingGaze }.randomElement(using: &random)
+                    ?? thinkingGaze
+                if Double.random(in: 0..<1, using: &random) < 0.4 { requestBlink() }
+                thinkingGaze = next
+            }
+            pose[.gazeX] = thinkingGaze.x + sin(clock * 2.1) * 0.04
+            pose[.gazeY] = thinkingGaze.y
             pose[.rotation] = sin(clock * 0.7) * 0.03
+            pose[.mouthWidth] = 9 + sin(clock * 0.9) * 2
+            breathing.period = 4
         case .sleepy:
-            breathing = (0.75, 0.045)
+            breathing = (5.2, 0.045)
             emit(.snooze, every: 1.3, dt: dt)
+            if fellAsleepOnItsOwn {
+                // Fast asleep: eyes shut, head resting, the mouth opening with each exhale.
+                pose[.lid] = 0.92
+                pose[.rotation] = 0.06 + sin(clock * 0.3) * 0.01
+                pose[.lift] = 3
+                pose[.mouthOpen] = 0.08 + max(0, -breath(period: 5.2)) * 0.12
+                pose[.mouthWidth] = 7
+                return
+            }
+            pose[.rotation] = sin(clock * 0.4) * 0.03
             // Every seven seconds the head drops, then Momo startles awake for a moment.
             let cycle = moodElapsed.truncatingRemainder(dividingBy: 7)
             if (5..<6.3).contains(cycle) {
@@ -275,27 +330,48 @@ public final class FaceEngine {
                 pose[.eyeScale] = 1.12
             }
         case .focused:
-            // Reads along an imaginary line of text.
-            pose[.gazeX] = sin(clock * 1.1) * 0.55
-            pose[.gazeY] = 0.35
-            breathing.amplitude = 0.008
+            // Reads line by line: small hops along the line, then back to the start of the next.
+            let lineDuration = 2.4
+            let progress = (moodElapsed / lineDuration).truncatingRemainder(dividingBy: 1)
+            let line = Int(moodElapsed / lineDuration) % 4
+            if line != readingLine {
+                readingLine = line
+                if Bool.random(using: &random) { requestBlink() }
+            }
+            let fixation = (min(progress, 0.85) / 0.85 * 6).rounded(.down)
+            pose[.gazeX] = progress < 0.85 ? -0.6 + fixation * 0.22 : -0.6
+            pose[.gazeY] = 0.2 + Double(line) * 0.12
+            breathing = (3.2, 0.008)
         case .music:
             let beat = clock * .pi * 2.2
             pose[.rotation] = sin(beat) * 0.085
             pose[.lift] = -abs(sin(beat)) * 3
+            pose[.squash] = 1 - abs(cos(beat)) * 0.03
             emit(.note, every: 0.5, dt: dt)
         case .love:
             pose[.lift] = sin(clock * 3) * 2
+            pose[.rotation] = sin(clock * 1.6) * 0.04
+            pose[.cheek] = 1.2 + sin(clock * 3) * 0.2
             emit(.heart, every: 0.45, dt: dt)
         case .sad:
             pose[.gazeY] = 0.6
             pose[.gazeX] = sin(clock * 0.5) * 0.2
-            breathing.rate = 1.1
+            // A little sniffle now and then.
+            let sniffle = moodElapsed.truncatingRemainder(dividingBy: 3.7)
+            if sniffle < 0.12 || (0.22..<0.34).contains(sniffle) {
+                pose[.squash] = 1.05
+            }
+            breathing.period = 4.6
             emit(.sweat, every: 2.6, dt: dt)
         case .dizzy:
             pose[.rotation] = sin(clock * 4.5) * 0.12
+            pose[.lift] = cos(clock * 4.5) * 2
         case .listening:
+            // Tilts its head and nods along now and then.
             pose[.gazeY] = 0.35
+            pose[.rotation] = sin(moodElapsed * 0.6) * 0.045
+            let nod = moodElapsed.truncatingRemainder(dividingBy: 2.8)
+            if nod < 0.5 { pose[.lift] += sin(nod / 0.5 * .pi) * 2.5 }
         case .idle, .surprised:
             break
         }
@@ -304,13 +380,16 @@ public final class FaceEngine {
     /// Points the eyes at the cursor when Momo is paying attention, otherwise lets the gaze
     /// wander. Returns whether Momo is curious (cursor very close).
     private func applyAttention(to pose: inout FacePose, input: Input, dt: Double) -> Bool {
+        updateMicroSaccades(dt)
         let attentive = mood.tracksPointer && (action?.kind.tracksPointer ?? true) && !isTucked
         if attentive, let pointer = input.pointer {
             let distance = max(0.001, (pointer * pointer).sum().squareRoot())
-            if distance < 440 {
+            // A cursor that sits still for a while stops being interesting, unless it is close.
+            let interesting = pointerStillTime < 6 || distance < 130
+            if distance < 440 && interesting {
                 let strength = min(1, distance / 150)
-                pose[.gazeX] = pointer.x / distance * strength
-                pose[.gazeY] = min(1, max(-0.6, pointer.y / distance * strength))
+                pose[.gazeX] = pointer.x / distance * strength + microSaccade.x
+                pose[.gazeY] = min(1, max(-0.6, pointer.y / distance * strength)) + microSaccade.y
                 if distance < 130 && mood == .idle {
                     pose[.eyeScale] = 1.12
                     pose[.rotation] = min(0.12, max(-0.12, -pointer.x * 0.0011))
@@ -323,18 +402,47 @@ public final class FaceEngine {
         if mood == .idle || mood == .speaking {
             saccadeCountdown -= dt
             if saccadeCountdown <= 0 {
-                saccadeCountdown = Double.random(in: 0.6...2.6, using: &random)
-                saccade = SIMD2(
-                    Double.random(in: -0.6...0.6, using: &random),
-                    Double.random(in: -0.35...0.35, using: &random))
+                // Fixations last a moment or a while; now and then Momo looks straight ahead.
+                saccadeCountdown = Double.random(in: 0.8...3.4, using: &random)
+                let next =
+                    Double.random(in: 0..<1, using: &random) < 0.3
+                    ? SIMD2(0, 0.1)
+                    : SIMD2(
+                        Double.random(in: -0.65...0.65, using: &random),
+                        Double.random(in: -0.4...0.35, using: &random))
+                let jump = next - saccade
+                if (jump * jump).sum() > 0.25 && Double.random(in: 0..<1, using: &random) < 0.4 {
+                    requestBlink()
+                }
+                saccade = next
             }
-            pose[.gazeX] += saccade.x
-            pose[.gazeY] += saccade.y
+            pose[.gazeX] += saccade.x + microSaccade.x
+            pose[.gazeY] += saccade.y + microSaccade.y
         }
         return false
     }
 
-    /// Plays idle behaviours, and falls asleep or wakes up with the user.
+    /// Tiny, quick eye movements that keep a steady gaze from looking frozen.
+    private func updateMicroSaccades(_ dt: Double) {
+        microSaccadeCountdown -= dt
+        guard microSaccadeCountdown <= 0 else { return }
+        microSaccadeCountdown = Double.random(in: 0.25...0.7, using: &random)
+        microSaccade = SIMD2(
+            Double.random(in: -0.05...0.05, using: &random),
+            Double.random(in: -0.04...0.04, using: &random))
+    }
+
+    private func trackPointerMotion(_ pointer: SIMD2<Double>?, dt: Double) {
+        if let pointer, let lastPointer {
+            let moved = pointer - lastPointer
+            pointerStillTime = (moved * moved).sum() < 4 ? pointerStillTime + dt : 0
+        } else {
+            pointerStillTime = 0
+        }
+        lastPointer = pointer
+    }
+
+    /// Plays idle behaviours now and then, and falls asleep or wakes up with the user.
     private func updateLife(input: Input, curious: Bool, dt: Double) {
         if fellAsleepOnItsOwn && input.systemIdleTime < 1 {
             wakeUp()
@@ -350,11 +458,23 @@ public final class FaceEngine {
         }
         guard !reducesMotion, !curious else { return }
         idleActionCountdown -= dt
-        if idleActionCountdown <= 0 {
-            let candidates = FaceAction.idlePool.filter { $0 != lastIdleAction }
-            if let next = candidates.randomElement(using: &random) {
-                lastIdleAction = next
-                perform(next)
+        guard idleActionCountdown <= 0 else { return }
+        idleActionCountdown = Double.random(in: 8...18, using: &random)
+        // Quiet behaviours are common and big ones rare; Momo gets drowsier as the user stays
+        // away, and never repeats one of its last few behaviours.
+        let awayness = min(1, input.systemIdleTime / max(1, sleepDelay))
+        let candidates = FaceAction.idlePool
+            .filter { !recentIdleActions.contains($0) }
+            .map { ($0, $0.idleWeight(awayness: awayness)) }
+        let total = candidates.reduce(0) { $0 + $1.1 }
+        guard total > 0 else { return }
+        var pick = Double.random(in: 0..<total, using: &random)
+        for (candidate, weight) in candidates {
+            pick -= weight
+            if pick < 0 {
+                recentIdleActions = Array((recentIdleActions + [candidate]).suffix(3))
+                perform(candidate)
+                return
             }
         }
     }
@@ -362,11 +482,15 @@ public final class FaceEngine {
     private func wakeUp() {
         setMood(.idle)
         flashMood(.surprised, for: 0.9)
+        schedule(.perform(.stretch), after: 1)
     }
 
-    /// Returns blink openness for this frame (1 open, 0 closed).
+    /// Returns blink openness for this frame (1 open, 0 closed). Lids close quickly and open
+    /// a little more slowly.
     private func updateBlink(_ dt: Double) -> Double {
-        let blinkDuration = 0.17
+        let closing = 0.06
+        let closed = 0.03
+        let opening = 0.12
         if blinkPhase == nil {
             blinkCountdown -= dt
             if blinkCountdown <= 0 && mood.allowsBlinking {
@@ -375,20 +499,55 @@ public final class FaceEngine {
         }
         guard var phase = blinkPhase else { return 1 }
         phase += dt
-        let openness = abs(cos(min(1, phase / blinkDuration) * .pi))
-        if phase > blinkDuration {
+        let openness =
+            if phase < closing {
+                1 - Self.smoothstep(phase / closing)
+            } else if phase < closing + closed {
+                0.0
+            } else {
+                Self.smoothstep((phase - closing - closed) / opening)
+            }
+        if phase > closing + closed + opening {
             blinkPhase = nil
             if pendingDoubleBlink {
                 pendingDoubleBlink = false
                 blinkCountdown = 0.1
             } else {
-                blinkCountdown = Double.random(in: 1.8...6, using: &random)
-                pendingDoubleBlink = Double.random(in: 0..<1, using: &random) < 0.2
+                blinkCountdown = Double.random(in: 2...6.5, using: &random)
+                pendingDoubleBlink = Double.random(in: 0..<1, using: &random) < 0.18
             }
         } else {
             blinkPhase = phase
         }
         return openness
+    }
+
+    /// Blinks as soon as the mood allows, unless a blink is already under way.
+    private func requestBlink() {
+        if blinkPhase == nil { blinkCountdown = 0 }
+    }
+
+    /// A breathing curve from -1 to 1: a quicker inhale and a longer, relaxed exhale.
+    private func breath(period: Double) -> Double {
+        let phase = (clock / period).truncatingRemainder(dividingBy: 1)
+        let level =
+            phase < 0.4 ? Self.smoothstep(phase / 0.4) : 1 - Self.smoothstep((phase - 0.4) / 0.6)
+        return level * 2 - 1
+    }
+
+    /// Smooth, non-repeating drift from -1 to 1 made of three slow waves (frequencies in Hz).
+    private static func wander(_ t: Double, _ a: Double, _ b: Double, _ c: Double) -> Double {
+        let tau = 2 * Double.pi
+        return sin(t * a * tau) * 0.5 + sin(t * b * tau + 1.3) * 0.3 + sin(t * c * tau + 2.1) * 0.2
+    }
+
+    private static func smoothstep(_ x: Double) -> Double {
+        let x = min(1, max(0, x))
+        return x * x * (3 - 2 * x)
+    }
+
+    private static func clamp(_ value: Double, limit: Double) -> Double {
+        min(limit, max(-limit, value))
     }
 
     // MARK: - Bookkeeping
@@ -411,6 +570,11 @@ public final class FaceEngine {
             springs[.rotation]?.velocity += 2.5
         case .thinking:
             spawn(.question)
+            thinkingCountdown = 0
+        case .listening:
+            springs[.squash]?.velocity += 2
+        case .focused:
+            readingLine = 0
         default:
             break
         }
@@ -434,6 +598,7 @@ public final class FaceEngine {
         for step in due {
             switch step {
             case .flash(let newMood, let duration): flashMood(newMood, for: duration)
+            case .perform(let newAction): perform(newAction)
             }
         }
     }
@@ -451,12 +616,26 @@ public final class FaceEngine {
 
     private func expireAction(_ dt: Double) {
         guard var current = action else { return }
+        let before = current.elapsed
         current.elapsed += dt
+        for (time, cue) in current.kind.cues(side: current.side)
+        where time >= before && time < current.elapsed {
+            play(cue)
+        }
         if current.elapsed > current.kind.duration {
             action = nil
-            idleActionCountdown = Double.random(in: 4...8, using: &random)
+            idleActionCountdown = max(
+                idleActionCountdown, Double.random(in: 8...18, using: &random))
         } else {
             action = current
+        }
+    }
+
+    private func play(_ cue: FaceCue) {
+        switch cue {
+        case .kick(let channel, let velocity): springs[channel]?.velocity += velocity
+        case .burst(let kind, let count): spawn(kind, count: count)
+        case .blink: requestBlink()
         }
     }
 

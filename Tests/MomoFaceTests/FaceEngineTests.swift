@@ -110,6 +110,79 @@ struct FaceEngineTests {
         #expect(!stillSawAction)
     }
 
+    @Test("never hides in the notch on its own")
+    func staysOutOfTheNotchWhileIdle() {
+        for seed in 1...4 {
+            let engine = makeEngine(seed: UInt64(seed))
+            var highest = 0.0
+            run(engine, seconds: 180, input: .init(pointer: SIMD2(600, 300))) {
+                highest = min(highest, $0[.lift])
+            }
+            #expect(highest > -10)
+        }
+    }
+
+    @Test("idle behaviours are occasional and varied")
+    func idleBehavioursAreOccasional() {
+        let engine = makeEngine()
+        var started: [FaceAction] = []
+        var current: FaceAction?
+        run(engine, seconds: 240, input: .init(pointer: SIMD2(600, 300))) { state in
+            if case .action(let action) = state.activity {
+                if action != current { started.append(action) }
+                current = action
+            } else {
+                current = nil
+            }
+        }
+        #expect(started.count >= 8)
+        #expect(started.count <= 26)
+        #expect(Set(started).count >= 6)
+        for (previous, next) in zip(started, started.dropFirst()) {
+            #expect(previous != next)
+        }
+    }
+
+    @Test("every action keeps channels finite and within range")
+    func actionsStayInRange() {
+        for action in FaceAction.allCases {
+            let engine = makeEngine()
+            engine.isLifeEnabled = false
+            engine.perform(action)
+            run(engine, seconds: action.duration + 0.5) { state in
+                for channel in FaceChannel.allCases {
+                    #expect(state[channel].isFinite)
+                }
+                #expect(state[.lift] > -12)
+                #expect(abs(state[.rotation]) < 0.4)
+            }
+            #expect(engine.state.activity == .mood(.idle))
+        }
+    }
+
+    @Test("loses interest in a cursor that stays still")
+    func losesInterestInStillCursor() {
+        let engine = makeEngine()
+        engine.isLifeEnabled = false
+        let pointer = SIMD2(300.0, 0)
+        run(engine, seconds: 1, input: .init(pointer: pointer))
+        #expect(engine.state[.gazeX] > 0.8)
+        var lowest = 1.0
+        run(engine, seconds: 20, input: .init(pointer: pointer)) {
+            lowest = min(lowest, $0[.gazeX])
+        }
+        #expect(lowest < 0.6)
+    }
+
+    @Test("keyframes ease between keys and hold the ends")
+    func keyframesInterpolate() {
+        let keys = [(1.0, 0.0), (2.0, 10.0)]
+        #expect(keyframes(0, keys) == 0)
+        #expect(keyframes(1.5, keys) == 5)
+        #expect(keyframes(1.25, keys) < 2.5)
+        #expect(keyframes(3, keys) == 10)
+    }
+
     @Test("blinks on its own")
     func blinks() {
         let engine = makeEngine()

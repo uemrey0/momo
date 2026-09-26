@@ -7,6 +7,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Momo no longer hides in the notch and pops back out on its own, which was distracting.
+  Idle behaviours now play every 8–18 seconds instead of every 4–8, quiet ones far more often
+  than big ones, and never the same one twice in a row.
+- Motion feels more natural: slower breathing with a quick inhale and a long exhale, a gentle
+  sway, eyes that hold a glance and make tiny movements, blinks on big glances, eyes that lag
+  behind the swinging body, and a cursor that stops being interesting once it sits still.
+- Moods are livelier: Momo nods while listening and speaking, looks from spot to spot while
+  thinking, reads line by line while focused, sniffles when sad and sleeps soundly when the
+  user is away, then stretches on waking.
+
+### Added
+
+- New idle behaviours: sneezing, shaking itself off, a curious head tilt, whistling, a tongue
+  "blep", watching the screen, daydreaming, sighing and nodding off. It yawns and nods off
+  more as the user stays away. A new mail makes Momo perk up instead of hiding.
+
 ### Fixed
 
 - Settings did not open from the menu or the panel on macOS 14 and later. Settings now has
