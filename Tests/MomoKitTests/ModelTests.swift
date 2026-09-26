@@ -265,6 +265,34 @@ struct RoutineScheduleTests {
         #expect(!routine.isDue(at: date(2026, 9, 26, 22), calendar: calendar))
     }
 
+    @Test("moving a routine to an earlier time or turning it back on doesn't run it at once")
+    func rescheduling() {
+        let original = Routine(
+            title: "Brief", prompt: "Hi", schedule: RoutineSchedule(hour: 15, minute: 0),
+            lastRun: date(2026, 9, 25, 15), createdAt: date(2026, 9, 1))
+        let now = date(2026, 9, 26, 14)
+        var moved = original
+        moved.schedule = RoutineSchedule(hour: 13, minute: 0)
+        #expect(moved.isDue(at: now, calendar: calendar))
+        let saved = moved.edited(from: original, now: now)
+        #expect(!saved.isDue(at: now, calendar: calendar))
+        #expect(saved.isDue(at: date(2026, 9, 27, 13), calendar: calendar))
+
+        var paused = original
+        paused.isEnabled = false
+        var resumed = paused
+        resumed.isEnabled = true
+        #expect(
+            !resumed.edited(from: paused, now: date(2026, 9, 26, 16)).isDue(
+                at: date(2026, 9, 26, 16), calendar: calendar))
+
+        // A stale copy from an open editor keeps the newer recorded run.
+        var stale = original
+        stale.lastRun = date(2026, 9, 20, 15)
+        stale.title = "Renamed"
+        #expect(stale.edited(from: original).lastRun == date(2026, 9, 25, 15))
+    }
+
     @Test("parses times and days")
     func parsing() {
         #expect(RoutineSchedule.parseTime("9:30").map { [$0.hour, $0.minute] } == [9, 30])

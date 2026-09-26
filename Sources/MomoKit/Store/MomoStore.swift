@@ -357,16 +357,18 @@ public actor MomoStore {
         time: (hour: Int, minute: Int)? = nil, weekdays: Set<Int>? = nil, isEnabled: Bool? = nil
     ) throws -> Routine {
         let index = try routineIndex(for: reference)
-        try mutate {
-            if let title { $0.routines[index].title = title }
-            if let prompt { $0.routines[index].prompt = prompt }
-            let current = $0.routines[index].schedule
-            $0.routines[index].schedule = RoutineSchedule(
-                hour: time?.hour ?? current.hour, minute: time?.minute ?? current.minute,
-                weekdays: weekdays ?? current.weekdays)
-            if let isEnabled { $0.routines[index].isEnabled = isEnabled }
-        }
-        return data.routines[index]
+        let previous = data.routines[index]
+        var routine = previous
+        if let title { routine.title = title }
+        if let prompt { routine.prompt = prompt }
+        routine.schedule = RoutineSchedule(
+            hour: time?.hour ?? previous.schedule.hour,
+            minute: time?.minute ?? previous.schedule.minute,
+            weekdays: weekdays ?? previous.schedule.weekdays)
+        if let isEnabled { routine.isEnabled = isEnabled }
+        let saved = routine.edited(from: previous)
+        try mutate { $0.routines[index] = saved }
+        return saved
     }
 
     /// Replaces a routine, or adds it when no routine has its ID.
@@ -374,7 +376,9 @@ public actor MomoStore {
     public func saveRoutine(_ routine: Routine) throws -> Routine {
         reloadIfNeeded()
         if let index = data.routines.firstIndex(where: { $0.id == routine.id }) {
-            try mutate { $0.routines[index] = routine }
+            let saved = routine.edited(from: data.routines[index])
+            try mutate { $0.routines[index] = saved }
+            return saved
         } else {
             try mutate { $0.routines.append(routine) }
         }

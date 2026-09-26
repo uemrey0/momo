@@ -11,6 +11,9 @@ public struct Routine: Codable, Sendable, Hashable, Identifiable {
     /// When the routine last ran, if ever.
     public var lastRun: Date?
     public var createdAt: Date
+    /// When the schedule last changed or the routine was turned back on. Scheduled times
+    /// before this are skipped, so moving a routine to an earlier hour doesn't run it at once.
+    public var activeSince: Date?
 
     public init(
         id: String = ShortID.make(), title: String, prompt: String, schedule: RoutineSchedule,
@@ -36,10 +39,23 @@ public struct Routine: Codable, Sendable, Hashable, Identifiable {
         isEnabled = container.lenient(Bool.self, .isEnabled) ?? true
         lastRun = container.lenient(Date.self, .lastRun)
         createdAt = container.lenient(Date.self, .createdAt) ?? Date()
+        activeSince = container.lenient(Date.self, .activeSince)
+    }
+
+    /// The copy to save after an edit: when the schedule changed or the routine was turned
+    /// back on, scheduled times up to `now` no longer count. A run recorded while the edit
+    /// was open is kept.
+    public func edited(from previous: Routine, now: Date = Date()) -> Routine {
+        var result = self
+        result.lastRun = [lastRun, previous.lastRun].compactMap { $0 }.max()
+        if schedule != previous.schedule || (isEnabled && !previous.isEnabled) {
+            result.activeSince = now
+        }
+        return result
     }
 
     /// Whether the routine should run now: its latest scheduled time has passed since it last
-    /// ran (or was created) and is at most `catchUpWindow` ago.
+    /// ran (or was created or rescheduled) and is at most `catchUpWindow` ago.
     ///
     /// Only the latest scheduled time counts, so a Mac that slept through several runs catches
     /// up once, and not at all when the run is older than the window.
@@ -48,7 +64,8 @@ public struct Routine: Codable, Sendable, Hashable, Identifiable {
     ) -> Bool {
         guard isEnabled, let scheduled = schedule.latest(atOrBefore: now, calendar: calendar)
         else { return false }
-        return scheduled > (lastRun ?? createdAt)
+        let since = [createdAt, lastRun, activeSince].compactMap { $0 }.max() ?? createdAt
+        return scheduled > since
             && now.timeIntervalSince(scheduled) <= catchUpWindow
     }
 }
