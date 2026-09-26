@@ -91,7 +91,8 @@ enum CommandRunner {
     /// Streams standard output lines. Finishes with `Failure` when the command exits with a
     /// non-zero status. Cancelling the stream terminates the process.
     static func lines(
-        executable: URL, arguments: [String], input: String?, workingDirectory: URL? = nil
+        executable: URL, arguments: [String], input: String?, workingDirectory: URL? = nil,
+        environment extraEnvironment: [String: String] = [:]
     ) -> AsyncThrowingStream<String, any Error> {
         AsyncThrowingStream { continuation in
             let process = Process()
@@ -100,6 +101,7 @@ enum CommandRunner {
             var environment = ProcessInfo.processInfo.environment
             environment["PATH"] = CommandLocator.searchPath
             environment["NO_COLOR"] = "1"
+            environment.merge(extraEnvironment) { _, new in new }
             process.environment = environment
             if let workingDirectory {
                 try? FileManager.default.createDirectory(

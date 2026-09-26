@@ -1,6 +1,26 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ is connected with your key." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ anahtarınla bağlı."
+          }
+        }
+      }
+    },
+    "%@ · %@ GB download" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@ GB indirme"
+          }
+        }
+      }
+    },
     "%lld characters" : {
       "localizations" : {
         "tr" : {
@@ -47,6 +67,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld günlük seri"
+          }
+        }
+      }
+    },
+    "A free key from your Google account." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google hesabından ücretsiz bir anahtar."
           }
         }
       }
@@ -143,6 +173,16 @@
         }
       }
     },
+    "Add to %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@'a ekle"
+          }
+        }
+      }
+    },
     "Add “%@” to your calendar at %@" : {
       "localizations" : {
         "tr" : {
@@ -169,6 +209,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Görev ekleniyor"
+          }
+        }
+      }
+    },
+    "Advanced: order, models and routing" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gelişmiş: sıralama, modeller ve yönlendirme"
+          }
+        }
+      }
+    },
+    "Agents you already use can read and update your tasks, notes, habits and memories through Momo." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaten kullandığın ajanlar, Momo üzerinden görevlerini, notlarını, alışkanlıklarını ve anılarını okuyup güncelleyebilir."
           }
         }
       }
@@ -219,6 +279,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bu sohbette hep"
+          }
+        }
+      }
+    },
+    "Anthropic doesn't let other apps use Claude plans, but Claude can use Momo: connect them and Claude can read and update your tasks, notes and memories." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropic, Claude planlarının başka uygulamalarda kullanılmasına izin vermiyor ama Claude Momo'yu kullanabilir: ikisini bağla, Claude görevlerini, notlarını ve anılarını okuyup güncelleyebilsin."
+          }
+        }
+      }
+    },
+    "Anthropic's models, with an API key." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropic'in modelleri, API anahtarıyla."
+          }
+        }
+      }
+    },
+    "Apple Intelligence is on. Momo uses it for quick, private answers." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence açık. Momo onu hızlı ve gizli yanıtlar için kullanıyor."
+          }
+        }
+      }
+    },
+    "Apple Intelligence runs on your Mac and needs macOS 26 with Apple Intelligence turned on." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence Mac'inde çalışır; macOS 26 ve açık bir Apple Intelligence gerektirir."
           }
         }
       }
@@ -293,12 +393,42 @@
         }
       }
     },
+    "Available when Momo runs from the Applications folder." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo Uygulamalar klasöründen çalıştığında kullanılabilir."
+          }
+        }
+      }
+    },
     "Back" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geri"
+          }
+        }
+      }
+    },
+    "Balanced" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dengeli"
+          }
+        }
+      }
+    },
+    "Best for this Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu Mac için en iyisi"
           }
         }
       }
@@ -314,12 +444,12 @@
         }
       }
     },
-    "Brains" : {
+    "Built into macOS. Nothing to install." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beyinler"
+            "value" : "macOS'te yerleşik. Kurulacak bir şey yok."
           }
         }
       }
@@ -384,6 +514,16 @@
         }
       }
     },
+    "ChatGPT is connected. Momo uses your plan for bigger questions and asks before sending anything." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT bağlandı. Momo büyük sorular için planını kullanır ve bir şey göndermeden önce sorar."
+          }
+        }
+      }
+    },
     "Check for updates automatically" : {
       "localizations" : {
         "tr" : {
@@ -404,6 +544,16 @@
         }
       }
     },
+    "Checking the key…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anahtar kontrol ediliyor…"
+          }
+        }
+      }
+    },
     "Checking the time" : {
       "localizations" : {
         "tr" : {
@@ -420,6 +570,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hatırladıklarıma bakılıyor"
+          }
+        }
+      }
+    },
+    "Checking what's available…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neler kullanılabilir, bakılıyor…"
           }
         }
       }
@@ -484,26 +644,6 @@
         }
       }
     },
-    "Claude Desktop: add this to claude_desktop_config.json under “mcpServers”:" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Claude Desktop: bunu claude_desktop_config.json dosyasında “mcpServers” altına ekle:"
-          }
-        }
-      }
-    },
-    "Claude subscriptions can't be used by other apps. To use your Claude plan with Momo, add Momo to Claude as an MCP server instead (see Privacy)." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Claude abonelikleri başka uygulamalarda kullanılamıyor. Claude aboneliğinle Momo'yu kullanmak için Momo'yu Claude'a MCP sunucusu olarak ekle (Gizlilik bölümüne bak)."
-          }
-        }
-      }
-    },
     "Clear log" : {
       "localizations" : {
         "tr" : {
@@ -554,12 +694,82 @@
         }
       }
     },
+    "Connect" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağla"
+          }
+        }
+      }
+    },
+    "Connect %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bağla"
+          }
+        }
+      }
+    },
     "Connect ChatGPT, Gemini, Claude or a free model on this Mac. It takes about a minute, no Terminal needed." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ChatGPT, Gemini, Claude ya da bu Mac'te çalışan ücretsiz bir model bağla. Yaklaşık bir dakika sürer, Terminal gerekmez."
+          }
+        }
+      }
+    },
+    "Connect Momo to Claude" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'yu Claude'a bağla"
+          }
+        }
+      }
+    },
+    "Connect at least one. It takes a minute and never needs Terminal. I think on your Mac first and always ask before anything leaves it." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En az birini bağla. Bir dakika sürer, Terminal hiç gerekmez. Önce Mac'inde düşünürüm ve bir şey dışarı çıkmadan önce hep sorarım."
+          }
+        }
+      }
+    },
+    "Connected" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlı"
+          }
+        }
+      }
+    },
+    "Connected! Momo can use %@ now." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlandı! Momo artık %@ kullanabilir."
+          }
+        }
+      }
+    },
+    "Connected: %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlı: %@"
           }
         }
       }
@@ -600,6 +810,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kopyala"
+          }
+        }
+      }
+    },
+    "Copy the key" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anahtarı kopyala"
+          }
+        }
+      }
+    },
+    "Couldn't reach %@ to check the key. Check your internet connection." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anahtarı kontrol etmek için %@ adresine ulaşılamadı. İnternet bağlantını kontrol et."
+          }
+        }
+      }
+    },
+    "Create a key" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir anahtar oluştur"
           }
         }
       }
@@ -665,6 +905,116 @@
         }
       }
     },
+    "Done" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitti"
+          }
+        }
+      }
+    },
+    "Download" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İndir"
+          }
+        }
+      }
+    },
+    "Download ChatGPT for Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac için ChatGPT'yi indir"
+          }
+        }
+      }
+    },
+    "Download LM Studio" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio'yu indir"
+          }
+        }
+      }
+    },
+    "Download LM Studio and move it to Applications." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio'yu indir ve Uygulamalar klasörüne taşı."
+          }
+        }
+      }
+    },
+    "Download Ollama" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama'yı indir"
+          }
+        }
+      }
+    },
+    "Download Ollama and move it to Applications, like any other app. Momo notices when it's there." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama'yı indir ve diğer uygulamalar gibi Uygulamalar klasörüne taşı. Momo orada olduğunu kendisi fark eder."
+          }
+        }
+      }
+    },
+    "Download Ollama from ollama.com and open it." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama'yı ollama.com'dan indir ve aç."
+          }
+        }
+      }
+    },
+    "Download a model in LM Studio's Discover view. It shows up here right away." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio'nun Keşfet bölümünden bir model indir. Hemen burada görünür."
+          }
+        }
+      }
+    },
+    "Download one of these. They work well with Momo and speak many languages." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bunlardan birini indir. Momo ile iyi çalışırlar ve birçok dil konuşurlar."
+          }
+        }
+      }
+    },
+    "Downloading %@…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ indiriliyor…"
+          }
+        }
+      }
+    },
     "Doze off after" : {
       "localizations" : {
         "tr" : {
@@ -705,6 +1055,16 @@
         }
       }
     },
+    "Finish signing in in your browser…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girişi tarayıcında tamamla…"
+          }
+        }
+      }
+    },
     "Focus" : {
       "localizations" : {
         "tr" : {
@@ -726,12 +1086,72 @@
         }
       }
     },
+    "For other agents, add an MCP server with this command:" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diğer ajanlar için bu komutla bir MCP sunucusu ekle:"
+          }
+        }
+      }
+    },
     "Forgetting" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unutuluyor"
+          }
+        }
+      }
+    },
+    "Found your key in the clipboard." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anahtarını panoda buldum."
+          }
+        }
+      }
+    },
+    "Free app that runs open models on your Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık modelleri Mac'inde çalıştıran ücretsiz uygulama."
+          }
+        }
+      }
+    },
+    "Free app to download and run models." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model indirip çalıştırmak için ücretsiz uygulama."
+          }
+        }
+      }
+    },
+    "Free, on this Mac" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ücretsiz, bu Mac'te"
+          }
+        }
+      }
+    },
+    "GPT models, with an API key." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPT modelleri, API anahtarıyla."
           }
         }
       }
@@ -762,6 +1182,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "API anahtarı al"
+          }
+        }
+      }
+    },
+    "Get the ChatGPT app" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT uygulamasını edin"
+          }
+        }
+      }
+    },
+    "Get the LM Studio app" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio uygulamasını edin"
+          }
+        }
+      }
+    },
+    "Get the Ollama app" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama uygulamasını edin"
           }
         }
       }
@@ -828,6 +1278,16 @@
         }
       }
     },
+    "Have a Claude Pro or Max plan?" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Pro veya Max planın mı var?"
+          }
+        }
+      }
+    },
     "Hi! I'm Momo. This is how I sound." : {
       "localizations" : {
         "tr" : {
@@ -888,6 +1348,16 @@
         }
       }
     },
+    "Hundreds of models with one key." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tek anahtarla yüzlerce model."
+          }
+        }
+      }
+    },
     "I can keep your tasks, notes and habits, remember things and answer questions." : {
       "localizations" : {
         "tr" : {
@@ -928,16 +1398,6 @@
         }
       }
     },
-    "I think on your Mac first. For bigger jobs I can borrow the ChatGPT or Gemini plan you already have, or an API key. I always ask before anything leaves your Mac." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Önce Mac'inde düşünürüm. Büyük işler için zaten sahip olduğun ChatGPT ya da Gemini aboneliğini veya bir API anahtarını ödünç alabilirim. Mac'inden bir şey çıkmadan önce hep sorarım."
-          }
-        }
-      }
-    },
     "Idle" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -945,6 +1405,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bekliyor"
+          }
+        }
+      }
+    },
+    "In LM Studio, open the Developer view and switch the server on. In its settings you can let it start with your Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio'da Geliştirici bölümünü aç ve sunucuyu başlat. Ayarlarından Mac'inle birlikte açılmasını sağlayabilirsin."
           }
         }
       }
@@ -970,16 +1440,6 @@
         }
       }
     },
-    "Install Ollama from ollama.com, then download a model, for example:" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ollama'yı ollama.com adresinden kur, sonra bir model indir. Örneğin:"
-          }
-        }
-      }
-    },
     "It's 2 AM" : {
       "comment" : "Simulated event",
       "localizations" : {
@@ -987,6 +1447,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saat Gece 2"
+          }
+        }
+      }
+    },
+    "Just copy it. Momo notices the key when you come back here." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sadece kopyala. Buraya döndüğünde Momo anahtarı kendisi fark eder."
           }
         }
       }
@@ -1134,6 +1604,16 @@
         }
       }
     },
+    "Manage" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yönet"
+          }
+        }
+      }
+    },
     "Mark as done" : {
       "localizations" : {
         "tr" : {
@@ -1229,6 +1709,16 @@
         }
       }
     },
+    "Momo borrows the plan you already have. It asks before sending anything." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo zaten sahip olduğun planı ödünç alır. Bir şey göndermeden önce sorar."
+          }
+        }
+      }
+    },
     "Momo falls asleep when you step away and wakes up when you're back." : {
       "localizations" : {
         "tr" : {
@@ -1239,12 +1729,12 @@
         }
       }
     },
-    "Momo includes an MCP server, so agents you already use can read and update your tasks, notes, habits and memories. Claude Code:" : {
+    "Momo is ready to think" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Momo bir MCP sunucusuyla gelir. Böylece zaten kullandığın ajanlar görevlerini, notlarını, alışkanlıklarını ve hatıralarını okuyup güncelleyebilir. Claude Code:"
+            "value" : "Momo düşünmeye hazır"
           }
         }
       }
@@ -1255,6 +1745,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo düşünüyor"
+          }
+        }
+      }
+    },
+    "Momo needs a brain to think with" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun düşünmek için bir beyne ihtiyacı var"
           }
         }
       }
@@ -1275,6 +1775,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo bu sunucuları Mac'inde başlatır ve araçlarını beyinlerine sunar. Yalnızca güvendiğin sunucuları ekle."
+          }
+        }
+      }
+    },
+    "Momo thinks with %@ on your Mac. Nothing leaves this Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo Mac'inde %@ ile düşünüyor. Hiçbir şey bu Mac'ten çıkmaz."
+          }
+        }
+      }
+    },
+    "Momo uses the Codex engine that comes with the ChatGPT app for Mac. If you already use the Codex app or command line tool, Momo finds it too." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo, Mac için ChatGPT uygulamasıyla gelen Codex motorunu kullanır. Codex uygulamasını ya da komut satırı aracını zaten kullanıyorsan Momo onu da bulur."
           }
         }
       }
@@ -1442,6 +1962,16 @@
         }
       }
     },
+    "Ollama runs quietly in the menu bar and starts with your Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama menü çubuğunda sessizce çalışır ve Mac'inle birlikte açılır."
+          }
+        }
+      }
+    },
     "On This Mac" : {
       "comment" : "Brain source name",
       "localizations" : {
@@ -1483,6 +2013,36 @@
         }
       }
     },
+    "Open %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ aç"
+          }
+        }
+      }
+    },
+    "Open Again" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeniden Aç"
+          }
+        }
+      }
+    },
+    "Open Apple Intelligence Settings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence Ayarlarını Aç"
+          }
+        }
+      }
+    },
     "Open Characters Folder" : {
       "localizations" : {
         "tr" : {
@@ -1493,12 +2053,32 @@
         }
       }
     },
+    "Open LM Studio" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio'yu aç"
+          }
+        }
+      }
+    },
     "Open Momo" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo'yu aç"
+          }
+        }
+      }
+    },
+    "Open Ollama" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama'yı aç"
           }
         }
       }
@@ -1519,6 +2099,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OpenAI (API anahtarı)"
+          }
+        }
+      }
+    },
+    "OpenAI API" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI API"
           }
         }
       }
@@ -1553,6 +2143,66 @@
         }
       }
     },
+    "Or download another one:" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya da başka birini indir:"
+          }
+        }
+      }
+    },
+    "Or use the Gemini CLI you already have" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya da zaten sahip olduğun Gemini CLI'ı kullan"
+          }
+        }
+      }
+    },
+    "Other agents" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diğer ajanlar"
+          }
+        }
+      }
+    },
+    "Paste" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapıştır"
+          }
+        }
+      }
+    },
+    "Paste your key here" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anahtarını buraya yapıştır"
+          }
+        }
+      }
+    },
+    "Pay as you go with an API key" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API anahtarıyla kullandıkça öde"
+          }
+        }
+      }
+    },
     "Personal details hidden" : {
       "localizations" : {
         "tr" : {
@@ -1579,6 +2229,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kişilik"
+          }
+        }
+      }
+    },
+    "Pick any option below. Each one takes about a minute and never needs Terminal." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aşağıdan herhangi birini seç. Her biri yaklaşık bir dakika sürer ve Terminal hiç gerekmez."
           }
         }
       }
@@ -1633,12 +2293,32 @@
         }
       }
     },
+    "Private and free. Nothing you say leaves your Mac." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gizli ve ücretsiz. Söylediğin hiçbir şey Mac'inden çıkmaz."
+          }
+        }
+      }
+    },
     "Professional" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Profesyonel"
+          }
+        }
+      }
+    },
+    "Quick and light" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hızlı ve hafif"
           }
         }
       }
@@ -1814,12 +2494,12 @@
         }
       }
     },
-    "Routing" : {
+    "Restart Claude Desktop to see Momo's tools." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Yönlendirme"
+            "value" : "Momo'nun araçlarını görmek için Claude Desktop'ı yeniden başlat."
           }
         }
       }
@@ -1871,6 +2551,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kaydet"
+          }
+        }
+      }
+    },
+    "Save It Anyway" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yine de Kaydet"
           }
         }
       }
@@ -1967,6 +2657,16 @@
         }
       }
     },
+    "See all options" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tüm seçenekleri gör"
+          }
+        }
+      }
+    },
     "Send" : {
       "localizations" : {
         "tr" : {
@@ -2037,16 +2737,6 @@
         }
       }
     },
-    "Set up brains in Settings" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Beyinleri Ayarlar'da kur"
-          }
-        }
-      }
-    },
     "Settings" : {
       "localizations" : {
         "tr" : {
@@ -2098,6 +2788,106 @@
         }
       }
     },
+    "Sign in with ChatGPT" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT ile giriş yap"
+          }
+        }
+      }
+    },
+    "Sign in with Google" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google ile giriş yap"
+          }
+        }
+      }
+    },
+    "Sign in with Google and choose “Create API key”. It's free for everyday use." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google ile giriş yap ve “Create API key”i seç. Günlük kullanım için ücretsiz."
+          }
+        }
+      }
+    },
+    "Sign in with your ChatGPT account" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT hesabınla giriş yap"
+          }
+        }
+      }
+    },
+    "Sign in with your ChatGPT account." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT hesabınla giriş yap."
+          }
+        }
+      }
+    },
+    "Sign in with your Google account in the browser." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarayıcıda Google hesabınla giriş yap."
+          }
+        }
+      }
+    },
+    "Sign in, choose “Create Key” and give it a name like “Momo”." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giriş yap, “Create Key”i seç ve “Momo” gibi bir ad ver."
+          }
+        }
+      }
+    },
+    "Sign in, choose “Create Key” and name it “Momo”." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giriş yap, “Create Key”i seç ve adını “Momo” koy."
+          }
+        }
+      }
+    },
+    "Sign in, choose “Create new secret key” and name it “Momo”." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giriş yap, “Create new secret key”i seç ve adını “Momo” koy."
+          }
+        }
+      }
+    },
+    "Signing in didn't finish. Try again." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giriş tamamlanmadı. Tekrar dene."
+          }
+        }
+      }
+    },
     "Sleep" : {
       "localizations" : {
         "tr" : {
@@ -2115,6 +2905,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uykulu"
+          }
+        }
+      }
+    },
+    "Smartest" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En akıllı"
           }
         }
       }
@@ -2191,12 +2991,32 @@
         }
       }
     },
+    "Start LM Studio's server" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LM Studio sunucusunu başlat"
+          }
+        }
+      }
+    },
     "Starting a focus session" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Odak oturumu başlatılıyor"
+          }
+        }
+      }
+    },
+    "Starting…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Başlıyor…"
           }
         }
       }
@@ -2251,6 +3071,16 @@
         }
       }
     },
+    "Stop using %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kullanmayı bırak"
+          }
+        }
+      }
+    },
     "Surprised" : {
       "comment" : "Mood name",
       "localizations" : {
@@ -2299,6 +3129,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sesi dene"
+          }
+        }
+      }
+    },
+    "That didn't work. Use the details below to add Momo by hand." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olmadı. Momo'yu elle eklemek için aşağıdaki ayrıntıları kullan."
+          }
+        }
+      }
+    },
+    "That key didn't work. Make sure you copied all of it, then try again." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu anahtar çalışmadı. Tamamını kopyaladığından emin ol ve tekrar dene."
+          }
+        }
+      }
+    },
+    "The Gemini CLI is signed in with your Google account." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemini CLI, Google hesabınla giriş yapmış."
+          }
+        }
+      }
+    },
+    "The download stopped: %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İndirme durdu: %@"
           }
         }
       }
@@ -2455,6 +3325,16 @@
         }
       }
     },
+    "Use a different key" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Başka bir anahtar kullan"
+          }
+        }
+      }
+    },
     "Use a remote brain for" : {
       "localizations" : {
         "tr" : {
@@ -2465,22 +3345,32 @@
         }
       }
     },
-    "Uses your ChatGPT plan. Install the official Codex CLI and sign in once:" : {
+    "Use an account you already have" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ChatGPT aboneliğini kullanır. Resmi Codex CLI'ı kur ve bir kez giriş yap:"
+            "value" : "Zaten sahip olduğun bir hesabı kullan"
           }
         }
       }
     },
-    "Uses your Google account. Install the official Gemini CLI and sign in once:" : {
+    "Uses your ChatGPT plan through the ChatGPT app or Codex." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Google hesabını kullanır. Resmi Gemini CLI'ı kur ve bir kez giriş yap:"
+            "value" : "ChatGPT planını ChatGPT uygulaması veya Codex üzerinden kullanır."
+          }
+        }
+      }
+    },
+    "Uses your Google account through the Gemini CLI, if you have it." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Varsa Gemini CLI üzerinden Google hesabını kullanır."
           }
         }
       }
@@ -2555,6 +3445,16 @@
         }
       }
     },
+    "When you come back, Momo checks again on its own." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geri döndüğünde Momo kendiliğinden tekrar kontrol eder."
+          }
+        }
+      }
+    },
     "Witty" : {
       "localizations" : {
         "tr" : {
@@ -2595,12 +3495,32 @@
         }
       }
     },
+    "You pay the provider for what you use. Keys stay in your Keychain." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kullandığın kadarını sağlayıcıya ödersin. Anahtarlar Anahtar Zinciri'nde kalır."
+          }
+        }
+      }
+    },
     "You picked this brain for our conversation." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bu sohbet için bu beyni sen seçtin."
+          }
+        }
+      }
+    },
+    "Your browser opens so you can sign in. Momo never sees your password." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giriş yapman için tarayıcın açılır. Momo şifreni asla görmez."
           }
         }
       }

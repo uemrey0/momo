@@ -77,6 +77,8 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
 @Observable
 final class SettingsNavigation {
     var pane: SettingsPane = .ai
+    /// The AI option whose setup sheet is open.
+    var setupOption: BrainOption?
 }
 
 /// The Settings window: a sidebar of panes, like System Settings.
@@ -124,7 +126,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var detail: some View {
         switch navigation.pane {
-        case .ai: BrainSettingsView(model: model)
+        case .ai: AISettingsView(model: model)
         case .character: CharacterSettingsView(model: model)
         case .voice: VoiceSettingsView(model: model)
         case .reactions: ReactionsSettingsView(model: model)

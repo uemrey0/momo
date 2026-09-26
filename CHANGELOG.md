@@ -9,6 +9,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Settings has a sidebar with search, like System Settings, and opens on the new AI page.
+  Right-clicking Momo opens a menu with Settings, and Momo points you to AI setup from the
+  chat, the menu bar and the sidebar until a brain is connected.
+- Connecting a brain no longer needs Terminal. Each option on the AI page has a short guided
+  setup: ChatGPT uses the Codex engine inside the ChatGPT app and signs in through the
+  browser; Ollama downloads a model with a progress bar, sized for your Mac; API keys are
+  spotted when you copy them and checked with the provider before they are saved.
+- Momo can add itself to Claude Desktop, Claude Code and Codex with one click.
+
 - Momo no longer hides in the notch and pops back out on its own, which was distracting.
   Idle behaviours now play every 8–18 seconds instead of every 4–8, quiet ones far more often
   than big ones, and never the same one twice in a row.

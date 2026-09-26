@@ -103,27 +103,87 @@ struct PrivacySettingsView: View {
     }
 }
 
-/// Explains how to connect Momo's MCP server to other agents.
+/// Connects Momo's MCP server to agents the user already has, with one click each.
 struct MCPSetupView: View {
-    private var serverPath: String {
-        AppSettings.mcpServerPath ?? "/Applications/Momo.app/Contents/MacOS/momo-mcp"
-    }
+    @State private var linked: Set<AgentLink> = []
+    @State private var working: AgentLink?
+    @State private var failed: AgentLink?
+    @State private var showsDetails = false
+
+    private var serverPath: String? { AppSettings.mcpServerPath }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(
                 verbatim: L(
-                    "Momo includes an MCP server, so agents you already use can read and update your tasks, notes, habits and memories. Claude Code:"
+                    "Agents you already use can read and update your tasks, notes, habits and memories through Momo."
                 )
             )
             .foregroundStyle(.secondary)
-            CommandSnippet(command: "claude mcp add momo -- \"\(serverPath)\"")
-            Text(
-                verbatim: L(
-                    "Claude Desktop: add this to claude_desktop_config.json under “mcpServers”:")
-            )
-            .foregroundStyle(.secondary)
-            CommandSnippet(command: "\"momo\": { \"command\": \"\(serverPath)\" }")
+            ForEach(AgentLink.allCases.filter(\.isInstalled)) { agent in
+                HStack {
+                    Text(verbatim: agent.name)
+                    Spacer()
+                    if linked.contains(agent) {
+                        Label(L("Connected"), systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else if working == agent {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        if failed == agent {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                                .help(
+                                    L(
+                                        "That didn't work. Use the details below to add Momo by hand."
+                                    ))
+                        }
+                        Button(String(format: L("Add to %@"), agent.name)) { link(agent) }
+                            .disabled(serverPath == nil)
+                    }
+                }
+            }
+            if linked.contains(.claudeDesktop) {
+                Text(verbatim: L("Restart Claude Desktop to see Momo's tools."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if serverPath == nil {
+                Text(verbatim: L("Available when Momo runs from the Applications folder."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            DisclosureGroup(isExpanded: $showsDetails) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: L("For other agents, add an MCP server with this command:"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    CommandSnippet(
+                        command: serverPath ?? "/Applications/Momo.app/Contents/MacOS/momo-mcp")
+                }
+            } label: {
+                Text(verbatim: L("Other agents")).font(.callout)
+            }
+        }
+        .task { await refresh() }
+    }
+
+    private func refresh() async {
+        var result: Set<AgentLink> = []
+        for agent in AgentLink.allCases where agent.isInstalled {
+            if await agent.isLinked() { result.insert(agent) }
+        }
+        linked = result
+    }
+
+    private func link(_ agent: AgentLink) {
+        guard let serverPath else { return }
+        working = agent
+        failed = nil
+        Task {
+            let succeeded = await agent.link(serverPath: serverPath)
+            working = nil
+            if succeeded { linked.insert(agent) } else { failed = agent }
         }
     }
 }

@@ -36,8 +36,9 @@ enum BrainDescriptor {
     }
 }
 
-/// Lists every brain with its status and settings.
-struct BrainSettingsView: View {
+/// Every brain with its status, order and settings, for people who want full control.
+/// Shown inside the AI page's "Advanced" section.
+struct AdvancedBrainSettings: View {
     @Bindable var settings: AppSettings
     var model: AppModel
 
@@ -47,50 +48,40 @@ struct BrainSettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                ForEach(Array(settings.preferences.brains.order.enumerated()), id: \.element) {
-                    index, id in
-                    BrainRow(
-                        id: id, index: index, settings: settings,
-                        status: model.assistant.providerStatuses.first { $0.id == id },
-                        move: { move(id, by: $0) })
-                }
-            } header: {
-                Text(verbatim: L("Brains"))
-            } footer: {
-                Text(
-                    verbatim: L(
-                        "Momo uses the first ready brain on your Mac for everyday requests and asks before sending bigger jobs to a remote brain. Use the arrows to set the order."
-                    ))
+        VStack(alignment: .leading, spacing: 10) {
+            Text(
+                verbatim: L(
+                    "Momo uses the first ready brain on your Mac for everyday requests and asks before sending bigger jobs to a remote brain. Use the arrows to set the order."
+                )
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            ForEach(Array(settings.preferences.brains.order.enumerated()), id: \.element) {
+                index, id in
+                BrainRow(
+                    id: id, index: index, settings: settings,
+                    status: model.assistant.providerStatuses.first { $0.id == id },
+                    move: { move(id, by: $0) })
+                Divider()
             }
-            Section {
-                Toggle(
-                    L("Ask before using a remote brain"),
-                    isOn: $settings.preferences.brains.askBeforeRemote)
-                LabeledContent(L("Use a remote brain for")) {
-                    Picker(
-                        selection: $settings.preferences.brains.difficultyThreshold
-                    ) {
-                        Text(verbatim: L("Most requests")).tag(2)
-                        Text(verbatim: L("Harder requests")).tag(3)
-                        Text(verbatim: L("Only the hardest requests")).tag(4)
-                        Text(verbatim: L("Only very long requests")).tag(6)
-                    } label: {
-                        EmptyView()
-                    }
-                    .labelsHidden()
-                    .frame(width: 230)
+            Toggle(
+                L("Ask before using a remote brain"),
+                isOn: $settings.preferences.brains.askBeforeRemote)
+            LabeledContent(L("Use a remote brain for")) {
+                Picker(selection: $settings.preferences.brains.difficultyThreshold) {
+                    Text(verbatim: L("Most requests")).tag(2)
+                    Text(verbatim: L("Harder requests")).tag(3)
+                    Text(verbatim: L("Only the hardest requests")).tag(4)
+                    Text(verbatim: L("Only very long requests")).tag(6)
+                } label: {
+                    EmptyView()
                 }
-            } header: {
-                Text(verbatim: L("Routing"))
+                .labelsHidden()
+                .frame(width: 230)
             }
         }
-        .formStyle(.grouped)
-        .task { await model.assistant.refreshProviders() }
-        .onChange(of: settings.preferences.brains) {
-            Task { await model.assistant.refreshProviders() }
-        }
+        .padding(.vertical, 6)
     }
 
     private func move(_ id: String, by offset: Int) {
@@ -208,28 +199,23 @@ private struct BrainConfiguration: View {
                 localServer(
                     url: $settings.preferences.brains.ollamaURL,
                     model: $settings.preferences.brains.ollamaModel,
-                    help: L("Install Ollama from ollama.com, then download a model, for example:"),
-                    command: "ollama pull qwen3:8b")
+                    help: L("Download Ollama from ollama.com and open it."))
             case "lmstudio":
                 localServer(
                     url: $settings.preferences.brains.lmStudioURL,
                     model: $settings.preferences.brains.lmStudioModel,
                     help: L(
                         "Install LM Studio from lmstudio.ai, download a model and start its local server."
-                    ),
-                    command: nil)
+                    ))
             case "codex":
-                cliHelp(
-                    text: L(
-                        "Uses your ChatGPT plan. Install the official Codex CLI and sign in once:"),
-                    commands: ["npm install -g @openai/codex", "codex login"])
+                Text(verbatim: L("Uses your ChatGPT plan through the ChatGPT app or Codex."))
+                    .foregroundStyle(.secondary)
                 TextField(L("Model (optional)"), text: $settings.preferences.brains.codexModel)
             case "gemini-cli":
-                cliHelp(
-                    text: L(
-                        "Uses your Google account. Install the official Gemini CLI and sign in once:"
-                    ),
-                    commands: ["npm install -g @google/gemini-cli", "gemini"])
+                Text(
+                    verbatim: L("Uses your Google account through the Gemini CLI, if you have it.")
+                )
+                .foregroundStyle(.secondary)
                 TextField(L("Model (optional)"), text: $settings.preferences.brains.geminiCLIModel)
             case "anthropic":
                 keyField(link: "https://console.anthropic.com/settings/keys")
@@ -238,13 +224,6 @@ private struct BrainConfiguration: View {
                         Text(verbatim: model).tag(model)
                     }
                 }
-                Text(
-                    verbatim: L(
-                        "Claude subscriptions can't be used by other apps. To use your Claude plan with Momo, add Momo to Claude as an MCP server instead (see Privacy)."
-                    )
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
             case "openai":
                 keyField(link: "https://platform.openai.com/api-keys")
                 TextField(L("Model"), text: $settings.preferences.brains.openAIModel)
@@ -263,10 +242,9 @@ private struct BrainConfiguration: View {
 
     @ViewBuilder
     private func localServer(
-        url: Binding<String>, model: Binding<String>, help: String, command: String?
+        url: Binding<String>, model: Binding<String>, help: String
     ) -> some View {
         Text(verbatim: help).foregroundStyle(.secondary)
-        if let command { CommandSnippet(command: command) }
         TextField(L("Server address"), text: url)
         HStack {
             Picker(L("Model"), selection: model) {
@@ -293,12 +271,6 @@ private struct BrainConfiguration: View {
         isLoadingModels = true
         serverModels = (try? await OpenAICompatibleProvider.listModels(baseURL: url)) ?? []
         isLoadingModels = false
-    }
-
-    @ViewBuilder
-    private func cliHelp(text: String, commands: [String]) -> some View {
-        Text(verbatim: text).foregroundStyle(.secondary)
-        ForEach(commands, id: \.self) { CommandSnippet(command: $0) }
     }
 
     @ViewBuilder

@@ -70,16 +70,17 @@ open dist/Momo.app
 
 ### Give Momo a brain
 
-Momo walks you through this on first launch; everything lives in **Settings → Brains**.
+Momo walks you through this on first launch; everything lives in **Settings → AI**. Pick an
+option, press **Connect** and follow the steps. None of them need Terminal.
 
 | Brain | What you need |
 | ----- | ------------- |
 | Apple Intelligence | macOS 26 with Apple Intelligence turned on. Nothing to install. |
-| Ollama | [ollama.com](https://ollama.com), then for example `ollama pull qwen3:8b` |
-| LM Studio | [lmstudio.ai](https://lmstudio.ai) with its local server running |
-| ChatGPT plan | `npm install -g @openai/codex`, then `codex login` |
-| Google account | `npm install -g @google/gemini-cli`, then run `gemini` once |
-| Claude, OpenAI, Gemini, OpenRouter | An API key, stored in your Keychain |
+| Ollama | The free [Ollama](https://ollama.com) app. Momo downloads a model for you. |
+| LM Studio | The free [LM Studio](https://lmstudio.ai) app with its server switched on |
+| ChatGPT plan | The [ChatGPT app for Mac](https://openai.com/chatgpt/download/) (or the Codex CLI); sign in from Momo |
+| Google Gemini | A free key from Google AI Studio, or the Gemini CLI if you have it |
+| Claude, OpenAI, OpenRouter | An API key; copy it and Momo picks it up and checks it |
 
 Claude subscriptions can't be used by third-party apps. To use your Claude plan with Momo,
 connect Momo to Claude instead (below).
@@ -98,13 +99,10 @@ focus session", "Note that the Wi-Fi password is on the fridge" or "What's on my
 
 ### Use Momo from Claude, Codex and other agents
 
-```bash
-claude mcp add momo -- /Applications/Momo.app/Contents/MacOS/momo-mcp
-```
-
-For Claude Desktop, add `"momo": { "command": "/Applications/Momo.app/Contents/MacOS/momo-mcp" }`
-under `mcpServers` in `claude_desktop_config.json`. Tools that delete data are only offered
-with `--allow-destructive`.
+In **Settings → Connections**, press **Add to Claude Desktop**, **Add to Claude Code** or
+**Add to Codex**. For other agents, add an MCP server that runs
+`/Applications/Momo.app/Contents/MacOS/momo-mcp`. Tools that delete data are only offered with
+`--allow-destructive`.
 
 ## Privacy
 
