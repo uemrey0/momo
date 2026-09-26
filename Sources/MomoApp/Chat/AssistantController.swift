@@ -561,7 +561,9 @@ final class AssistantController {
                 read: L("Reading a web page", comment: "Tool activity")))
         return Assistant.Configuration(
             providers: providers,
-            toolbox: Toolbox(StoreTools.all(store: store) + webTools + systemTools()),
+            toolbox: Toolbox(
+                preferences.abilities.apply(
+                    to: StoreTools.all(store: store) + webTools + systemTools())),
             policy: preferences.brains.policy,
             masksPersonalData: preferences.brains.masksPersonalData,
             systemPrompt: SystemPrompt.make(

@@ -212,3 +212,31 @@ public struct ClosureTool: MomoTool {
         describe(arguments)
     }
 }
+
+/// Wraps a tool so that every call needs the user's approval first.
+public struct ConfirmingTool: MomoTool {
+    public let definition: ToolDefinition
+    private let base: any MomoTool
+    private let label: String?
+
+    /// - Parameter label: A short description of the action, shown in the confirmation before
+    ///   the call's details (the wrapped tool may have no summary of its own).
+    public init(_ base: any MomoTool, label: String? = nil) {
+        var definition = base.definition
+        definition.requiresConfirmation = true
+        self.definition = definition
+        self.base = base
+        self.label = label
+    }
+
+    public func run(arguments: JSONValue) async throws -> String {
+        try await base.run(arguments: arguments)
+    }
+
+    public func summary(for arguments: JSONValue) -> String {
+        let details = base.summary(for: arguments)
+        guard let label else { return details }
+        if case .object(let fields) = arguments, fields.isEmpty { return label }
+        return "\(label): \(details)"
+    }
+}

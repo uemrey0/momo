@@ -222,6 +222,16 @@
         }
       }
     },
+    "Abilities" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yetenekler"
+          }
+        }
+      }
+    },
     "About" : {
       "localizations" : {
         "tr" : {
@@ -293,6 +303,16 @@
         }
       }
     },
+    "Add and complete tasks, keep notes and habits, remember things for you." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görev ekler ve tamamlar, not ve alışkanlık tutar, senin için bir şeyleri hatırlar."
+          }
+        }
+      }
+    },
     "Add as a task" : {
       "localizations" : {
         "tr" : {
@@ -309,6 +329,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Görev olarak ekle"
+          }
+        }
+      }
+    },
+    "Add or remove servers in Connections." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sunucuları Bağlantılar'da ekleyip kaldırabilirsin."
           }
         }
       }
@@ -489,6 +519,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "İzin ver…"
+          }
+        }
+      }
+    },
+    "Always ask first" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her zaman önce sor"
           }
         }
       }
@@ -790,6 +830,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS'te yerleşik. Kurulacak bir şey yok."
+          }
+        }
+      }
+    },
+    "Calendar & reminders" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takvim ve anımsatıcılar"
           }
         }
       }
@@ -1264,6 +1314,16 @@
         }
       }
     },
+    "Connecting…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlanıyor…"
+          }
+        }
+      }
+    },
     "Connections" : {
       "localizations" : {
         "tr" : {
@@ -1350,6 +1410,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anahtarı kopyala"
+          }
+        }
+      }
+    },
+    "Couldn't connect" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlanılamadı"
           }
         }
       }
@@ -1745,6 +1815,16 @@
         }
       }
     },
+    "Essentials" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temel araçlar"
+          }
+        }
+      }
+    },
     "Every day" : {
       "localizations" : {
         "tr" : {
@@ -1775,12 +1855,32 @@
         }
       }
     },
+    "Files" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dosyalar"
+          }
+        }
+      }
+    },
     "Find people's numbers and addresses to message or email them." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mesaj ya da e-posta göndermek için kişilerin numaralarını ve adreslerini bulur."
+          }
+        }
+      }
+    },
+    "Find, read and show files, and move them to the Trash when you agree." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dosyaları bulur, okur ve gösterir; onaylarsan Çöp Sepeti'ne taşır."
           }
         }
       }
@@ -2513,6 +2613,16 @@
         }
       }
     },
+    "Look up contacts, draft emails and send messages you confirm." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kişilerde arama yapar, e-posta taslağı hazırlar ve onayladığın mesajları gönderir."
+          }
+        }
+      }
+    },
     "Looking at what you're doing" : {
       "localizations" : {
         "tr" : {
@@ -2564,6 +2674,16 @@
         }
       }
     },
+    "MCP servers" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP sunucuları"
+          }
+        }
+      }
+    },
     "MCP servers Momo can use" : {
       "localizations" : {
         "tr" : {
@@ -2590,6 +2710,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mac sesleri"
+          }
+        }
+      }
+    },
+    "Mail, Messages & contacts" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mail, Mesajlar ve kişiler"
           }
         }
       }
@@ -2879,6 +3009,16 @@
         }
       }
     },
+    "Momo never offers a turned-off ability to any brain. With “Always ask first”, it asks you before each use. Tap a permission to check it." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo kapattığın bir yeteneği hiçbir beyne sunmaz. “Her zaman önce sor” açıkken her kullanımdan önce sana sorar. Kontrol etmek için bir izne dokun."
+          }
+        }
+      }
+    },
     "Momo only looks at your screen when you ask it to, and always asks first. The text is read on your Mac." : {
       "localizations" : {
         "tr" : {
@@ -3040,6 +3180,16 @@
         }
       }
     },
+    "Music" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Müzik"
+          }
+        }
+      }
+    },
     "My Subscription" : {
       "comment" : "Brain source name",
       "localizations" : {
@@ -3057,6 +3207,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ad"
+          }
+        }
+      }
+    },
+    "Needs %@. Click to check it in Permissions." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ gerekir. İzinler'de kontrol etmek için tıkla."
           }
         }
       }
@@ -3098,6 +3258,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yeni not"
+          }
+        }
+      }
+    },
+    "No MCP servers yet." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Henüz MCP sunucusu yok."
           }
         }
       }
@@ -3262,6 +3432,16 @@
         }
       }
     },
+    "Off" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kapalı"
+          }
+        }
+      }
+    },
     "Offer to take meeting notes" : {
       "localizations" : {
         "tr" : {
@@ -3403,6 +3583,16 @@
         }
       }
     },
+    "Open Connections" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlantıları Aç"
+          }
+        }
+      }
+    },
     "Open LM Studio" : {
       "localizations" : {
         "tr" : {
@@ -3449,6 +3639,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sistem Ayarları'nı Aç"
+          }
+        }
+      }
+    },
+    "Open apps and links, run Shortcuts, change volume or dark mode, lock the screen." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uygulama ve bağlantı açar, Kestirmeler'i çalıştırır, ses düzeyini ya da karanlık modu değiştirir, ekranı kilitler."
           }
         }
       }
@@ -3783,12 +3983,32 @@
         }
       }
     },
+    "Play, pause and skip in Music or Spotify, and say what's playing." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Müzik ya da Spotify'da çalar, duraklatır, atlar ve ne çaldığını söyler."
+          }
+        }
+      }
+    },
     "Play, pause and skip songs." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Şarkıları çalar, duraklatır ve atlar."
+          }
+        }
+      }
+    },
+    "Power tools (AppleScript & shell)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Güçlü araçlar (AppleScript ve kabuk)"
           }
         }
       }
@@ -3950,6 +4170,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seçtiğin metni ve öndeki pencerenin başlığını okur."
+          }
+        }
+      }
+    },
+    "Read your calendar, add events, and use the Reminders app." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takvimini okur, etkinlik ekler ve Anımsatıcılar uygulamasını kullanır."
           }
         }
       }
@@ -4254,6 +4484,16 @@
         }
       }
     },
+    "Run AppleScript and shell commands. Momo always asks first." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AppleScript ve kabuk komutları çalıştırır. Momo her zaman önce sorar."
+          }
+        }
+      }
+    },
     "Run Now" : {
       "localizations" : {
         "tr" : {
@@ -4425,6 +4665,16 @@
         }
       }
     },
+    "Screen & context" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran ve bağlam"
+          }
+        }
+      }
+    },
     "Screen Sharing Ended" : {
       "comment" : "Simulated event",
       "localizations" : {
@@ -4507,6 +4757,16 @@
         }
       }
     },
+    "Search the web, read web pages and check the weather." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web'de arar, web sayfalarını okur ve hava durumuna bakar."
+          }
+        }
+      }
+    },
     "Searching the web" : {
       "localizations" : {
         "tr" : {
@@ -4553,6 +4813,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“Bu” dediğinde açık sekmeyi görür."
+          }
+        }
+      }
+    },
+    "See what you're working on: the front app, selected text, your screen." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne üzerinde çalıştığını görür: öndeki uygulama, seçili metin, ekranın."
           }
         }
       }
@@ -4663,6 +4933,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yapay zekâyı kur"
+          }
+        }
+      }
+    },
+    "Set up, change and remove routines when you ask." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İstediğinde rutin kurar, değiştirir ve kaldırır."
           }
         }
       }
@@ -5011,6 +5291,16 @@
         }
       }
     },
+    "Start and stop meeting notes, and read past meetings." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı notlarını başlatır ve durdurur, geçmiş toplantıları okur."
+          }
+        }
+      }
+    },
     "Starting a focus session" : {
       "localizations" : {
         "tr" : {
@@ -5152,6 +5442,16 @@
         }
       }
     },
+    "System controls" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistem kontrolleri"
+          }
+        }
+      }
+    },
     "Take Meeting Notes" : {
       "localizations" : {
         "tr" : {
@@ -5249,6 +5549,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Görevler"
+          }
+        }
+      }
+    },
+    "Tasks, notes & memory" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görevler, notlar ve hafıza"
           }
         }
       }
@@ -5500,6 +5810,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bugün"
+          }
+        }
+      }
+    },
+    "Tools other tools rely on, such as the current time." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diğer araçların dayandığı araçlar, örneğin şu anki saat."
           }
         }
       }
@@ -5771,6 +6091,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sesler"
+          }
+        }
+      }
+    },
+    "Web" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web"
           }
         }
       }
@@ -6191,6 +6521,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "konuşma, mikrofon, sesli okuma, Hey Momo, uyandırma kelimesi, dikte, voice, speech"
+          }
+        }
+      }
+    },
+    "tools, what Momo can do, turn off, always ask, confirm, tasks, notes, calendar, reminders, files, mail, messages, contacts, music, system, web search, weather, screen, AppleScript, shell, meetings, routines, MCP" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "araçlar, Momo neler yapabilir, kapat, her zaman sor, onay, görevler, notlar, takvim, anımsatıcılar, dosyalar, mail, mesajlar, kişiler, müzik, sistem, web araması, hava durumu, ekran, AppleScript, kabuk, toplantılar, rutinler, MCP, tools"
           }
         }
       }

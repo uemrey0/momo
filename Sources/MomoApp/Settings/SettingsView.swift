@@ -4,7 +4,8 @@ import SwiftUI
 
 /// The sections of the Settings window, in sidebar order.
 enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
-    case ai, character, voice, reactions, routines, connections, permissions, privacy, general,
+    case ai, abilities, character, voice, reactions, routines, connections, permissions, privacy,
+        general,
         about
 
     var id: String { rawValue }
@@ -12,6 +13,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .ai: L("AI")
+        case .abilities: L("Abilities")
         case .character: L("Character")
         case .voice: L("Voice")
         case .reactions: L("Reactions")
@@ -27,6 +29,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
     var systemImage: String {
         switch self {
         case .ai: "sparkles"
+        case .abilities: "wand.and.stars"
         case .character: "face.smiling"
         case .voice: "waveform"
         case .reactions: "bell.badge"
@@ -42,6 +45,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
     var tint: Color {
         switch self {
         case .ai: Color(red: 0.55, green: 0.42, blue: 0.98)
+        case .abilities: Color(red: 0.95, green: 0.45, blue: 0.7)
         case .character: Color(red: 0.2, green: 0.74, blue: 0.62)
         case .voice: Color(red: 0.98, green: 0.36, blue: 0.47)
         case .reactions: Color(red: 1.0, green: 0.6, blue: 0.2)
@@ -60,6 +64,10 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .ai:
             L(
                 "brain, model, ChatGPT, Gemini, Claude, OpenAI, Ollama, LM Studio, Apple Intelligence, API key, subscription"
+            )
+        case .abilities:
+            L(
+                "tools, what Momo can do, turn off, always ask, confirm, tasks, notes, calendar, reminders, files, mail, messages, contacts, music, system, web search, weather, screen, AppleScript, shell, meetings, routines, MCP"
             )
         case .character: L("look, appearance, skin, theme, custom")
         case .voice: L("speech, microphone, read aloud, Hey Momo, wake word, dictation")
@@ -154,6 +162,7 @@ struct SettingsView: View {
     private var detail: some View {
         switch navigation.pane {
         case .ai: AISettingsView(model: model)
+        case .abilities: AbilitiesSettingsView(model: model)
         case .character: CharacterSettingsView(model: model)
         case .voice: VoiceSettingsView(model: model)
         case .reactions: ReactionsSettingsView(model: model)
