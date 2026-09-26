@@ -5,6 +5,7 @@ import MomoKit
 /// and awareness of what the user is looking at.
 enum MacTools {
     static func all() -> [any MomoTool] {
-        FileTools.all()
+        FileTools.all() + RemindersTools.all(RemindersService()) + ContactsTools.all()
+            + CommunicationTools.all() + MusicTools.all()
     }
 }

@@ -203,6 +203,16 @@
         }
       }
     },
+    "Adding a reminder" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anımsatıcı ekliyorum"
+          }
+        }
+      }
+    },
     "Adding a task" : {
       "localizations" : {
         "tr" : {
@@ -614,6 +624,16 @@
         }
       }
     },
+    "Checking your reminders" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anımsatıcılarına bakıyorum"
+          }
+        }
+      }
+    },
     "Checking your tasks" : {
       "localizations" : {
         "tr" : {
@@ -710,6 +730,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Komut"
+          }
+        }
+      }
+    },
+    "Completing a reminder" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anımsatıcıyı tamamlıyorum"
           }
         }
       }
@@ -820,6 +850,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Devam"
+          }
+        }
+      }
+    },
+    "Controlling music" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Müziği kontrol ediyorum"
           }
         }
       }
@@ -1699,6 +1739,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Klasöre bakıyorum"
+          }
+        }
+      }
+    },
+    "Looking up contacts" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kişilerde arıyorum"
           }
         }
       }
@@ -2867,6 +2917,26 @@
         }
       }
     },
+    "Send a message to %@:\n“%@”" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kişisine mesaj gönderilsin:\n“%@”"
+          }
+        }
+      }
+    },
+    "Sending a message" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesaj gönderiyorum"
+          }
+        }
+      }
+    },
     "Sent as written" : {
       "localizations" : {
         "tr" : {
@@ -3711,6 +3781,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pil azalınca endişelen"
+          }
+        }
+      }
+    },
+    "Writing an email draft" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-posta taslağı yazıyorum"
           }
         }
       }
