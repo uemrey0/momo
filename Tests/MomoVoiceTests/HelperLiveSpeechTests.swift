@@ -10,6 +10,10 @@ import Testing
 final class FakeHelperTransport: LiveVoiceTransport {
     var version = liveVoiceProtocolVersion
     var answersHello = true
+    /// Whether the helper answers `start` (a helper still compiling its models doesn't).
+    var answersStart = true
+    /// How the helper answers `prepare`: `nil` never, `true` prepared, `false` an error.
+    var preparesSuccessfully: Bool? = true
     var models: [LiveModelInfo] = []
     private(set) var commands: [LiveVoiceCommand] = []
     private(set) var isRunning = false
@@ -41,7 +45,14 @@ final class FakeHelperTransport: LiveVoiceTransport {
         case .hello:
             if answersHello { emit(.ready(version: version, languages: ["en", "tr"])) }
         case .start:
-            emit(.listening)
+            if answersStart { emit(.listening) }
+        case .prepare:
+            switch preparesSuccessfully {
+            case true?: emit(.prepared)
+            case false?:
+                emit(.error(message: "No speech recognition model understands xx.", isFatal: false))
+            case nil: break
+            }
         case .listModels:
             emit(.models(models))
         case .downloadModels(let ids):
@@ -72,6 +83,15 @@ final class FakeHelperTransport: LiveVoiceTransport {
         isRunning = false
         let onExit = onExit
         Task { @MainActor in onExit?(status) }
+    }
+}
+
+/// Remembers prepared models in memory, so tests leave the user's defaults alone.
+@MainActor
+final class PreparedMemory {
+    var value: String?
+    var record: LiveVoicePreparedRecord {
+        LiveVoicePreparedRecord(load: { self.value }, save: { self.value = $0 })
     }
 }
 
@@ -219,6 +239,89 @@ struct HelperClientTests {
         #expect(turns == ["add milk", "what's next"])
     }
 
+    @Test("a helper that doesn't start listening in time is ended, so it can't open the mic later")
+    func startTimeout() async throws {
+        let (client, launches) = makeClient { $0.answersStart = false }
+        let io = HelperLiveSpeechIO(client: client, startTimeout: .milliseconds(200))
+        await #expect(throws: LiveVoiceHelperError.noAnswer) {
+            try await io.start(LiveSpeechConfiguration(locale: Locale(identifier: "en_US")))
+        }
+        #expect(!io.isRunning)
+        #expect(launches.latest?.isRunning == false)
+        #expect(!client.isConnected)
+    }
+
+    @Test("reports where the helper stands, and prepares its models once per build")
+    func status() async throws {
+        let record = PreparedMemory().record
+        let stt = LiveModelInfo(
+            id: "stt", kind: .speechToText, name: "Speech", languages: ["en"], sizeBytes: 600,
+            isDownloaded: true, isRequired: true)
+        var missing = stt
+        missing.isDownloaded = false
+
+        #expect(LiveVoiceModels(client: nil).status == .unavailable)
+
+        let (silentClient, _) = makeClient { $0.answersHello = false }
+        let silent = LiveVoiceModels(client: silentClient, locale: "en-US", record: record)
+        await silent.refresh()
+        #expect(silent.status == .notResponding)
+
+        let (emptyClient, _) = makeClient { $0.models = [missing] }
+        let empty = LiveVoiceModels(client: emptyClient, locale: "en-US", record: record)
+        await empty.refresh()
+        #expect(empty.status == .modelsMissing)
+
+        let (client, launches) = makeClient { $0.models = [stt] }
+        let models = LiveVoiceModels(
+            client: client, locale: "en-US", buildID: "build-1", record: record)
+        await models.refresh()
+        #expect(models.status == .preparing)
+        #expect(await models.prepare())
+        #expect(models.status == .ready)
+        #expect(
+            launches.latest?.commands.last == .prepare(LiveSessionConfiguration(locale: "en-US")))
+
+        // A new helper build has to compile its models again.
+        let (nextClient, _) = makeClient { $0.models = [stt] }
+        let next = LiveVoiceModels(
+            client: nextClient, locale: "en-US", buildID: "build-2", record: record)
+        await next.refresh()
+        #expect(next.status == .preparing)
+        #expect(models.status == .ready)
+        models.forgetPrepared()
+        #expect(models.status == .preparing)
+    }
+
+    @Test("a failed or stuck preparation leaves the helper not ready and ends it")
+    func failedPreparation() async throws {
+        let record = PreparedMemory().record
+        let stt = LiveModelInfo(
+            id: "stt", kind: .speechToText, name: "Speech", languages: ["en"], sizeBytes: 600,
+            isDownloaded: true, isRequired: true)
+        let (client, launches) = makeClient {
+            $0.models = [stt]
+            $0.preparesSuccessfully = false
+        }
+        let models = LiveVoiceModels(client: client, locale: "en-US", record: record)
+        await models.refresh()
+        #expect(!(await models.prepare()))
+        #expect(models.status == .preparing)
+        #expect(launches.latest?.isRunning == false)
+
+        let (stuckClient, stuckLaunches) = makeClient {
+            $0.models = [stt]
+            $0.preparesSuccessfully = nil
+        }
+        let stuck = LiveVoiceModels(
+            client: stuckClient, locale: "en-US", record: record,
+            prepareTimeout: .milliseconds(200))
+        await stuck.refresh()
+        #expect(!(await stuck.prepare()))
+        #expect(!stuck.isPreparing)
+        #expect(stuckLaunches.latest?.isRunning == false)
+    }
+
     @Test("lists, downloads and deletes models only when asked")
     func models() async throws {
         let stt = LiveModelInfo(
@@ -228,7 +331,8 @@ struct HelperClientTests {
             id: "tts", kind: .textToSpeech, name: "Voice", languages: ["en"], sizeBytes: 300,
             isDownloaded: true, isRequired: true)
         let (client, launches) = makeClient { $0.models = [stt, tts] }
-        let models = LiveVoiceModels(client: client, locale: "en-US")
+        let models = LiveVoiceModels(
+            client: client, locale: "en-US", record: PreparedMemory().record)
         #expect(models.isAvailable)
         await models.refresh()
         #expect(models.models == [stt, tts])

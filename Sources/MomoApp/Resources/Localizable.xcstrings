@@ -523,12 +523,32 @@
         }
       }
     },
+    "Allow Speech Recognition" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuşma Tanımaya İzin Ver"
+          }
+        }
+      }
+    },
     "Allow my microphone audio to leave this Mac" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mikrofon sesimin bu Mac'ten çıkmasına izin ver"
+          }
+        }
+      }
+    },
+    "Allow the Microphone" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofona İzin Ver"
           }
         }
       }
@@ -1304,12 +1324,12 @@
         }
       }
     },
-    "Cloud realtime voice couldn't start, so Momo used Apple's built-in engine. %@" : {
+    "Cloud realtime voice couldn't start, so Momo is using Apple's voice this time." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bulut gerçek zamanlı ses başlatılamadı, bu yüzden Momo Apple'ın yerleşik motorunu kullandı. %@"
+            "value" : "Bulut gerçek zamanlı ses başlatılamadı, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
           }
         }
       }
@@ -2872,6 +2892,26 @@
         }
       }
     },
+    "Live conversation couldn't open the microphone and speakers together, so Momo is listening the classic way. Say your request, then pause." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canlı sohbet mikrofonu ve hoparlörleri birlikte açamadı, bu yüzden Momo klasik yolla dinliyor. İsteğini söyle, sonra biraz bekle."
+          }
+        }
+      }
+    },
+    "Live conversation couldn't start, so Momo is listening the classic way. Say your request, then pause." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canlı sohbet başlatılamadı, bu yüzden Momo klasik yolla dinliyor. İsteğini söyle, sonra biraz bekle."
+          }
+        }
+      }
+    },
     "Live on Its Own" : {
       "comment" : "Menu toggle for idle behaviours such as yawning and falling asleep",
       "localizations" : {
@@ -3299,12 +3339,42 @@
         }
       }
     },
+    "Momo can't use speech recognition. Allow it in Settings → Permissions." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo konuşma tanımayı kullanamıyor. Ayarlar → İzinler'den izin ver."
+          }
+        }
+      }
+    },
+    "Momo can't use the microphone. Allow it in Settings → Permissions." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo mikrofonu kullanamıyor. Ayarlar → İzinler'den izin ver."
+          }
+        }
+      }
+    },
     "Momo controls these apps only when you ask, and asks before sending anything. An app that isn't open can't be checked until you open it." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo bu uygulamaları yalnızca sen istediğinde kontrol eder ve bir şey göndermeden önce sorar. Açık olmayan bir uygulama, sen açana kadar kontrol edilemez."
+          }
+        }
+      }
+    },
+    "Momo couldn't start listening. Try again in a moment." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo dinlemeye başlayamadı. Birazdan tekrar dene."
           }
         }
       }
@@ -4059,6 +4129,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sistem Ayarları'nı Aç"
+          }
+        }
+      }
+    },
+    "Open Voice Settings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses Ayarlarını Aç"
           }
         }
       }
@@ -5751,6 +5831,16 @@
         }
       }
     },
+    "Speech recognition doesn't understand your Mac's language yet." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuşma tanıma Mac'inin dilini henüz anlamıyor."
+          }
+        }
+      }
+    },
     "Start" : {
       "localizations" : {
         "tr" : {
@@ -6203,22 +6293,72 @@
         }
       }
     },
-    "The open source voice engine couldn't start, so Momo used Apple's built-in one. %@" : {
+    "The open source voice engine can't run on this Mac, so Momo is using Apple's voice." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Açık kaynak ses motoru başlatılamadı, bu yüzden Momo Apple'ın yerleşik motorunu kullandı. %@"
+            "value" : "Açık kaynak ses motoru bu Mac'te çalışamıyor, bu yüzden Momo Apple'ın sesini kullanıyor."
           }
         }
       }
     },
-    "The open source voice engine isn't ready (download its models in Settings), so Momo used Apple's built-in one." : {
+    "The open source voice engine couldn't open the microphone or speakers, so Momo is using Apple's voice." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Açık kaynak ses motoru hazır değil (modellerini Ayarlar'dan indir), bu yüzden Momo Apple'ın yerleşik motorunu kullandı."
+            "value" : "Açık kaynak ses motoru mikrofonu veya hoparlörleri açamadı, bu yüzden Momo Apple'ın sesini kullanıyor."
+          }
+        }
+      }
+    },
+    "The open source voice engine couldn't start, so Momo is using Apple's voice this time." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak ses motoru başlatılamadı, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
+          }
+        }
+      }
+    },
+    "The open source voice engine didn't answer, so Momo is using Apple's voice this time." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak ses motoru yanıt vermedi, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
+          }
+        }
+      }
+    },
+    "The open source voice engine took too long to start, so Momo is using Apple's voice this time." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak ses motorunun başlaması çok uzun sürdü, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
+          }
+        }
+      }
+    },
+    "The open source voices are getting ready for their first use, so Momo is using Apple's voice this time." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak sesler ilk kullanım için hazırlanıyor, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
+          }
+        }
+      }
+    },
+    "The open source voices aren't downloaded yet, so Momo is using Apple's voice. Download them in Settings → Voice." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Açık kaynak sesler henüz indirilmedi, bu yüzden Momo Apple'ın sesini kullanıyor. Onları Ayarlar → Ses'ten indir."
           }
         }
       }

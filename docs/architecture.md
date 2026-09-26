@@ -182,13 +182,21 @@ yes or no; an unclear answer is asked once more, then the bubble's buttons take 
 listening pauses. With push to talk, holding the shortcut interrupts Momo and listens,
 letting go ends the turn, and turns are only listened to while the key is down.
 
-Engines (`LiveEngineSelector`; Automatic picks the helper when its models are downloaded):
+Engines (`LiveEngineSelector`; Automatic picks the helper only when `LiveVoiceModels` reports
+it `ready`: it answered the handshake and the model list just now, the language's models are
+downloaded, and this helper build has loaded them before, so it starts in seconds):
 
 | Engine | How |
 | ------ | --- |
-| `AppleLiveSpeechIO` | Every Mac, no downloads. One `AVAudioEngine` with voice processing on the input node (Apple's echo cancellation) and Momo's voice on a player node of the same engine, so the canceller has the reference. Recognition runs per turn with `SpeechAnalyzer` when the language's model is installed (macOS 26), Apple Speech otherwise. `LiveTurnDetector` ends a turn after about 0.6 s of quiet when the words sound complete, longer when they trail off ("and", "çünkü", a comma), and when unchanged words stall in a noisy room. Replies are rendered per sentence with `AVSpeechSynthesizer.write` (or an OpenAI voice streamed as PCM) into the player; the mouth follows the output level. Barge-in needs a louder, longer sound while Momo talks, stops playback at once and replays the last half second of audio into the new recognition session. |
-| `HelperLiveSpeechIO` | The open source engine in the `momo-voice` helper (shipped next to the app's executable, macOS 15+ on Apple silicon). `LiveVoiceHelperClient` launches it, checks the protocol version in the handshake, shares it between users and lets it quit when idle; a helper that crashes mid-session is restarted once. `LiveVoiceModels` lists, downloads (only when the user presses Download) and deletes its models for Settings. |
+| `AppleLiveSpeechIO` | Every Mac, no downloads. One `AVAudioEngine` with voice processing on the input node (Apple's echo cancellation) and Momo's voice on a player node of the same engine, so the canceller has the reference. Recognition runs per turn with `SpeechAnalyzer` when the language's model is installed (macOS 26), Apple Speech otherwise. `LiveTurnDetector` ends a turn after about 0.6 s of quiet when the words sound complete, longer when they trail off ("and", "çünkü", a comma), and when unchanged words stall in a noisy room. Replies are rendered per sentence with `AVSpeechSynthesizer.write` (or an OpenAI voice streamed as PCM) into the player; the mouth follows the output level. Barge-in needs a louder, longer sound while Momo talks, stops playback at once and replays the last half second of audio into the new recognition session. The output node is created before voice processing is turned on (otherwise the engine fails with -10875); a device that refuses voice processing runs without it, and without barge-in. |
+| `HelperLiveSpeechIO` | The open source engine in the `momo-voice` helper (shipped next to the app's executable, macOS 15+ on Apple silicon). `LiveVoiceHelperClient` launches it, checks the protocol version in the handshake, shares it between users and lets it quit when idle; a helper that crashes mid-session is restarted once. `LiveVoiceModels` lists, downloads (only when the user presses Download) and deletes its models for Settings, and prepares them: the first load of a new helper build compiles them for about half a minute, so it runs in the background (after a download, or when a conversation finds them cold) while Apple's engine talks, and is remembered per build and language. A start that doesn't listen within 12 s ends the helper, so it can't open the microphone later. |
 | `RealtimeConversation` | Cloud realtime voice (OpenAI Realtime or Gemini Live) with the user's key, offered once a key exists and never in local-only mode; Automatic never picks it. Not a speech layer: the cloud model is the live layer and hands real work to the brain (see below). |
+
+When an engine can't start, the next one takes over (helper or cloud → Apple → the classic
+voice flow, `LiveFallbackPlan`), and the bubble says why in plain words with a button where
+the user can fix it (`LiveVoiceNotice`: download the voices in Settings → Voice, allow the
+microphone or speech recognition). A missing permission stops every engine, so it goes
+straight to that message.
 
 Everything runs on the Mac with the Apple and helper engines, except what the user already
 chose to send elsewhere: an OpenAI voice (each spoken sentence, logged in Privacy) and the
@@ -282,7 +290,7 @@ input, JSON events on standard output.
 
 ```mermaid
 flowchart LR
-  Momo["Momo"] -- "start, speak, cancelSpeech" --> Helper
+  Momo["Momo"] -- "prepare, start, speak, cancelSpeech" --> Helper
   Helper -- "partial, turn, mouth, interrupted" --> Momo
   subgraph Helper["momo-voice"]
     Mic["Microphone"] --> VPIO["Voice processing\n(echo cancellation)"]

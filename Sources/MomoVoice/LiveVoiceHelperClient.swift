@@ -143,7 +143,7 @@ public final class LiveVoiceHelperClient {
     ///   - handshakeTimeout: How long the helper may take to say it is ready.
     ///   - idleDelay: How long the helper keeps running after the last user let go.
     public init(
-        handshakeTimeout: Duration = .seconds(10), idleDelay: Duration = .seconds(20),
+        handshakeTimeout: Duration = .seconds(5), idleDelay: Duration = .seconds(20),
         makeTransport: @escaping () -> any LiveVoiceTransport
     ) {
         self.handshakeTimeout = handshakeTimeout
@@ -273,6 +273,21 @@ public final class LiveVoiceHelperClient {
             try? await Task.sleep(for: .seconds(2))
             transport.terminate()
         }
+        broadcast(.disconnected(crashed: false))
+    }
+
+    /// Ends the helper at once, for a helper that is stuck: it may be busy with a command
+    /// and not read `quit` until it is done, which for a start that timed out means opening
+    /// the microphone while another engine already uses it.
+    public func terminate() {
+        idleTimer?.cancel()
+        idleTimer = nil
+        guard let transport else { return }
+        isQuitting = true
+        self.transport = nil
+        isReady = false
+        transport.terminate()
+        finishHandshake(.failure(LiveVoiceHelperError.notRunning))
         broadcast(.disconnected(crashed: false))
     }
 
