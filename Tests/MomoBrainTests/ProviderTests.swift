@@ -282,6 +282,18 @@ struct PromptAndSettingsTests {
         #expect(prompt.contains("search the web"))
     }
 
+    @Test("asks for short spoken replies in live voice conversations")
+    func spokenPrompt() {
+        let spoken = SystemPrompt.make(memories: [], languageName: "English", isSpoken: true)
+        #expect(spoken.contains("one to three short"))
+        #expect(spoken.contains("Never use Markdown"))
+        #expect(spoken.contains("URLs"))
+        #expect(!spoken.contains("Use Markdown sparingly"))
+        let written = SystemPrompt.make(memories: [], languageName: "English")
+        #expect(written.contains("Use Markdown sparingly"))
+        #expect(!written.contains("read aloud"))
+    }
+
     @Test("keeps core and related memories when there are too many")
     func relevantMemories() {
         var memories = (0..<40).map { Memory(text: "Filler fact number \($0)") }
