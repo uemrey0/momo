@@ -61,6 +61,12 @@
     enum Snapshots {
         static func renderIfRequested() -> Bool {
             let arguments = CommandLine.arguments
+            if let index = arguments.firstIndex(of: "--render-hero-frames"),
+                index + 1 < arguments.count
+            {
+                MarketingImages.renderHeroFrames(to: URL(fileURLWithPath: arguments[index + 1]))
+                exit(0)
+            }
             if let index = arguments.firstIndex(of: "--render-icon"), index + 1 < arguments.count {
                 renderIcon(to: URL(fileURLWithPath: arguments[index + 1]))
                 exit(0)
@@ -125,8 +131,6 @@
                         startPoint: .topLeading, endPoint: .bottomTrailing))
             }
 
-            save(panel(), "panel-empty", folder)
-
             assistant.messages = [
                 ChatMessage(role: .user, text: "Remind me to call Ayşe tomorrow at 3"),
                 ChatMessage(
@@ -143,42 +147,6 @@
                     isStreaming: true),
             ]
             save(panel(), "panel-chat", folder)
-
-            let heroEngine = FaceEngine()
-            heroEngine.setMood(.happy)
-            let heroSnapshot = settle(heroEngine)
-            let notch = FaceLayout(topInset: 32, capWidth: 200)
-            let hero = ZStack(alignment: .top) {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.42, green: 0.55, blue: 0.78),
-                        Color(red: 0.86, green: 0.66, blue: 0.72),
-                        Color(red: 0.98, green: 0.82, blue: 0.66),
-                    ], startPoint: .topLeading, endPoint: .bottomTrailing)
-                HStack {
-                    Text(verbatim: "  Finder    File    Edit    View    Go    Window")
-                    Spacer()
-                    Text(verbatim: "Sat 09:41  ")
-                }
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.9))
-                .frame(height: 32)
-                .background(.black.opacity(0.18))
-                PanelView(
-                    assistant: assistant, today: today, notes: notes, state: PanelState(),
-                    openSettings: {}, close: {}
-                )
-                .environment(\.snapshotMode, true)
-                .shadow(color: .black.opacity(0.35), radius: 30, y: 16)
-                .padding(.top, 150)
-                Canvas { context, _ in
-                    FaceRenderer.draw(heroSnapshot, in: &context, layout: notch)
-                }
-                .frame(width: notch.canvasSize.width, height: notch.canvasSize.height)
-            }
-            .frame(width: 1280, height: 780)
-            .clipped()
-            save(hero, "hero", folder, jpeg: true)
 
             let characters = LazyVGrid(
                 columns: Array(repeating: GridItem(.fixed(250), spacing: 0), count: 4), spacing: 0
@@ -208,33 +176,18 @@
                     ],
                     startPoint: .top, endPoint: .bottom))
             save(characters, "characters", folder)
+            MarketingImages.render(to: folder)
 
             state.tab = .today
             save(panel(), "panel-today", folder)
             state.tab = .notes
             save(panel(), "panel-notes", folder)
 
-            for mood in [Mood.idle, .happy, .thinking, .sleepy] {
-                let engine = FaceEngine()
-                engine.isLifeEnabled = false
-                engine.setMood(mood)
-                var face = FaceState.resting
-                for _ in 0..<90 { face = engine.advance(by: 1 / 60, input: .init()) }
-                let snapshot = face
-                let layout = FaceLayout()
-                save(
-                    Canvas { context, _ in FaceRenderer.draw(snapshot, in: &context, layout: layout)
-                    }
-                    .frame(width: layout.canvasSize.width, height: layout.canvasSize.height)
-                    .background(Color(red: 0.8, green: 0.84, blue: 0.9)),
-                    "face-\(mood.rawValue)", folder)
-            }
             print("Snapshots written to \(folder.path)")
         }
 
         /// Runs an engine until it has settled, with the eyes open (not mid-blink).
-        private static func settle(_ engine: FaceEngine, pointer: SIMD2<Double>? = nil) -> FaceState
-        {
+        static func settle(_ engine: FaceEngine, pointer: SIMD2<Double>? = nil) -> FaceState {
             engine.isLifeEnabled = false
             engine.reducesMotion = true
             let input = FaceEngine.Input(pointer: pointer)
@@ -284,7 +237,7 @@
             print("Icon written to \(url.path)")
         }
 
-        private static func save(
+        static func save(
             _ view: some View, _ name: String, _ folder: URL, jpeg: Bool = false
         ) {
             let renderer = ImageRenderer(content: view)

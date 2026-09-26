@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/hero.gif" alt="Meet Momo, your Mac's little buddy" width="100%">
+</p>
+
 # Momo
 
 [![CI](https://github.com/uemrey0/momo/actions/workflows/ci.yml/badge.svg)](https://github.com/uemrey0/momo/actions/workflows/ci.yml)
@@ -11,7 +15,7 @@ privately on your Mac whenever it can. When a job needs a bigger brain, it asks 
 borrowing the ChatGPT or Gemini plan you already pay for, or an API key you bring. There is no
 Momo server, no account and no subscription.
 
-![Momo hanging from the notch with its chat panel open](docs/images/hero.jpg)
+![Alive, not animated: Momo in different moods and looks](docs/images/alive.jpg)
 
 ## Why Momo
 
@@ -35,6 +39,8 @@ Momo server, no account and no subscription.
   use your tasks and notes, and it can use your own MCP servers too.
 - **Speaks your language.** English and Turkish today; translations are a single file.
 - **Make it yours.** Seven looks built in, and your own with a few lines of JSON.
+
+![Your Mac first, your subscription when it matters](docs/images/brains.jpg)
 
 <p align="center">
   <img src="docs/images/panel-today.png" width="32%" alt="Today: tasks and habits">

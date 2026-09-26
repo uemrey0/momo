@@ -36,11 +36,11 @@ Useful targets:
 | `make dmg`       | Pack `dist/Momo-<version>.dmg`                            |
 | `make lint`      | Check formatting (`make format` fixes it)                 |
 | `make l10n`      | Check that every UI string is translated                  |
-| `make snapshots` | Regenerate the README images                              |
+| `make snapshots` | Regenerate the README images and animated hero (needs ffmpeg) |
 | `make icon`      | Regenerate the app icon from the character renderer       |
 
-Debug builds also understand `--snapshot <folder>` (render the UI to PNG),
-`--render-icon <file>` and `--ask "<message>"` (run one message through the whole assistant,
+Debug builds also understand `--snapshot <folder>` (render the UI and README banners),
+`--render-hero-frames <folder>`, `--render-icon <file>` and `--ask "<message>"` (run one message through the whole assistant,
 optionally with `--brain-url` and `--brain-model` for an OpenAI-compatible server).
 
 ## Branches
