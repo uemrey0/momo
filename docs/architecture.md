@@ -183,6 +183,33 @@ the character (and a different menu bar icon) the whole time it records.
    like "what did we decide in yesterday's stand-up?", also over MCP; `start_meeting_notes`
    (confirmed) and `stop_meeting_notes` are app tools.
 
+## The live voice helper
+
+`momo-voice` ([`Helpers/momo-voice`](../Helpers/momo-voice/README.md)) runs Momo's open
+source, on-device live voice engine in a separate process, so the app stays on macOS 14 with
+no dependencies ([ADR 0006](adr/0006-open-source-voice-helper.md)). It ships in
+`Contents/MacOS` next to `momo-mcp` and speaks `MomoLiveProtocol`: JSON commands on standard
+input, JSON events on standard output.
+
+```mermaid
+flowchart LR
+  Momo["Momo"] -- "start, speak, cancelSpeech" --> Helper
+  Helper -- "partial, turn, mouth, interrupted" --> Momo
+  subgraph Helper["momo-voice"]
+    Mic["Microphone"] --> VPIO["Voice processing\n(echo cancellation)"]
+    VPIO --> VAD["Silero VAD"] --> Turn["Smart Turn"]
+    VPIO --> ASR["Nemotron streaming"]
+    TTS["Kokoro · Supertonic · Mac voices"] --> Out["Speaker"]
+    Out -. reference .-> VPIO
+  end
+```
+
+The helper owns the microphone and speaker during a session, because Apple's voice processing
+cancels only what plays through the same audio engine. `MomoVoiceCore` holds its pure logic
+(model selection per language, sentence splitting, barge-in, protocol dispatch) and is tested
+on its own; `MomoVoiceEngine` holds the audio and the speech-swift models, which are
+downloaded only on request into `~/Library/Application Support/Momo/Models`.
+
 ## Data and privacy
 
 - `MomoStore` keeps everything in `~/Library/Application Support/Momo/data.json`, written
