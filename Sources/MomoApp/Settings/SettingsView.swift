@@ -242,7 +242,9 @@ struct ReactionsSettingsView: View {
 
     var body: some View {
         Form {
-            ReactionsSection(settings: settings, calendar: model.calendar)
+            ReactionsSection(
+                settings: settings, calendar: model.calendar,
+                openPermissions: { model.openPermissions($0) })
             Section {
                 LabeledContent(L("Doze off after")) {
                     HStack {
@@ -281,13 +283,6 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            Section {
-                Picker(L("Personality"), selection: $settings.preferences.personality) {
-                    ForEach(Personality.allCases) { personality in
-                        Text(verbatim: personality.displayName).tag(personality)
-                    }
-                }
-            }
             Section {
                 LabeledContent(L("Open Momo")) {
                     Text(verbatim: "⌥ Space").font(.system(.body, design: .monospaced))

@@ -141,24 +141,30 @@ struct WebSearchSection: View {
     }
 }
 
-/// Calendar access and the things Momo reacts to.
+/// The things Momo reacts to, with a pointer to Permissions when calendar access is off.
 struct ReactionsSection: View {
     @Bindable var settings: AppSettings
     var calendar: CalendarService
-    @State private var calendarAllowed = false
+    var openPermissions: (MacPermission?) -> Void
+    @State private var calendarAllowed = true
 
     var body: some View {
         Section {
-            HStack {
+            VStack(alignment: .leading, spacing: 4) {
                 Toggle(L("Remind me before meetings"), isOn: $settings.preferences.reactsToCalendar)
-                Spacer()
-                if !calendarAllowed {
-                    Button(L("Allow calendar access")) {
-                        Task { calendarAllowed = await calendar.requestAccess() }
+                if settings.preferences.reactsToCalendar && !calendarAllowed {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(verbatim: L("Calendar access is off."))
+                            .foregroundStyle(.secondary)
+                        Button(L("Open Permissions")) { openPermissions(.calendars) }
+                            .buttonStyle(.link)
                     }
-                    .controlSize(.small)
+                    .font(.caption)
                 }
             }
+            .settingsAnchor("reactions.calendar")
             Toggle(L("Dance along when music plays"), isOn: $settings.preferences.reactsToMusic)
             Toggle(L("Worry when the battery is low"), isOn: $settings.preferences.reactsToBattery)
             Toggle(L("Yawn when it gets very late"), isOn: $settings.preferences.reactsToLateNight)
@@ -171,5 +177,10 @@ struct ReactionsSection: View {
                 ))
         }
         .onAppear { calendarAllowed = calendar.isAuthorized }
+        .onReceive(
+            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+        ) { _ in
+            calendarAllowed = calendar.isAuthorized
+        }
     }
 }

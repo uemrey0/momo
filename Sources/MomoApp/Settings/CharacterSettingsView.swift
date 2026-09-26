@@ -1,7 +1,7 @@
 import MomoFace
 import SwiftUI
 
-/// Lets the user pick how Momo looks, with live previews.
+/// Lets the user pick how Momo looks, with live previews, and how it talks.
 struct CharacterSettingsView: View {
     @Bindable var settings: AppSettings
     var model: AppModel
@@ -19,6 +19,19 @@ struct CharacterSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 10) {
+                Picker(L("Personality"), selection: $settings.preferences.personality) {
+                    ForEach(Personality.allCases) { personality in
+                        Text(verbatim: personality.displayName).tag(personality)
+                    }
+                }
+                .fixedSize()
+                .settingsAnchor("character.personality")
+                Text(verbatim: L("How Momo talks to you."))
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding([.horizontal, .top], 20)
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 14)], spacing: 14) {
                     ForEach(characters) { character in
@@ -31,7 +44,8 @@ struct CharacterSettingsView: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
             HStack {
                 Text(verbatim: L("Make your own character with a small JSON file."))

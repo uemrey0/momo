@@ -8,7 +8,6 @@ struct PrivacySettingsView: View {
     @Bindable var settings: AppSettings
     var model: AppModel
     @State private var confirmingErase = false
-    @State private var isAccessibilityTrusted = AXIsProcessTrusted()
 
     init(model: AppModel) {
         self.model = model
@@ -31,20 +30,10 @@ struct PrivacySettingsView: View {
             }
 
             Section {
-                LabeledContent(L("Screen reading")) {
-                    if ScreenReader.hasPermission {
-                        Text(verbatim: L("Allowed")).foregroundStyle(.secondary)
-                    } else {
-                        Button(L("Allow…")) { ScreenReader.requestPermission() }
-                    }
+                LabeledContent(L("Screen, selected text and other access")) {
+                    Button(L("Open Permissions")) { model.openPermissions() }
                 }
-                LabeledContent(L("Selected text")) {
-                    if isAccessibilityTrusted {
-                        Text(verbatim: L("Allowed")).foregroundStyle(.secondary)
-                    } else {
-                        Button(L("Allow…")) { requestAccessibility() }
-                    }
-                }
+                .settingsAnchor("privacy.permissions")
             } footer: {
                 Text(
                     verbatim: L(
@@ -130,17 +119,6 @@ struct PrivacySettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .onReceive(
-            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
-        ) {
-            _ in isAccessibilityTrusted = AXIsProcessTrusted()
-        }
-    }
-
-    /// Shows the system prompt that leads to System Settings → Accessibility.
-    private func requestAccessibility() {
-        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        isAccessibilityTrusted = AXIsProcessTrustedWithOptions(options)
     }
 }
 

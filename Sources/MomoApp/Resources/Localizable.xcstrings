@@ -493,16 +493,6 @@
         }
       }
     },
-    "Allow calendar access" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Takvim erişimine izin ver"
-          }
-        }
-      }
-    },
     "Allowed" : {
       "localizations" : {
         "tr" : {
@@ -840,6 +830,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Takvim ve anımsatıcılar"
+          }
+        }
+      }
+    },
+    "Calendar access is off." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takvim erişimi kapalı."
           }
         }
       }
@@ -2324,6 +2324,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Konuşurken ⌥⇧Boşluk'u basılı tut, göndermek için bırak. Momo çentiğin altındaki küçük bir baloncukta yanıt verir; sohbeti açmak için ona tıkla ya da iptal etmek için Esc'ye bas."
+          }
+        }
+      }
+    },
+    "How Momo talks to you." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun seninle nasıl konuştuğu."
           }
         }
       }
@@ -4697,12 +4707,12 @@
         }
       }
     },
-    "Screen reading" : {
+    "Screen, selected text and other access" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekranı okuma"
+            "value" : "Ekran, seçili metin ve diğer erişimler"
           }
         }
       }
@@ -4823,16 +4833,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ne üzerinde çalıştığını görür: öndeki uygulama, seçili metin, ekranın."
-          }
-        }
-      }
-    },
-    "Selected text" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seçili metin"
           }
         }
       }
