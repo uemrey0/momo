@@ -29,7 +29,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         model.start()
         #if DEBUG
-            if CommandLine.arguments.contains("--show-settings") { model.openSettings() }
+            let arguments = CommandLine.arguments
+            if arguments.contains("--show-settings") { model.openSettings() }
+            // `--show-setup ollama` opens the AI page with that option's setup sheet.
+            if let index = arguments.firstIndex(of: "--show-setup"), index + 1 < arguments.count,
+                let option = BrainOption(rawValue: arguments[index + 1])
+            {
+                model.settingsNavigation.setupOption = option
+                model.openSettings(.ai)
+            }
         #endif
     }
 }

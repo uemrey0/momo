@@ -1,8 +1,8 @@
 import Foundation
 import MomoKit
 
-/// Uses the user's ChatGPT plan through the official Codex CLI, which the user installs and
-/// signs in to themselves. Momo never sees their credentials.
+/// Uses the user's ChatGPT plan through Codex: the official Codex CLI or the copy that comes
+/// with the ChatGPT app. Codex handles sign-in; Momo never sees the credentials.
 ///
 /// Runs `codex exec --json` in a read-only sandbox. When the Momo MCP server is available,
 /// Codex can use Momo's tasks, notes and memory tools through it.
@@ -28,12 +28,11 @@ public struct CodexProvider: ChatProvider {
     }
 
     public func availability() async -> ProviderAvailability {
-        guard CommandLocator.locate("codex") != nil else {
-            return .unavailable(
-                "Install the Codex CLI (npm install -g @openai/codex), then run “codex login”.")
+        guard CodexSetup.locate() != nil else {
+            return .unavailable("Install the ChatGPT app for Mac, then connect it in Settings.")
         }
-        guard Self.isSignedIn else {
-            return .unavailable("Run “codex login” in Terminal to sign in with your ChatGPT plan.")
+        guard await CodexSetup.isSignedIn() else {
+            return .unavailable("Sign in with ChatGPT in Settings → AI.")
         }
         return .ready
     }
@@ -57,8 +56,8 @@ public struct CodexProvider: ChatProvider {
     {
         AsyncThrowingStream { continuation in
             let task = Task {
-                guard let executable = CommandLocator.locate("codex") else {
-                    continuation.finish(throwing: ProviderError("The Codex CLI is not installed."))
+                guard let executable = CodexSetup.locate() else {
+                    continuation.finish(throwing: ProviderError("Codex was not found."))
                     return
                 }
                 let prompt = CLIPrompt.make(request)
@@ -159,12 +158,10 @@ public struct GeminiCLIProvider: ChatProvider {
 
     public func availability() async -> ProviderAvailability {
         guard CommandLocator.locate("gemini") != nil else {
-            return .unavailable(
-                "Install the Gemini CLI (npm install -g @google/gemini-cli), then run “gemini” once to sign in."
-            )
+            return .unavailable("Use a free Google AI key instead, in Settings → AI.")
         }
         guard Self.isSignedIn else {
-            return .unavailable("Run “gemini” in Terminal once to sign in with Google.")
+            return .unavailable("Sign in with Google in Settings → AI.")
         }
         return .ready
     }
@@ -251,7 +248,7 @@ enum CLIPrompt {
         if detail.localizedCaseInsensitiveContains("login")
             || detail.localizedCaseInsensitiveContains("auth")
         {
-            return "\(tool) needs you to sign in again. Open Terminal and follow its login steps."
+            return "\(tool) needs you to sign in again in Settings → AI."
         }
         return detail.isEmpty
             ? "\(tool) stopped unexpectedly (exit code \(failure.status))."

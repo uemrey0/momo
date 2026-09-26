@@ -90,36 +90,42 @@ struct OnboardingView: View {
                 .font(.system(size: 24, weight: .bold, design: .rounded))
             Text(
                 verbatim: L(
-                    "I think on your Mac first. For bigger jobs I can borrow the ChatGPT or Gemini plan you already have, or an API key. I always ask before anything leaves your Mac."
+                    "Connect at least one. It takes a minute and never needs Terminal. I think on your Mac first and always ask before anything leaves it."
                 )
             )
             .foregroundStyle(Theme.secondaryText)
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(model.assistant.providerStatuses) { status in
-                    HStack {
-                        Image(
-                            systemName: status.availability.isReady
-                                ? "checkmark.circle.fill" : "circle.dashed"
-                        )
-                        .foregroundStyle(
-                            status.availability.isReady ? Theme.accent : Theme.tertiaryText)
-                        Text(verbatim: status.info.name)
-                        Spacer()
-                        if case .unavailable(let reason) = status.availability {
-                            Text(verbatim: reason)
-                                .font(.caption)
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach([BrainOption.chatGPT, .gemini, .ollama, .appleIntelligence]) { option in
+                    HStack(spacing: 10) {
+                        Image(systemName: option.systemImage)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 26, height: 26)
+                            .background(option.tint.gradient, in: RoundedRectangle(cornerRadius: 7))
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(verbatim: option.title).font(.system(size: 13, weight: .medium))
+                            Text(verbatim: option.subtitle)
+                                .font(.system(size: 11.5))
                                 .foregroundStyle(Theme.tertiaryText)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                                .frame(maxWidth: 240, alignment: .trailing)
+                        }
+                        Spacer()
+                        if model.isConnected(option) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Theme.accent)
+                        } else {
+                            Button(L("Connect")) {
+                                model.settingsNavigation.setupOption = option
+                                model.openSettings(.ai)
+                            }
+                            .controlSize(.small)
                         }
                     }
-                    .font(.system(size: 13))
                 }
             }
             .padding(12)
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
-            Button(L("Set up brains in Settings")) { model.openSettings(.ai) }
+            Button(L("See all options")) { model.openSettings(.ai) }
+                .buttonStyle(.link)
         }
     }
 

@@ -24,3 +24,4 @@ DerivedData/
 .vscode/
 .idea/
 *.swp
+__pycache__/
