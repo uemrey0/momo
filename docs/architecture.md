@@ -188,7 +188,7 @@ Engines (`LiveEngineSelector`; Automatic picks the helper when its models are do
 | ------ | --- |
 | `AppleLiveSpeechIO` | Every Mac, no downloads. One `AVAudioEngine` with voice processing on the input node (Apple's echo cancellation) and Momo's voice on a player node of the same engine, so the canceller has the reference. Recognition runs per turn with `SpeechAnalyzer` when the language's model is installed (macOS 26), Apple Speech otherwise. `LiveTurnDetector` ends a turn after about 0.6 s of quiet when the words sound complete, longer when they trail off ("and", "çünkü", a comma), and when unchanged words stall in a noisy room. Replies are rendered per sentence with `AVSpeechSynthesizer.write` (or an OpenAI voice streamed as PCM) into the player; the mouth follows the output level. Barge-in needs a louder, longer sound while Momo talks, stops playback at once and replays the last half second of audio into the new recognition session. |
 | `HelperLiveSpeechIO` | The open source engine in the `momo-voice` helper (shipped next to the app's executable, macOS 15+ on Apple silicon). `LiveVoiceHelperClient` launches it, checks the protocol version in the handshake, shares it between users and lets it quit when idle; a helper that crashes mid-session is restarted once. `LiveVoiceModels` lists, downloads (only when the user presses Download) and deletes its models for Settings. |
-| Cloud realtime | `LiveEngineChoice.cloudRealtime` is reserved for OpenAI Realtime or Gemini Live used as a speech layer; it is not offered yet. |
+| `RealtimeConversation` | Cloud realtime voice (OpenAI Realtime or Gemini Live) with the user's key, offered once a key exists and never in local-only mode; Automatic never picks it. Not a speech layer: the cloud model is the live layer and hands real work to the brain (see below). |
 
 Everything runs on the Mac with the Apple and helper engines, except what the user already
 chose to send elsewhere: an OpenAI voice (each spoken sentence, logged in Privacy) and the
@@ -208,11 +208,24 @@ function calls, errors and closed. The model is the live layer and owns turn-tak
 the user, answers small talk itself and hands everything real to the brain through
 `ask_momo` (`MomoRealtimeAgent`). `AskMomoCoordinator` runs each request through the assistant
 and carries confirmation questions through the conversation: the pending call returns
-`needs_confirmation`, the model asks aloud and calls `ask_momo` again with the answer. In
-`LiveConversation` this is an engine of its own: the app hosts the `AVAudioEngine`
-(microphone tap in, `RealtimePlaybackBuffer` pulled by a source node out), stops playback and
-calls `interrupt(playedMilliseconds:)` when the user talks over Momo, asks for consent first
-(the audio leaves the Mac, `RealtimeVoicePrivacy`) and logs `usage` with `recordOutbound`.
+`needs_confirmation`, the model asks aloud and calls `ask_momo` again with the answer.
+`RealtimeConversation` wires this into live conversation (Settings → Voice → Engine → Cloud
+realtime; `LiveConversing` lets `VoiceController` host it like `LiveConversation`).
+`RealtimeAudioEngine` runs one `AVAudioEngine` with voice processing on the input (echo
+cancellation) and a source node pulling a lock-protected `RealtimePlaybackBuffer` at the
+session's output rate; the mouth follows the output level. When the user talks over Momo,
+playback stops, `interrupt(playedMilliseconds:)` reports what was heard and the rest of the
+cancelled response is dropped. Each `ask_momo` request runs through `AssistantRealtimeBrain`
+as a spoken chat message, so it lands in the chat history; the assistant's consent and
+confirmation questions go back through the model as `needs_confirmation`. The bubble shows
+both transcripts and the running tool's label while the assistant works. The conversation
+ends like a local one (follow-up window, closing phrase, Esc or the shortcut); with push to
+talk the model hears silence while the key is up. A session the service drops mid-exchange is
+reopened once (`RealtimeReconnectPolicy`; the new session starts without the earlier
+context); one that fails is reported and the next conversation runs on the Mac. The first
+conversation with a provider asks for consent in the bubble (or in Settings) with the
+`RealtimeVoicePrivacy` notice, and again when the provider changes; each session is logged
+with `recordOutbound` when it closes. Keys come from the Keychain and never appear in logs.
 
 ## Meeting notes
 

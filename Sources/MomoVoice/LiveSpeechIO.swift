@@ -92,9 +92,10 @@ public enum LiveSpeechEvent: Sendable, Equatable {
 /// The speech layer of a live conversation: continuous listening with turn detection, echo
 /// cancellation and barge-in, and streamed speech output.
 ///
-/// Engines: ``AppleLiveSpeechIO`` (built in, every Mac), ``HelperLiveSpeechIO`` (the open
-/// source `momo-voice` helper) and, later, cloud realtime sessions. Commands mirror
-/// `LiveVoiceCommand` of the helper protocol.
+/// Engines: ``AppleLiveSpeechIO`` (built in, every Mac) and ``HelperLiveSpeechIO`` (the open
+/// source `momo-voice` helper). Cloud realtime models are not a speech layer but the live
+/// layer itself (``RealtimeConversation``). Commands mirror `LiveVoiceCommand` of the helper
+/// protocol.
 ///
 /// Rules every engine follows:
 /// - Events arrive on the main actor through ``onEvent``, in order.
