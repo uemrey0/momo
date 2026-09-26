@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- momo-voice runs with the hardened runtime as a child of Momo and opens the microphone
+	     itself, so it needs its own audio-input entitlement. The permission prompt and the
+	     user's choice belong to Momo, the responsible process. MLX and Core ML need no JIT or
+	     unsigned-memory exceptions. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+</dict>
+</plist>

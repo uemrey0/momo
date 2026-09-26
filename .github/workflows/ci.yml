@@ -40,3 +40,36 @@ jobs:
 
       - name: Build app bundle
         run: make app
+
+  voice-helper:
+    name: Build and test the voice helper
+    # The helper needs the macOS 15 SDK (Xcode 16 or later) and Apple Silicon for MLX.
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install the Metal toolchain
+        # MLX compiles its Metal shaders at build time.
+        run: xcodebuild -downloadComponent MetalToolchain || true
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build/voice-helper/SourcePackages
+          key: voice-helper-${{ hashFiles('Helpers/momo-voice/Package.resolved') }}
+
+      - name: Build
+        run: make voice-helper
+
+      - name: Test
+        run: make voice-helper-test
+
+      - name: Run
+        run: .build/voice-helper/Build/Products/Release/momo-voice --list-models tr-TR

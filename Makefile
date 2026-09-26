@@ -1,7 +1,7 @@
 SWIFT ?= swift
-SWIFT_SOURCES = Sources Tests Package.swift
+SWIFT_SOURCES = Sources Tests Package.swift Helpers/momo-voice/Sources Helpers/momo-voice/Tests Helpers/momo-voice/Package.swift
 
-.PHONY: build test run app dmg icon open lint format l10n snapshots clean help
+.PHONY: build test run app voice-helper voice-helper-test dmg icon open lint format l10n snapshots clean help
 
 build: ## Build all targets
 	$(SWIFT) build
@@ -14,6 +14,14 @@ run: ## Build and launch Momo from the command line (English UI only)
 
 app: ## Build dist/Momo.app with all localizations
 	./Scripts/build-app.sh
+
+voice-helper: ## Build the on-device live voice helper (macOS 15, Apple Silicon)
+	./Scripts/build-voice-helper.sh
+
+voice-helper-test: ## Run the live voice helper's tests
+	cd Helpers/momo-voice && xcodebuild test -scheme momo-voice \
+		-destination 'platform=macOS,arch=arm64' -derivedDataPath ../../.build/voice-helper \
+		-skipPackagePluginValidation -skipMacroValidation -quiet
 
 dmg: app ## Build dist/Momo-<version>.dmg
 	./Scripts/make-dmg.sh
@@ -38,7 +46,7 @@ format: ## Format the code in place
 	$(SWIFT) format --in-place --recursive $(SWIFT_SOURCES)
 
 clean: ## Remove build products
-	rm -rf .build dist
+	rm -rf .build dist Helpers/momo-voice/.build
 
 help: ## List the available targets
-	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-8s %s\n", $$1, $$2}'
+	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-18s %s\n", $$1, $$2}'

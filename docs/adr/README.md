@@ -13,6 +13,7 @@ new ADR that supersedes the old one.
 | [0003](0003-bring-your-own-subscription.md) | Use the user's own subscriptions and keys instead of a hosted service | Accepted |
 | [0004](0004-procedural-character-engine.md) | Draw the character procedurally | Accepted |
 | [0005](0005-mcp-in-both-directions.md) | Speak MCP in both directions | Accepted |
+| [0006](0006-open-source-voice-helper.md) | Run the open source live voice engine in a helper process | Accepted |
 
 To add one, copy the structure of an existing ADR, use the next number, and add it to this
 table.
