@@ -110,15 +110,24 @@ public final class LiveConversation {
     }
 
     public private(set) var state: State = .idle {
-        didSet { if state != oldValue { onStateChange?(state) } }
+        didSet {
+            guard state != oldValue else { return }
+            updateListening()
+            onStateChange?(state)
+        }
     }
     /// Whether Momo's voice is playing (a reply, an acknowledgement or a question).
     public private(set) var isSpeaking = false {
         didSet { if isSpeaking != oldValue { onSpeakingChange?(isSpeaking) } }
     }
-    /// While set (push to talk held), the follow-up window never runs out.
+    /// While set (push to talk held), the follow-up window never runs out. With push to talk
+    /// (``LiveSpeechConfiguration/endsTurnsOnPause`` off), turns are only listened to while
+    /// it is set.
     public var holdsWindowOpen = false {
-        didSet { if !holdsWindowOpen { restartWindow() } }
+        didSet {
+            updateListening()
+            if !holdsWindowOpen { restartWindow() }
+        }
     }
 
     public var onStateChange: ((State) -> Void)?
@@ -164,6 +173,10 @@ public final class LiveConversation {
     private var ticker: LiveTimer?
     private var closingTimer: LiveTimer?
     private var hasEnded = false
+    private var hasSentTurn = false
+    private var isListeningPaused = false
+    /// Push to talk was let go and the turn it ended hasn't arrived yet.
+    private var awaitsHeldTurn = false
 
     public init(
         io: any LiveSpeechIO, brain: any LiveBrain, phrases: LiveConversationPhrases,
@@ -222,6 +235,7 @@ public final class LiveConversation {
     /// Ends the user's turn now (push to talk let go).
     public func endTurn() {
         guard !hasEnded else { return }
+        awaitsHeldTurn = true
         io.endTurn()
     }
 
@@ -340,6 +354,10 @@ public final class LiveConversation {
     // MARK: - Turns
 
     private func heard(_ raw: String) {
+        if awaitsHeldTurn {
+            awaitsHeldTurn = false
+            updateListening()
+        }
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         switch state {
         case .awaitingAnswer:
@@ -380,6 +398,7 @@ public final class LiveConversation {
         planner.begin(at: clock.now)
         hasRepeatedQuestion = false
         window?.cancel()
+        hasSentTurn = true
         let accepted = brain.send(turn) { [weak self] event in
             guard let self, self.replyNumber == number, !self.hasEnded else { return }
             self.handle(event)
@@ -431,7 +450,6 @@ public final class LiveConversation {
         promptID = nil
         finalReplyID = nil
         io.cancelSpeech()
-        if state == .awaitingButtons { io.resumeListening() }
         isSpeaking = false
     }
 
@@ -558,12 +576,10 @@ public final class LiveConversation {
             // Still unclear: leave the buttons and stop listening until one is pressed.
             state = .awaitingButtons
             window?.cancel()
-            io.pauseListening()
         }
     }
 
     private func promptResolved() {
-        if state == .awaitingButtons { io.resumeListening() }
         if promptID != nil {
             promptID = nil
             io.cancelSpeech()
@@ -576,7 +592,19 @@ public final class LiveConversation {
         scheduleTick(for: replyNumber)
     }
 
-    // MARK: - Listening window
+    // MARK: - Listening
+
+    /// Pauses turn listening while a question waits for its buttons, and with push to talk
+    /// while the key is up; resumes it otherwise.
+    private func updateListening() {
+        guard !hasEnded, state != .idle, state != .starting else { return }
+        let paused =
+            state == .awaitingButtons
+            || (!settings.speech.endsTurnsOnPause && !holdsWindowOpen && !awaitsHeldTurn)
+        guard paused != isListeningPaused else { return }
+        isListeningPaused = paused
+        if paused { io.pauseListening() } else { io.resumeListening() }
+    }
 
     /// Starts the follow-up window again: the conversation ends after it passes without
     /// the user speaking.
@@ -589,7 +617,9 @@ public final class LiveConversation {
         guard !hasEnded, [.listening, .followUp].contains(state), !holdsWindowOpen else {
             return
         }
-        window = clock.schedule(after: settings.followUpWindow) { [weak self] in
+        // The first turn gets a little longer, even when follow-ups get no time at all.
+        let delay = hasSentTurn ? settings.followUpWindow : max(settings.followUpWindow, 8)
+        window = clock.schedule(after: delay) { [weak self] in
             guard let self, !self.holdsWindowOpen,
                 [.listening, .followUp].contains(self.state)
             else { return }
@@ -603,7 +633,6 @@ public final class LiveConversation {
         window = clock.schedule(after: settings.followUpWindow) { [weak self] in
             guard let self, self.state == .awaitingAnswer else { return }
             self.state = .awaitingButtons
-            self.io.pauseListening()
         }
     }
 }

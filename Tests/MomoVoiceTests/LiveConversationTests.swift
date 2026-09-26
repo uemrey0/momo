@@ -325,6 +325,44 @@ struct LiveConversationTests {
         #expect(ended)
     }
 
+    @Test("push to talk only listens to turns while the key is held")
+    func pushToTalkListening() async throws {
+        let conversation = LiveConversation(
+            io: io, brain: brain, phrases: phrases,
+            settings: .init(
+                speech: LiveSpeechConfiguration(
+                    locale: Locale(identifier: "en_US"), endsTurnsOnPause: false)),
+            clock: clock)
+        conversation.holdsWindowOpen = true
+        try await conversation.start()
+        #expect(!io.commands.contains(.pauseListening))
+        conversation.holdsWindowOpen = false
+        conversation.endTurn()
+        #expect(io.commands.last == .endTurn)
+        io.send(.turn("Add milk"))
+        #expect(io.commands.contains(.pauseListening))
+        #expect(brain.turns == ["Add milk"])
+        conversation.holdsWindowOpen = true
+        #expect(io.commands.last == .resumeListening)
+    }
+
+    @Test("the first turn gets time even when follow-ups get none")
+    func noFollowUp() async throws {
+        let conversation = makeConversation(window: 0)
+        var ended = false
+        conversation.onEnded = { ended = true }
+        try await conversation.start()
+        clock.advance(by: 5)
+        #expect(!ended)
+        io.send(.turn("Hi"))
+        brain.emit(.text("Hello!"))
+        brain.emit(.finished)
+        let id = try #require(io.lastSpokenID)
+        io.send(.speakingFinished(id: id))
+        clock.advance(by: 0.01)
+        #expect(ended)
+    }
+
     @Test("a closing phrase says goodbye and ends")
     func closing() async throws {
         let conversation = makeConversation()
