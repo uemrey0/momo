@@ -1,0 +1,88 @@
+name: Release
+
+# Pushing a tag such as v0.1.0 builds Momo, packs a DMG and publishes a GitHub release with
+# the matching CHANGELOG section as release notes.
+#
+# Optional secrets for a signed and notarized build (without them the app is ad-hoc signed
+# and users need to right-click → Open the first time):
+#   MACOS_CERTIFICATE           base64 of a Developer ID Application .p12
+#   MACOS_CERTIFICATE_PASSWORD  its password
+#   MACOS_SIGN_IDENTITY         e.g. "Developer ID Application: Name (TEAMID)"
+#   NOTARY_APPLE_ID, NOTARY_TEAM_ID, NOTARY_PASSWORD (an app-specific password)
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      HAS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE != '' }}
+      HAS_NOTARY: ${{ secrets.NOTARY_APPLE_ID != '' }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Work out the version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Import the signing certificate
+        if: env.HAS_CERTIFICATE == 'true'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          security create-keychain -p "" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "" "$KEYCHAIN"
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security list-keychain -d user -s "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN"
+
+      - name: Build the app
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY || '-' }}
+        run: make app
+
+      - name: Pack the DMG
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY || '-' }}
+        run: ./Scripts/make-dmg.sh
+
+      - name: Notarize
+        if: env.HAS_CERTIFICATE == 'true' && env.HAS_NOTARY == 'true'
+        env:
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+        run: |
+          xcrun notarytool submit "dist/Momo-$VERSION.dmg" --apple-id "$NOTARY_APPLE_ID" \
+            --team-id "$NOTARY_TEAM_ID" --password "$NOTARY_PASSWORD" --wait
+          xcrun stapler staple "dist/Momo-$VERSION.dmg"
+
+      - name: Extract release notes
+        run: |
+          awk -v version="$VERSION" '
+            $0 ~ "^## \\[" version "\\]" { printing = 1; next }
+            printing && /^## \[/ { exit }
+            printing { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then echo "See CHANGELOG.md." > release-notes.md; fi
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=""
+          case "$VERSION" in *-*) PRERELEASE="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" "dist/Momo-$VERSION.dmg" \
+            --title "Momo $VERSION" --notes-file release-notes.md $PRERELEASE

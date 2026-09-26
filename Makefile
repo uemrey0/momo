@@ -1,7 +1,7 @@
 SWIFT ?= swift
 SWIFT_SOURCES = Sources Tests Package.swift
 
-.PHONY: build test run app open lint format l10n clean help
+.PHONY: build test run app dmg icon open lint format l10n snapshots clean help
 
 build: ## Build all targets
 	$(SWIFT) build
@@ -14,6 +14,15 @@ run: ## Build and launch Momo from the command line (English UI only)
 
 app: ## Build dist/Momo.app with all localizations
 	./Scripts/build-app.sh
+
+dmg: app ## Build dist/Momo-<version>.dmg
+	./Scripts/make-dmg.sh
+
+icon: ## Regenerate the app icon from the character renderer
+	./Scripts/make-icon.sh
+
+snapshots: ## Render the panel and character to docs/images
+	swift run Momo --snapshot docs/images
 
 open: app ## Build and open dist/Momo.app
 	open dist/Momo.app
