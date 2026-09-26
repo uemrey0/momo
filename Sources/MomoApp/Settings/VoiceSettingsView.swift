@@ -59,6 +59,7 @@ struct VoiceSettingsView: View {
     var body: some View {
         Form {
             repliesSection
+            voiceModeSection
             listeningSection
         }
         .formStyle(.grouped)
@@ -117,11 +118,31 @@ struct VoiceSettingsView: View {
 
     // MARK: - Listening
 
-    private var listeningSection: some View {
+    private var voiceModeSection: some View {
         Section {
             LabeledContent(L("Talk to Momo")) {
                 Text(verbatim: "⌥ ⇧ Space").font(.system(.body, design: .monospaced))
             }
+            Toggle(L("Hold the shortcut to talk"), isOn: $settings.preferences.pushToTalk)
+            Toggle(
+                L("Open the chat for spoken requests"),
+                isOn: $settings.preferences.opensChatForSpokenRequests)
+        } header: {
+            Text(verbatim: L("Voice mode"))
+        } footer: {
+            Text(
+                verbatim: settings.preferences.pushToTalk
+                    ? L(
+                        "Hold ⌥⇧Space while you speak and let go to send. Momo answers in a small caption under the notch; click it to open the chat, or press Esc to cancel."
+                    )
+                    : L(
+                        "Press ⌥⇧Space or say “Hey Momo”, then speak; Momo sends when you pause. It answers in a small caption under the notch; click it to open the chat, or press Esc or the shortcut again to cancel."
+                    ))
+        }
+    }
+
+    private var listeningSection: some View {
+        Section {
             Picker(L("Speech recognition"), selection: $settings.preferences.dictationEngine) {
                 ForEach(DictationEngineChoice.allCases) { choice in
                     Text(verbatim: choice.displayName).tag(choice)

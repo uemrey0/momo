@@ -54,6 +54,10 @@ struct Preferences: Codable, Equatable {
     var speechVoice = SpeechVoiceChoice.apple
     /// The OpenAI voice used when ``speechVoice`` is OpenAI.
     var openAIVoice = OpenAISpeechRequest.defaultVoice
+    /// Hold the shortcut to talk and let go to send, instead of pressing it once.
+    var pushToTalk = false
+    /// Open the chat panel for spoken requests instead of answering in the caption bubble.
+    var opensChatForSpokenRequests = false
     var mcpServers: [MCPServerConfiguration] = []
     var checksForUpdates = true
     var hidesFromScreenCapture = true
@@ -83,6 +87,9 @@ struct Preferences: Codable, Equatable {
             .openAITranscriptionModel, defaults.openAITranscriptionModel)
         speechVoice = value(.speechVoice, defaults.speechVoice)
         openAIVoice = value(.openAIVoice, defaults.openAIVoice)
+        pushToTalk = value(.pushToTalk, defaults.pushToTalk)
+        opensChatForSpokenRequests = value(
+            .opensChatForSpokenRequests, defaults.opensChatForSpokenRequests)
         mcpServers = value(.mcpServers, defaults.mcpServers)
         checksForUpdates = value(.checksForUpdates, defaults.checksForUpdates)
         hidesFromScreenCapture = value(.hidesFromScreenCapture, defaults.hidesFromScreenCapture)

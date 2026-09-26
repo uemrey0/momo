@@ -58,6 +58,13 @@ final class AppModel {
             character: character, openSettings: { [weak self] in self?.openSettings($0) })
         chatPanel = panel
         voice.showPanel = { [weak panel] in panel?.show(tab: .chat) }
+        voice.isPanelVisible = { [weak panel] in panel?.isVisible ?? false }
+        panel.onShow = { [weak voice] in voice?.chatPanelDidOpen() }
+        let bubble = VoiceBubbleController(
+            voice: voice, assistant: assistant, character: character,
+            openChat: { [weak voice] in voice?.openChatFromBubble() })
+        bubble.onCancel = { [weak voice] in voice?.cancelVoiceSession() }
+        voice.bubble = bubble
         character.onClick = { [weak panel, weak voice] in
             voice?.stopSpeaking()
             panel?.toggle()
@@ -79,11 +86,10 @@ final class AppModel {
             GlobalHotKey(keyCode: kVK_Space, modifiers: optionKey) { [weak panel] in
                 panel?.toggle()
             },
-            GlobalHotKey(keyCode: kVK_Space, modifiers: optionKey | shiftKey) {
-                [weak panel, weak voice] in
-                panel?.show(tab: .chat)
-                voice?.toggleDictation()
-            },
+            GlobalHotKey(
+                keyCode: kVK_Space, modifiers: optionKey | shiftKey,
+                action: { [weak voice] in voice?.shortcutPressed() },
+                released: { [weak voice] in voice?.shortcutReleased() }),
         ].compactMap { $0 }
         voice.startWakeWordIfEnabled()
 

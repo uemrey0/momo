@@ -153,6 +153,10 @@ final class AssistantController {
     @ObservationIgnored var onAttentionNeeded: (() -> Void)?
     /// Whether the current request came from ``sendInBackground(_:completion:)``.
     @ObservationIgnored private(set) var isInBackground = false
+    /// Called when a consent or confirmation question appears, for asking it aloud.
+    @ObservationIgnored var onPrompt: (() -> Void)?
+    /// Called when a request ends, whether it was answered, failed or was cancelled.
+    @ObservationIgnored var onRequestFinished: (() -> Void)?
 
     @ObservationIgnored private let assistant = Assistant()
     /// Labels tools describe themselves with, from the latest configuration.
@@ -287,6 +291,7 @@ final class AssistantController {
         }
         isBusy = false
         task = nil
+        onRequestFinished?()
         return reply.isEmpty ? nil : reply
     }
 
@@ -324,6 +329,7 @@ final class AssistantController {
         return await withCheckedContinuation { continuation in
             consentContinuation = continuation
             consentPrompt = ConsentPrompt(brain: brain, reason: reason, masksData: masked)
+            onPrompt?()
         }
     }
 
@@ -340,6 +346,7 @@ final class AssistantController {
         return await withCheckedContinuation { continuation in
             confirmationContinuation = continuation
             confirmationPrompt = ConfirmationPrompt(summary: summary)
+            onPrompt?()
         }
     }
 

@@ -84,3 +84,37 @@ struct WakeWordTests {
         #expect(detector.command(in: "Hey Momo") == "")
     }
 }
+
+@Suite("Spoken answers")
+struct SpokenAnswerTests {
+    @Test(
+        "hears yes",
+        arguments: [
+            "Yes", "yeah.", "Sure!", "okay", "OK go ahead", "Evet", "tamam", "Olur.", "yes please",
+            "Tamam, olur",
+        ])
+    func yes(_ transcript: String) {
+        #expect(SpeechText.answer(in: transcript) == .yes)
+    }
+
+    @Test(
+        "hears no",
+        arguments: [
+            "No", "nope", "Cancel", "Hayır", "hayir", "İptal", "Vazgeç", "no thanks", "don’t",
+            "Do not do that",
+        ])
+    func no(_ transcript: String) {
+        #expect(SpeechText.answer(in: transcript) == .no)
+    }
+
+    @Test("stays unsure when the reply is unclear", arguments: ["", "maybe", "not sure", "hmm"])
+    func unclear(_ transcript: String) {
+        #expect(SpeechText.answer(in: transcript) == nil)
+    }
+
+    @Test("does not hear words inside other words")
+    func wholeWords() {
+        #expect(SpeechText.answer(in: "notebook") == nil)
+        #expect(SpeechText.answer(in: "yesterday") == nil)
+    }
+}

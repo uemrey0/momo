@@ -93,6 +93,8 @@ final class ChatPanelController {
     private var resignObserver: (any NSObjectProtocol)?
 
     var isVisible: Bool { window.isVisible }
+    /// Called when the panel opens.
+    var onShow: (() -> Void)?
 
     init(
         assistant: AssistantController, today: TodayModel, notes: NotesModel,
@@ -127,6 +129,7 @@ final class ChatPanelController {
 
     func show(tab: PanelTab? = nil) {
         if let tab { state.tab = tab }
+        onShow?()
         // Only a panel that is opening plays its entrance; an open one just switches tabs.
         guard !window.isVisible else {
             window.makeKey()
