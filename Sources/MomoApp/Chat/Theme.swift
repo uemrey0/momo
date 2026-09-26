@@ -50,6 +50,8 @@ struct Pill: View {
 struct IconButton: View {
     var systemImage: String
     var help: String
+    /// Highlights the button, for example while the view it toggles is showing.
+    var isActive = false
     var action: () -> Void
     @State private var isHovering = false
 
@@ -59,10 +61,11 @@ struct IconButton: View {
                 .font(.system(size: 13, weight: .medium))
                 .frame(width: 28, height: 28)
                 .background(
-                    isHovering ? Theme.cardStrong : .clear, in: RoundedRectangle(cornerRadius: 8))
+                    isHovering || isActive ? Theme.cardStrong : .clear,
+                    in: RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
-        .foregroundStyle(Theme.secondaryText)
+        .foregroundStyle(isActive ? Theme.accent : Theme.secondaryText)
         .help(help)
         .accessibilityLabel(help)
         .onHover { isHovering = $0 }

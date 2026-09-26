@@ -11,10 +11,34 @@ public struct ChatTurn: Sendable, Hashable {
 
     public var role: Role
     public var text: String
+    /// The tools an assistant turn used and what they returned, kept compact so follow-up
+    /// questions can refer to their results.
+    public var toolRecords: [ToolRecord]
 
-    public init(role: Role, text: String) {
+    public init(role: Role, text: String, toolRecords: [ToolRecord] = []) {
         self.role = role
         self.text = text
+        self.toolRecords = toolRecords
+    }
+
+    /// The text providers send for this turn: the reply followed by a short account of the
+    /// tools it used, if any.
+    public var contextText: String {
+        let tools = ToolRecord.render(toolRecords)
+        guard !tools.isEmpty else { return text }
+        return text.isEmpty ? tools : text + "\n\n" + tools
+    }
+
+    /// The turn with its text and tool records passed through `transform`, for example to
+    /// mask personal data before it leaves the Mac.
+    public func mapText(_ transform: (String) -> String) -> ChatTurn {
+        ChatTurn(
+            role: role, text: transform(text),
+            toolRecords: toolRecords.map { record in
+                ToolRecord(
+                    name: record.name, arguments: transform(record.arguments),
+                    result: transform(record.result), isError: record.isError)
+            })
     }
 }
 
@@ -97,5 +121,11 @@ public struct ProviderError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? { message }
 }
 
-/// The largest number of model ↔ tool round trips per request.
-let maximumToolRounds = 8
+/// The largest number of model ↔ tool round trips per request. Simple requests finish in one
+/// or two; the headroom lets longer multi-step jobs complete.
+let maximumToolRounds = 24
+
+/// What a provider appends when a request used up `maximumToolRounds`, so the answer never
+/// just stops.
+let toolRoundLimitNotice =
+    "\n\n(I stopped after \(maximumToolRounds) tool steps without finishing. Say “continue” and I'll pick up where I left off.)"

@@ -144,10 +144,11 @@ public struct OpenAICompatibleProvider: ChatProvider {
     ) async throws {
         var messages: [JSONValue] = [["role": "system", "content": .string(request.systemPrompt)]]
         messages += request.turns.map {
-            ["role": .string($0.role.rawValue), "content": .string($0.text)]
+            ["role": .string($0.role.rawValue), "content": .string($0.contextText)]
         }
         var tools = request.tools
         for _ in 0..<maximumToolRounds {
+            try Task.checkCancellation()
             let round: Round
             do {
                 round = try await stream(
@@ -175,6 +176,7 @@ public struct OpenAICompatibleProvider: ChatProvider {
                     }),
             ])
             for call in round.toolCalls {
+                try Task.checkCancellation()
                 continuation.yield(.toolStarted(call))
                 let result = await runTool(call)
                 continuation.yield(.toolFinished(result))
@@ -184,7 +186,7 @@ public struct OpenAICompatibleProvider: ChatProvider {
                 ])
             }
         }
-        continuation.yield(.text("\n\n(I stopped after too many tool steps.)"))
+        continuation.yield(.text(toolRoundLimitNotice))
     }
 
     private struct Round {

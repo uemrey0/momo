@@ -109,14 +109,14 @@ struct PrivacySettingsView: View {
                     confirmingErase = true
                 }
                 .confirmationDialog(
-                    L("Erase all tasks, notes, habits and memories?"),
+                    L("Erase all tasks, notes, habits, memories and conversations?"),
                     isPresented: $confirmingErase
                 ) {
                     Button(L("Erase everything"), role: .destructive) {
                         Task {
                             try? await model.store.eraseAll()
                             model.assistant.clearOutboundLog()
-                            model.assistant.newConversation()
+                            model.assistant.eraseConversations()
                         }
                     }
                 } message: {

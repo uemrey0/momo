@@ -30,7 +30,11 @@ enum PanelTab: String, CaseIterable, Identifiable {
 @MainActor
 @Observable
 final class PanelState {
-    var tab: PanelTab = .chat
+    var tab: PanelTab = .chat {
+        didSet { if tab != oldValue { showsHistory = false } }
+    }
+    /// Whether the chat section shows past conversations instead of the current one.
+    var showsHistory = false
     /// Bumped to move keyboard focus into the message field.
     var focusRequest = 0
     /// Bumped each time the panel opens, to play its entrance.

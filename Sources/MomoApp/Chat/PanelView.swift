@@ -25,11 +25,16 @@ struct PanelView: View {
             ZStack {
                 switch state.tab {
                 case .chat:
-                    ChatView(
-                        assistant: assistant, state: state, voice: voice,
-                        setUpAI: { openSettings(.ai) }
-                    )
-                    .transition(tabTransition)
+                    if state.showsHistory {
+                        HistoryView(assistant: assistant, state: state)
+                            .transition(tabTransition)
+                    } else {
+                        ChatView(
+                            assistant: assistant, state: state, voice: voice,
+                            setUpAI: { openSettings(.ai) }
+                        )
+                        .transition(tabTransition)
+                    }
                 case .today:
                     TodayView(model: today).transition(tabTransition)
                 case .notes:
@@ -65,6 +70,7 @@ struct PanelView: View {
         .environment(\.colorScheme, .dark)
         .tint(Theme.accent)
         .animation(Theme.spring, value: state.tab)
+        .animation(Theme.spring, value: state.showsHistory)
         .onPreferenceChange(PanelHeightKey.self) { height in
             // Zero means the section hasn't measured itself yet.
             if height > 0 { resize(Self.headerHeight + height) }
@@ -86,10 +92,21 @@ struct PanelView: View {
         HStack(spacing: 6) {
             TabSwitcher(selection: $state.tab)
             Spacer()
-            if state.tab == .chat && !assistant.messages.isEmpty {
+            if state.tab == .chat && !state.showsHistory && !assistant.messages.isEmpty {
                 IconButton(systemImage: "square.and.pencil", help: L("New conversation")) {
                     withAnimation(Theme.spring) { assistant.newConversation() }
                     state.focusRequest += 1
+                }
+                .transition(.scale.combined(with: .opacity))
+            }
+            if state.tab == .chat && assistant.conversationStore != nil {
+                IconButton(
+                    systemImage: "clock.arrow.circlepath",
+                    help: state.showsHistory ? L("Back to the chat") : L("Conversations"),
+                    isActive: state.showsHistory
+                ) {
+                    state.showsHistory.toggle()
+                    if !state.showsHistory { state.focusRequest += 1 }
                 }
                 .transition(.scale.combined(with: .opacity))
             }
@@ -98,6 +115,7 @@ struct PanelView: View {
         .padding(.horizontal, 12)
         .frame(height: Self.headerHeight)
         .animation(Theme.quickSpring, value: assistant.messages.isEmpty)
+        .animation(Theme.quickSpring, value: state.showsHistory)
     }
 }
 

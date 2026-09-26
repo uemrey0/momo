@@ -33,7 +33,9 @@ final class AppModel {
         settings = AppSettings()
         store = MomoStore(fileURL: MomoStore.defaultFileURL)
         character = CharacterController()
-        assistant = AssistantController(store: store, settings: settings)
+        assistant = AssistantController(
+            store: store, settings: settings,
+            conversationStore: ConversationStore(fileURL: ConversationStore.defaultFileURL))
         today = TodayModel(store: store)
         notes = NotesModel(store: store)
         focus = FocusController(character: character)

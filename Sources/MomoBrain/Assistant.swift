@@ -89,6 +89,9 @@ public actor Assistant {
     public var forcedProviderID: String?
     private var remoteApproved = false
     private let privacy = PrivacySession()
+    /// Increases with every reply and reset, so a reply that was stopped or overtaken never
+    /// writes its turn into a newer history.
+    private var generation = 0
 
     public init() {}
 
@@ -97,9 +100,16 @@ public actor Assistant {
     }
 
     public func reset() {
-        history = []
+        restore(history: [])
+    }
+
+    /// Continues an earlier conversation: its turns become the history the next reply builds
+    /// on, whichever brain answers. Consent and the brain choice start over.
+    public func restore(history turns: [ChatTurn]) {
+        history = turns
         remoteApproved = false
         forcedProviderID = nil
+        generation += 1
     }
 
     /// Answers `message`, streaming events. The reply is added to the history when done.
@@ -128,6 +138,8 @@ public actor Assistant {
         confirm: @escaping ToolConfirmationHandler,
         continuation: AsyncThrowingStream<AssistantEvent, any Error>.Continuation
     ) async throws {
+        generation += 1
+        let replyGeneration = generation
         let turns = history + [ChatTurn(role: .user, text: message)]
         let provider = try await choose(
             for: turns, configuration: configuration, consent: consent)
@@ -142,7 +154,7 @@ public actor Assistant {
 
         let request = ChatRequest(
             systemPrompt: outgoing(configuration.systemPrompt),
-            turns: turns.map { ChatTurn(role: $0.role, text: outgoing($0.text)) },
+            turns: turns.map { $0.mapText(outgoing) },
             tools: configuration.toolbox.definitions)
         let toolbox = configuration.toolbox
         let runTool: ToolRunner = { call in
@@ -155,6 +167,18 @@ public actor Assistant {
 
         var reply = ""
         var pending = ""
+        var calls: [String: ToolCall] = [:]
+        var records: [ToolRecord] = []
+        var finished = false
+        defer {
+            // A stopped or failed reply keeps what was said and done so far, since its tools
+            // really ran; one that produced nothing leaves the history as it was.
+            if generation == replyGeneration, finished || !reply.isEmpty || !records.isEmpty {
+                let turn = ChatTurn(
+                    role: .assistant, text: reply, toolRecords: ToolRecord.compact(records))
+                history = turns + [turn]
+            }
+        }
         for try await event in provider.respond(to: request, runTool: runTool) {
             switch event {
             case .text(let chunk):
@@ -178,8 +202,14 @@ public actor Assistant {
                 reply += restored
                 if !restored.isEmpty { continuation.yield(.text(restored)) }
             case .toolStarted(let call):
+                calls[call.id] = call
                 continuation.yield(.toolStarted(name: call.name))
             case .toolFinished(let result):
+                records.append(
+                    ToolRecord(
+                        name: result.name,
+                        arguments: incoming(calls[result.callID]?.arguments ?? "{}"),
+                        result: incoming(result.output), isError: result.isError))
                 continuation.yield(.toolFinished(name: result.name, succeeded: !result.isError))
             }
         }
@@ -188,7 +218,7 @@ public actor Assistant {
             reply += restored
             continuation.yield(.text(restored))
         }
-        history = turns + [ChatTurn(role: .assistant, text: reply)]
+        finished = true
     }
 
     /// Picks a provider, asking for consent when needed. Returns `nil` if the user cancelled.
@@ -217,7 +247,7 @@ public actor Assistant {
             }
         }
 
-        let text = turns.map(\.text).joined(separator: "\n")
+        let text = turns.map(\.contextText).joined(separator: "\n")
         let router = BrainRouter(policy: configuration.policy)
         switch router.route(
             text: text, candidates: candidates, forcedBrainID: forcedProviderID,
