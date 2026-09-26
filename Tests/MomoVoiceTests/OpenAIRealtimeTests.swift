@@ -305,7 +305,7 @@ struct RealtimeVoiceSessionTests {
             return
         }
         #expect(call.name == "ask_momo")
-        let output = AskMomoResultStub.done
+        let output = AskMomoResult.answer("Added.").output
         await session.sendFunctionResult(output, for: call)
         await factory.transport.waitForSent(3)
         let sent = factory.transport.sentObjects.suffix(2)
@@ -436,9 +436,4 @@ struct RealtimeErrorTests {
                 == "The live voice service ended the session.")
         #expect(RealtimeErrors.closed(code: 1007, reason: "Quota exceeded").status == 429)
     }
-}
-
-/// Stands in for Momo's answer until the ask_momo contract exists.
-enum AskMomoResultStub {
-    static let done = #"{"answer":"Added.","status":"done"}"#
 }

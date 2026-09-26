@@ -196,9 +196,7 @@ struct GeminiLiveSessionTests {
             service: .gemini(apiKey: "AIza-secret"), transportFactory: factory, readyTimeout: 5)
         var events = session.events.makeAsyncIterator()
         try await session.connect(
-            RealtimeSessionConfiguration(
-                instructions: "Hi",
-                tools: [RealtimeFunction(name: "ask_momo", description: "Ask.", parameters: [])]))
+            RealtimeSessionConfiguration(instructions: "Hi", tools: [MomoRealtimeAgent.askMomo]))
         #expect(await nextEvent(&events) == .ready)
         #expect(session.inputSampleRate == 16_000 && session.outputSampleRate == 24_000)
         #expect(session.displayName == "Gemini gemini-3.8-live")
@@ -211,7 +209,8 @@ struct GeminiLiveSessionTests {
             Issue.record("expected a function call")
             return
         }
-        await session.sendFunctionResult(AskMomoResultStub.done, for: call)
+        await session.sendFunctionResult(
+            AskMomoResult.answer("Saat üçte toplantın var.").output, for: call)
         await factory.transport.waitForSent(3)
         #expect(factory.transport.sentObjects[1]["realtimeInput"] != nil)
         #expect(factory.transport.sentObjects[2]["toolResponse"] != nil)
