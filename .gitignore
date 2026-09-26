@@ -16,6 +16,9 @@ DerivedData/
 
 # Build outputs
 /dist/
+# The live voice helper (xcodebuild derived data and SwiftPM checkouts)
+/Helpers/momo-voice/.build/
+/Helpers/momo-voice/.swiftpm/
 *.app
 *.dmg
 *.zip
