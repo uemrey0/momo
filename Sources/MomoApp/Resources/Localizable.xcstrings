@@ -1159,6 +1159,16 @@
       "comment" : "The app and character name",
       "shouldTranslate" : false
     },
+    "Momo Settings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo Ayarları"
+          }
+        }
+      }
+    },
     "Momo asks GitHub once a day whether a new version is out. Nothing else is sent." : {
       "localizations" : {
         "tr" : {

@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Shows the welcome tour in its own window.
 @MainActor
-final class OnboardingWindowController {
+final class OnboardingWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
 
     init(model: AppModel) {
@@ -18,13 +18,20 @@ final class OnboardingWindowController {
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.appearance = NSAppearance(named: .darkAqua)
+        super.init()
         window.contentView = NSHostingView(rootView: OnboardingView(model: model))
+        window.delegate = self
     }
 
     func show() {
+        ForegroundPresence.enter(window)
         window.center()
-        NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        ForegroundPresence.leave(window)
     }
 
     func close() {
