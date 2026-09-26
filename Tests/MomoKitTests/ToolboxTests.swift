@@ -82,4 +82,32 @@ struct ToolboxTests {
         let unanswered = await box.execute(ToolCall(id: "3", name: "wipe", arguments: "{}"))
         #expect(unanswered.isError)
     }
+
+    @Test("passes the files a tool makes on to the result")
+    func passesFiles() async {
+        let file = URL(fileURLWithPath: "/tmp/cat.png")
+        let drawer = ClosureTool.makingFiles(ToolDefinition(name: "draw", description: "Draw")) {
+            _ in
+            ToolReply(text: "Drew a cat", files: [file])
+        }
+        let result = await Toolbox([ConfirmingTool(drawer)]).execute(
+            ToolCall(id: "1", name: "draw", arguments: "{}"), confirm: { _ in true })
+        #expect(result.output == "Drew a cat")
+        #expect(result.files == [file])
+    }
+
+    @Test("describes a call by its most telling argument")
+    func briefDetail() {
+        #expect(
+            ToolCall(id: "1", name: "s", arguments: #"{"query":"hava durumu"}"#).briefDetail
+                == "hava durumu")
+        #expect(
+            ToolCall(id: "2", name: "t", arguments: #"{"due":"x","title":"Süt al\nextra"}"#)
+                .briefDetail == "Süt al")
+        #expect(ToolCall(id: "3", name: "c", arguments: "{}").briefDetail == nil)
+        let long = String(repeating: "a", count: 80)
+        #expect(
+            ToolCall(id: "4", name: "p", arguments: #"{"path":"\#(long)"}"#).briefDetail?.count
+                == 60)
+    }
 }

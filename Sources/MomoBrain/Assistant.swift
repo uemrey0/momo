@@ -7,11 +7,14 @@ public enum AssistantEvent: Sendable, Equatable {
     case brainSelected(ProviderInfo, RoutingReason)
     /// More reply text, with personal data already restored.
     case text(String)
-    /// A tool started running.
-    case toolStarted(name: String)
+    /// A tool started running. `detail` is a short, readable hint of what it works on, such
+    /// as a search query or a file name.
+    case toolStarted(name: String, detail: String? = nil)
     /// A tool finished. `missingPermission` is set when it failed for lack of a macOS
     /// permission.
     case toolFinished(name: String, succeeded: Bool, missingPermission: MacPermission? = nil)
+    /// The brain made an image or a file.
+    case artifact(ChatArtifact)
 }
 
 /// The user's answer when Momo asks before using a remote brain.
@@ -206,7 +209,9 @@ public actor Assistant {
                 if !restored.isEmpty { continuation.yield(.text(restored)) }
             case .toolStarted(let call):
                 calls[call.id] = call
-                continuation.yield(.toolStarted(name: call.name))
+                var readable = call
+                readable.arguments = incoming(call.arguments)
+                continuation.yield(.toolStarted(name: call.name, detail: readable.briefDetail))
             case .toolFinished(let result):
                 records.append(
                     ToolRecord(
@@ -217,6 +222,9 @@ public actor Assistant {
                     .toolFinished(
                         name: result.name, succeeded: !result.isError,
                         missingPermission: result.missingPermission))
+                for file in result.files { continuation.yield(.artifact(ChatArtifact(url: file))) }
+            case .artifact(let artifact):
+                continuation.yield(.artifact(artifact))
             }
         }
         if !pending.isEmpty {

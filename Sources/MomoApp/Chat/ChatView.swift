@@ -439,13 +439,10 @@ private struct SuggestionCard: View {
     }
 }
 
-/// One message in the conversation. Where an answer came from stays out of the way: it
-/// shows when the pointer rests on the answer.
+/// One message in the conversation.
 struct MessageRow: View {
     var message: ChatMessage
     var isLatest = false
-    @State private var isHovering = false
-    @State private var copied = false
 
     var body: some View {
         switch message.role {
@@ -474,122 +471,11 @@ struct MessageRow: View {
                 }
             }
         case .assistant:
-            HStack(alignment: .bottom, spacing: 8) {
-                MomoAvatar(isAnimated: isLatest)
-                    .padding(.bottom, Self.detailsHeight + 3)
-                VStack(alignment: .leading, spacing: 3) {
-                    bubble
-                    // The line is always there, so pointing at an answer never changes the
-                    // conversation's height; its contents just fade in.
-                    details
-                        .frame(height: Self.detailsHeight)
-                        .opacity(isHovering && !message.isStreaming ? 1 : 0)
-                }
-                Spacer(minLength: 30)
-            }
-            .onHover { hovering in withAnimation(Theme.quickSpring) { isHovering = hovering } }
+            AssistantReplyView(message: message, isLatest: isLatest)
         case .error:
-            HStack(alignment: .bottom, spacing: 8) {
-                MomoAvatar(isAnimated: false)
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(Theme.danger)
-                    Text(verbatim: message.text)
-                        .font(.system(size: 12.5))
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(Theme.danger.opacity(0.14), in: assistantShape)
-                Spacer(minLength: 30)
-            }
+            ErrorReplyView(message: message)
         }
     }
-
-    private var assistantShape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(
-            topLeadingRadius: 18, bottomLeadingRadius: 6, bottomTrailingRadius: 18,
-            topTrailingRadius: 18, style: .continuous)
-    }
-
-    private var runningTools: [ToolActivity] {
-        message.activities.filter { $0.state == .running }
-    }
-
-    private var failedTools: [ToolActivity] {
-        message.activities.filter { $0.state == .failed }
-    }
-
-    /// The steps shown in the answer: while Momo works, the latest ones so progress on a long
-    /// job stays visible; afterwards only the ones that failed.
-    private var visibleSteps: [ToolActivity] {
-        message.isStreaming ? Array(message.activities.suffix(Self.visibleStepCount)) : failedTools
-    }
-
-    private static let visibleStepCount = 4
-
-    private var bubble: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if message.isStreaming, message.activities.count > Self.visibleStepCount {
-                Text(
-                    verbatim: String(
-                        format: L("%d earlier steps"),
-                        message.activities.count - Self.visibleStepCount)
-                )
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Theme.tertiaryText)
-                .contentTransition(.numericText())
-            }
-            ForEach(visibleSteps) { activity in
-                ToolActivityRow(activity: activity)
-            }
-            if message.text.isEmpty && message.isStreaming {
-                if runningTools.isEmpty { TypingIndicator() }
-            } else if !message.text.isEmpty {
-                Text(Self.markdown(message.text))
-                    .font(.system(size: 13.5))
-                    .lineSpacing(2.5)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 9)
-        .background(Theme.card, in: assistantShape)
-        .overlay(assistantShape.strokeBorder(Color.white.opacity(0.05)))
-    }
-
-    /// Who answered and what Momo did, for the curious.
-    private var details: some View {
-        HStack(spacing: 6) {
-            if let name = message.brainName {
-                Circle().fill(Theme.color(for: message.brainKind)).frame(width: 5, height: 5)
-                Text(verbatim: name)
-            }
-            let done = message.activities.filter { $0.state == .succeeded }.map(\.label)
-            if !done.isEmpty {
-                Text(verbatim: "·")
-                Text(verbatim: done.joined(separator: ", ")).lineLimit(1)
-            }
-            Button {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(message.text, forType: .string)
-                copied = true
-            } label: {
-                Image(systemName: copied ? "checkmark" : "doc.on.doc")
-            }
-            .buttonStyle(.plain)
-            .help(L("Copy"))
-            .accessibilityLabel(L("Copy"))
-        }
-        .font(.system(size: 10.5, weight: .medium))
-        .foregroundStyle(Theme.tertiaryText)
-        .padding(.leading, 6)
-    }
-
-    /// Room kept under each answer for who answered and what Momo did.
-    static let detailsHeight: CGFloat = 14
 
     static func markdown(_ text: String) -> AttributedString {
         (try? AttributedString(
@@ -605,63 +491,6 @@ struct MessageRow: View {
 extension EnvironmentValues {
     /// Opens Settings on the Permissions pane, highlighting a permission if given.
     @Entry var openPermissions: (MacPermission?) -> Void = { _ in }
-}
-
-/// A tool Momo is using, or one that failed. A tool that failed for lack of a macOS
-/// permission offers to open that permission in Settings.
-struct ToolActivityRow: View {
-    var activity: ToolActivity
-    @Environment(\.openPermissions) private var openPermissions
-
-    var body: some View {
-        HStack(spacing: 6) {
-            switch activity.state {
-            case .running:
-                ProgressView().controlSize(.mini)
-            case .succeeded:
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent)
-            case .failed:
-                Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.danger)
-            }
-            Text(verbatim: activity.label)
-            if activity.state == .failed, let permission = activity.missingPermission {
-                Button {
-                    openPermissions(permission)
-                } label: {
-                    Label(L("Open Permissions"), systemImage: "lock.open.fill")
-                        .labelStyle(.titleAndIcon)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Theme.accent.opacity(0.18), in: Capsule())
-                        .foregroundStyle(Theme.accent)
-                }
-                .buttonStyle(.plain)
-                .help(String(format: L("Allow %@ in Settings"), permission.title))
-            }
-        }
-        .font(.system(size: 11.5, weight: .medium))
-        .foregroundStyle(Theme.secondaryText)
-    }
-}
-
-/// Three bouncing dots.
-struct TypingIndicator: View {
-    var body: some View {
-        TimelineView(.animation) { timeline in
-            let time = timeline.date.timeIntervalSinceReferenceDate
-            HStack(spacing: 4) {
-                ForEach(0..<3) { index in
-                    let phase = max(0, sin(time * 6 - Double(index) * 0.7))
-                    Circle()
-                        .fill(Theme.accent.opacity(0.5 + 0.5 * phase))
-                        .frame(width: 6, height: 6)
-                        .offset(y: -3 * phase)
-                }
-            }
-            .padding(.vertical, 5)
-        }
-        .accessibilityLabel(L("Momo is thinking"))
-    }
 }
 
 /// Asks before a message leaves the Mac.

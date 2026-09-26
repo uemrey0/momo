@@ -108,7 +108,8 @@ final class ChatPanelController {
         assistant: AssistantController, today: TodayModel, notes: NotesModel,
         meetings: MeetingController?, state: PanelState, voice: VoiceController?,
         character: CharacterController, openSettings: @escaping (SettingsPane?) -> Void,
-        openPermissions: @escaping (MacPermission?) -> Void = { _ in }
+        openPermissions: @escaping (MacPermission?) -> Void = { _ in },
+        requestPermission: @escaping (MacPermission) -> Void = { _ in }
     ) {
         self.assistant = assistant
         self.state = state
@@ -117,6 +118,7 @@ final class ChatPanelController {
             assistant: assistant, today: today, notes: notes, meetings: meetings, state: state,
             voice: voice,
             openSettings: openSettings, openPermissions: openPermissions,
+            requestPermission: requestPermission,
             close: { [weak self] in self?.hide() },
             resize: { [weak self] in self?.requestResize(to: $0) })
         let host = NSHostingView(rootView: root)

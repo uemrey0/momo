@@ -71,6 +71,29 @@ public struct ChatRequest: Sendable {
 /// Runs a tool call on behalf of a provider, including confirmation and privacy handling.
 public typealias ToolRunner = @Sendable (ToolCall) async -> ToolResult
 
+/// Something a brain made while answering, such as a generated image or a written file.
+public struct ChatArtifact: Sendable, Hashable {
+    public enum Kind: String, Sendable, Hashable, Codable {
+        case image
+        case file
+    }
+
+    /// Where the artifact is on this Mac.
+    public var url: URL
+    public var kind: Kind
+
+    public init(url: URL, kind: Kind) {
+        self.url = url
+        self.kind = kind
+    }
+
+    /// Picks the kind from the file's extension.
+    public init(url: URL) {
+        let images: Set<String> = ["png", "jpg", "jpeg", "gif", "webp", "heic", "tiff"]
+        self.init(url: url, kind: images.contains(url.pathExtension.lowercased()) ? .image : .file)
+    }
+}
+
 /// What a provider reports while answering.
 public enum ChatEvent: Sendable, Equatable {
     /// More reply text.
@@ -79,6 +102,8 @@ public enum ChatEvent: Sendable, Equatable {
     case toolStarted(ToolCall)
     /// A tool call finished.
     case toolFinished(ToolResult)
+    /// The brain made an image or a file.
+    case artifact(ChatArtifact)
 }
 
 /// Whether a provider can be used right now.

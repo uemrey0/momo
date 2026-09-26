@@ -62,6 +62,7 @@ struct ToolBridgeTests {
             case .toolStarted(let call): "started \(call.name)"
             case .toolFinished(let result): "finished \(result.name) \(result.isError)"
             case .text: "text"
+            case .artifact: "artifact"
             }
         }
         #expect(
@@ -123,6 +124,41 @@ struct CLIBridgeConfigurationTests {
         #expect(CodexProvider.tomlString(#"a\b"c"#) == #""a\\b\"c""#)
         #expect(CodexProvider.tomlString("line\nnext\u{1}") == #""line\nnext\u0001""#)
         #expect(CodexProvider.tomlArray(["x", "y z"]) == #"["x", "y z"]"#)
+    }
+
+    @Test("remembers Codex's thread and shows its commands and skills as steps")
+    func codexCommands() throws {
+        var parser = CodexEventParser()
+        _ = try parser.consume(#"{"type":"thread.started","thread_id":"t-1"}"#)
+        #expect(parser.threadID == "t-1")
+        let skill = try parser.consume(
+            #"{"type":"item.started","item":{"id":"c1","type":"command_execution","command":"/bin/zsh -lc 'cat /Users/me/.codex/skills/.system/imagegen/SKILL.md'"}}"#
+        )
+        guard case .toolStarted(let call) = skill.first else {
+            Issue.record("expected a step")
+            return
+        }
+        #expect(call.name == "codex_skill")
+        #expect(call.briefDetail == "imagegen")
+        let command = CodexEventParser.command(
+            ["id": "c2", "command": "/bin/zsh -lc 'ls -la ~/Desktop'"])
+        #expect(command.name == "run_command")
+        #expect(command.briefDetail == "ls -la ~/Desktop")
+    }
+
+    @Test("finds the images Codex saved for a thread, once each")
+    func codexImages() throws {
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent("codex-home-\(UUID().uuidString)")
+        let folder = home.appendingPathComponent("generated_images/t-1")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: home) }
+        var images = CodexGeneratedImages(home: home)
+        #expect(images.newImages(thread: "t-1").isEmpty)
+        try Data([0x89]).write(to: folder.appendingPathComponent("a.png"))
+        try Data("x".utf8).write(to: folder.appendingPathComponent("notes.txt"))
+        #expect(images.newImages(thread: "t-1").map(\.lastPathComponent) == ["a.png"])
+        #expect(images.newImages(thread: "t-1").isEmpty)
     }
 
     @Test("skips Codex events for bridged calls and reports its web searches")

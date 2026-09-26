@@ -151,6 +151,16 @@
         }
       }
     },
+    "%lld steps" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld adım"
+          }
+        }
+      }
+    },
     "%lld things left to do." : {
       "localizations" : {
         "tr" : {
@@ -513,12 +523,22 @@
         }
       }
     },
-    "Allow %@ in Settings" : {
+    "Allow access" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ iznini Ayarlar'da ver"
+            "value" : "İzin ver"
+          }
+        }
+      }
+    },
+    "Allow it once and Momo can do this from now on. Then try again." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir kez izin ver, Momo bundan sonra bunu yapabilsin. Sonra tekrar dene."
           }
         }
       }
@@ -1074,6 +1094,16 @@
         }
       }
     },
+    "Check your connection, then try again. On-device brains keep working." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlantını kontrol edip tekrar dene. Mac'teki beyinler çalışmaya devam eder."
+          }
+        }
+      }
+    },
     "Checking and setting up…" : {
       "localizations" : {
         "tr" : {
@@ -1414,6 +1444,16 @@
         }
       }
     },
+    "Connect ChatGPT, Gemini, Claude or a free model on this Mac, then try again." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT, Gemini, Claude ya da bu Mac'teki ücretsiz bir modeli bağla, sonra tekrar dene."
+          }
+        }
+      }
+    },
     "Connect ChatGPT, Gemini, Claude or a free model on this Mac. It takes about a minute, no Terminal needed." : {
       "localizations" : {
         "tr" : {
@@ -1570,6 +1610,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kopyala"
+          }
+        }
+      }
+    },
+    "Copy image" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görseli kopyala"
           }
         }
       }
@@ -1750,6 +1800,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Görev siliniyor"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayrıntılar"
           }
         }
       }
@@ -1951,6 +2011,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uyuklamadan önce bekle"
+          }
+        }
+      }
+    },
+    "Drawing" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çiziyorum"
           }
         }
       }
@@ -2336,6 +2406,16 @@
         }
       }
     },
+    "Getting ready" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hazırlanıyorum"
+          }
+        }
+      }
+    },
     "Getting ready…" : {
       "localizations" : {
         "tr" : {
@@ -2518,6 +2598,16 @@
         }
       }
     },
+    "Hide details" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayrıntıları gizle"
+          }
+        }
+      }
+    },
     "Hide personal details from remote brains" : {
       "localizations" : {
         "tr" : {
@@ -2639,6 +2729,16 @@
         }
       }
     },
+    "Image Momo made" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun yaptığı görsel"
+          }
+        }
+      }
+    },
     "In LM Studio, open the Developer view and switch the server on. In its settings you can let it start with your Mac." : {
       "localizations" : {
         "tr" : {
@@ -2677,6 +2777,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saat Gece 2"
+          }
+        }
+      }
+    },
+    "Its usage limit was reached. Try again in a little while, or pick another brain in AI settings." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kullanım sınırına ulaşıldı. Biraz sonra tekrar dene ya da AI ayarlarından başka bir beyin seç."
           }
         }
       }
@@ -3299,6 +3409,16 @@
         }
       }
     },
+    "Momo can't reach the internet" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo internete ulaşamıyor"
+          }
+        }
+      }
+    },
     "Momo controls these apps only when you ask, and asks before sending anything. An app that isn't open can't be checked until you open it." : {
       "localizations" : {
         "tr" : {
@@ -3339,22 +3459,32 @@
         }
       }
     },
-    "Momo is thinking" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Momo düşünüyor"
-          }
-        }
-      }
-    },
     "Momo needs a brain to think with" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo'nun düşünmek için bir beyne ihtiyacı var"
+          }
+        }
+      }
+    },
+    "Momo needs access to %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun %@ erişimine ihtiyacı var"
+          }
+        }
+      }
+    },
+    "Momo needs you to sign in again" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun yeniden giriş yapmana ihtiyacı var"
           }
         }
       }
@@ -3435,6 +3565,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo bu sunucuları Mac'inde başlatır ve araçlarını beyinlerine sunar. Yalnızca güvendiğin sunucuları ekle."
+          }
+        }
+      }
+    },
+    "Momo stopped before answering." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo cevap vermeden durdu."
           }
         }
       }
@@ -3658,6 +3798,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Henüz MCP sunucusu yok."
+          }
+        }
+      }
+    },
+    "No brain can answer right now" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Şu an cevap verebilecek bir beyin yok"
           }
         }
       }
@@ -3969,6 +4119,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yapay Zekâ Ayarlarını Aç"
+          }
+        }
+      }
+    },
+    "Open AI settings" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ayarlarını aç"
+          }
+        }
+      }
+    },
+    "Open AI settings and reconnect the brain. It only takes a moment." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ayarlarını açıp beyni yeniden bağla. Sadece bir dakika sürer."
+          }
+        }
+      }
+    },
+    "Open AI settings to finish connecting it, then try again." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlantıyı tamamlamak için AI ayarlarını aç, sonra tekrar dene."
           }
         }
       }
@@ -4509,6 +4689,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Profesyonel"
+          }
+        }
+      }
+    },
+    "Putting it together" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toparlıyorum"
           }
         }
       }
@@ -5065,6 +5255,16 @@
         }
       }
     },
+    "Save to Downloads" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İndirilenler'e kaydet"
+          }
+        }
+      }
+    },
     "Saved" : {
       "localizations" : {
         "tr" : {
@@ -5468,6 +5668,16 @@
         }
       }
     },
+    "Show in Finder" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finder'da göster"
+          }
+        }
+      }
+    },
     "Show the welcome tour again" : {
       "localizations" : {
         "tr" : {
@@ -5626,6 +5836,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bir Şey Ters Gitti"
+          }
+        }
+      }
+    },
+    "Something needs setting up" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir şeyin kurulması gerekiyor"
+          }
+        }
+      }
+    },
+    "Something went wrong on the way. Trying again usually helps." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yolda bir şeyler ters gitti. Tekrar denemek genelde işe yarar."
           }
         }
       }
@@ -6073,6 +6303,16 @@
         }
       }
     },
+    "That didn't work" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olmadı"
+          }
+        }
+      }
+    },
     "That didn't work. Use the details below to add Momo by hand." : {
       "localizations" : {
         "tr" : {
@@ -6119,6 +6359,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eklenen görsel de gönderilecek; içindeki ayrıntılar gizlenemez."
+          }
+        }
+      }
+    },
+    "The brain needs a break" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beynin biraz dinlenmesi gerekiyor"
           }
         }
       }
@@ -6431,6 +6681,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tepki Dene"
+          }
+        }
+      }
+    },
+    "Try again" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekrar dene"
           }
         }
       }

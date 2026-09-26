@@ -69,10 +69,13 @@ public struct ConversationMessage: Codable, Sendable, Hashable {
 
         public var toolName: String
         public var state: State
+        /// A short hint of what the tool worked on, such as a search query.
+        public var detail: String?
 
-        public init(toolName: String, state: State) {
+        public init(toolName: String, state: State, detail: String? = nil) {
             self.toolName = toolName
             self.state = state
+            self.detail = detail
         }
     }
 
@@ -97,11 +100,13 @@ public struct ConversationMessage: Codable, Sendable, Hashable {
     /// What the tools were asked and returned, so a reopened conversation keeps its context.
     public var toolRecords: [ToolRecord]
     public var attachments: [AttachmentInfo]
+    /// Paths of the images and files Momo made in this answer.
+    public var artifacts: [String]
 
     public init(
         role: Role, text: String, date: Date = Date(), brainName: String? = nil,
         brainKind: BrainKind? = nil, activities: [Activity] = [], toolRecords: [ToolRecord] = [],
-        attachments: [AttachmentInfo] = []
+        attachments: [AttachmentInfo] = [], artifacts: [String] = []
     ) {
         self.role = role
         self.text = text
@@ -111,10 +116,12 @@ public struct ConversationMessage: Codable, Sendable, Hashable {
         self.activities = activities
         self.toolRecords = toolRecords
         self.attachments = attachments
+        self.artifacts = artifacts
     }
 
     enum CodingKeys: String, CodingKey {
         case role, text, date, brainName, brainKind, activities, toolRecords, attachments
+        case artifacts
     }
 
     public init(from decoder: any Decoder) throws {
@@ -129,6 +136,7 @@ public struct ConversationMessage: Codable, Sendable, Hashable {
             try container.decodeIfPresent([ToolRecord].self, forKey: .toolRecords) ?? []
         attachments =
             try container.decodeIfPresent([AttachmentInfo].self, forKey: .attachments) ?? []
+        artifacts = try container.decodeIfPresent([String].self, forKey: .artifacts) ?? []
     }
 }
 

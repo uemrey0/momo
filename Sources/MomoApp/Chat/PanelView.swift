@@ -14,6 +14,8 @@ struct PanelView: View {
     var openSettings: (SettingsPane?) -> Void
     /// Opens the Permissions pane, highlighting a permission if given.
     var openPermissions: (MacPermission?) -> Void = { _ in }
+    /// Asks macOS for a permission, or opens its page in System Settings.
+    var requestPermission: (MacPermission) -> Void = { _ in }
     var close: () -> Void
     /// Called with the height the panel would like, header included.
     var resize: (CGFloat) -> Void = { _ in }
@@ -37,6 +39,9 @@ struct PanelView: View {
                             setUpAI: { openSettings(.ai) }
                         )
                         .environment(\.openPermissions, openPermissions)
+                        .environment(\.requestPermission, requestPermission)
+                        .environment(\.openAISettings, { openSettings(.ai) })
+                        .environment(\.retryLastMessage, { assistant.retry() })
                         .transition(tabTransition)
                     }
                 case .today:

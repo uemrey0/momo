@@ -26,6 +26,65 @@ struct ChatMessage: Identifiable, Equatable {
     var attachments: [ChatAttachment] = []
     /// Attachments of a reopened conversation: only their names were saved.
     var savedAttachments: [ConversationMessage.AttachmentInfo] = []
+    /// The answer in the order it happened: what Momo said between its steps.
+    var parts: [ReplyPart] = []
+    /// Images and files Momo made while answering.
+    var artifacts: [ChatArtifact] = []
+    /// What went wrong and how to fix it, for error messages.
+    var issue: ChatIssue?
+    /// When the answer was done, for how long Momo worked.
+    var finishedAt: Date?
+}
+
+/// One piece of an answer: text Momo said, or a step it took.
+enum ReplyPart: Equatable {
+    case text(String)
+    case step(UUID)
+}
+
+extension ChatMessage {
+    /// Adds streamed text to the answer, continuing the text after the last step.
+    mutating func appendText(_ chunk: String) {
+        text += chunk
+        if case .text(let current)? = parts.last {
+            parts[parts.count - 1] = .text(current + chunk)
+        } else {
+            parts.append(.text(chunk))
+        }
+    }
+
+    /// Adds a step Momo started.
+    mutating func appendStep(_ activity: ToolActivity) {
+        activities.append(activity)
+        parts.append(.step(activity.id))
+    }
+
+    /// The final answer: what Momo said after its last step. Earlier text was Momo thinking
+    /// out loud while it worked.
+    var answer: String {
+        guard let lastStep = parts.lastIndex(where: { if case .step = $0 { true } else { false } })
+        else { return text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let after = parts[(lastStep + 1)...].compactMap { part in
+            if case .text(let text) = part { text } else { nil }
+        }
+        .joined().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard after.isEmpty, !isStreaming else { return after }
+        // Some brains say what they'll do and then finish silently, for example after drawing
+        // an image; what they said last is then the answer.
+        return parts[..<lastStep].reversed().lazy.compactMap { part -> String? in
+            guard case .text(let text) = part else { return nil }
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }.first ?? ""
+    }
+
+    /// Whether Momo took steps or thought out loud before its answer.
+    var hasWork: Bool { !activities.isEmpty }
+
+    /// How long Momo worked on the answer.
+    var duration: TimeInterval? {
+        finishedAt.map { $0.timeIntervalSince(date) }
+    }
 }
 
 extension ChatMessage {
@@ -47,10 +106,13 @@ extension ChatMessage {
                     case .succeeded: .succeeded
                     case .failed: .failed
                     }
-                return ToolActivity(toolName: activity.toolName, state: state)
+                return ToolActivity(
+                    toolName: activity.toolName, state: state, detail: activity.detail)
             },
             toolRecords: stored.toolRecords, date: stored.date,
-            savedAttachments: stored.attachments)
+            savedAttachments: stored.attachments,
+            artifacts: stored.artifacts.map { ChatArtifact(url: URL(fileURLWithPath: $0)) }
+                .filter { FileManager.default.fileExists(atPath: $0.url.path) })
     }
 
     /// The message as it is saved. A tool still running when it was saved counts as failed.
@@ -69,11 +131,13 @@ extension ChatMessage {
                     case .running, .failed: .failed
                     case .succeeded: .succeeded
                     }
-                return ConversationMessage.Activity(toolName: activity.toolName, state: state)
+                return ConversationMessage.Activity(
+                    toolName: activity.toolName, state: state, detail: activity.detail)
             },
             toolRecords: toolRecords,
             attachments: savedAttachments
-                + attachments.map { .init(name: $0.name, isImage: $0.isImage) })
+                + attachments.map { .init(name: $0.name, isImage: $0.isImage) },
+            artifacts: artifacts.map(\.url.path))
     }
 
     /// The message as history for a brain; errors are never sent.
@@ -108,6 +172,10 @@ struct ToolActivity: Identifiable, Equatable {
     var customLabel: String?
     /// The macOS permission the tool was missing, when that is why it failed.
     var missingPermission: MacPermission?
+    /// A short hint of what the tool works on, such as a search query or a file name.
+    var detail: String?
+    var startedAt = Date()
+    var finishedAt: Date?
 
     var label: String { customLabel ?? ToolActivity.label(for: toolName) }
 
@@ -144,10 +212,19 @@ struct ToolActivity: Identifiable, Equatable {
         case "read_screen": L("Reading your screen", comment: "Tool activity")
         case "start_focus": L("Starting a focus session", comment: "Tool activity")
         case "get_clipboard": L("Reading the clipboard", comment: "Tool activity")
+        case "run_command": L("Running a command", comment: "Tool activity")
+        case "generate_image": L("Drawing", comment: "Tool activity")
+        case "get_weather": L("Checking the weather", comment: "Tool activity")
+        case "codex_skill": L("Getting ready", comment: "Tool activity")
+        case "web_search", "google_web_search":
+            L("Searching the web", comment: "Tool activity")
         // Searches the CLI brains run themselves.
         case "web_search", "google_web_search":
             L("Searching the web", comment: "Tool activity")
-        default: String(format: L("Using %@", comment: "Tool activity for other tools"), name)
+        default:
+            String(
+                format: L("Using %@", comment: "Tool activity for other tools"),
+                name.replacingOccurrences(of: "_", with: " "))
         }
     }
 }
@@ -380,6 +457,7 @@ final class AssistantController {
         onRequestFinished?()
         for index in messages.indices where messages[index].isStreaming {
             messages[index].isStreaming = false
+            messages[index].finishedAt = Date()
             for step in messages[index].activities.indices
             where messages[index].activities[step].state == .running {
                 messages[index].activities[step].state = .failed
@@ -387,6 +465,31 @@ final class AssistantController {
         }
         character?.showIdle()
         saveConversation()
+    }
+
+    /// Asks the last message again, for example after fixing what made it fail. The failed
+    /// answer is replaced.
+    func retry() {
+        guard !isBusy, let index = messages.lastIndex(where: { $0.role == .user }) else { return }
+        let request = messages[index]
+        messages.removeSubrange((index + 1)...)
+        isSpokenRequest = false
+        lastRequestError = nil
+        attachmentNotice = nil
+        sendingImages = request.attachments.contains(where: \.isImage)
+        isBusy = true
+        character?.showWorking()
+        let run = UUID()
+        currentRun = run
+        task = Task {
+            _ = await self.run(request.text, attachments: request.attachments, id: run)
+        }
+    }
+
+    /// Whether the last message can be asked again.
+    var canRetry: Bool {
+        !isBusy && messages.last.map { $0.role != .user } == true
+            && messages.contains { $0.role == .user }
     }
 
     func newConversation() {
@@ -512,13 +615,19 @@ final class AssistantController {
                 case .text(let chunk):
                     if reply.isEmpty { character?.showSpeaking() }
                     reply += chunk
-                    update { $0.text += chunk }
+                    update { $0.appendText(chunk) }
                     onReplyEvent?(.text(chunk))
-                case .toolStarted(let name):
+                case .toolStarted(let name, let detail):
                     let activity = ToolActivity(
-                        toolName: name, state: .running, customLabel: activityLabels[name])
-                    update { $0.activities.append(activity) }
+                        toolName: name, state: .running, customLabel: activityLabels[name],
+                        detail: detail)
+                    update { $0.appendStep(activity) }
                     onReplyEvent?(.toolStarted(label: activity.label))
+                case .artifact(let artifact):
+                    let kept = ArtifactStore.keep(artifact)
+                    update { answer in
+                        if !answer.artifacts.contains(kept) { answer.artifacts.append(kept) }
+                    }
                 case .toolFinished(let name, let succeeded, let permission):
                     update { answer in
                         guard
@@ -528,6 +637,7 @@ final class AssistantController {
                         else { return }
                         answer.activities[activity].state = succeeded ? .succeeded : .failed
                         answer.activities[activity].missingPermission = permission
+                        answer.activities[activity].finishedAt = Date()
                     }
                     onReplyEvent?(.toolFinished)
                     if succeeded, ["add_task", "complete_task", "log_habit"].contains(name) {
@@ -538,7 +648,10 @@ final class AssistantController {
             guard currentRun == run, !Task.isCancelled else { return nil }
             await attachToolRecords(to: update)
             guard currentRun == run else { return nil }
-            update { $0.isStreaming = false }
+            update {
+                $0.isStreaming = false
+                $0.finishedAt = Date()
+            }
             if replyID == nil {
                 character?.showIdle()
             } else {
@@ -549,8 +662,14 @@ final class AssistantController {
             guard currentRun == run, !(error is CancellationError) else { return nil }
             await attachToolRecords(to: update)
             guard currentRun == run else { return nil }
-            update { $0.isStreaming = false }
-            messages.append(ChatMessage(role: .error, text: error.localizedDescription))
+            update {
+                $0.isStreaming = false
+                $0.finishedAt = Date()
+            }
+            messages.append(
+                ChatMessage(
+                    role: .error, text: error.localizedDescription,
+                    issue: ChatIssue(error: error)))
             lastRequestError = error.localizedDescription
             character?.showTrouble()
             reply = ""
@@ -648,7 +767,7 @@ final class AssistantController {
                 if brain.kind.isRemote { record(brain: brain, message: prompt, configuration) }
             case .text(let chunk):
                 reply += chunk
-            case .toolStarted, .toolFinished:
+            case .toolStarted, .toolFinished, .artifact:
                 break
             }
         }
