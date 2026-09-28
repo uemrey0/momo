@@ -30,17 +30,37 @@ public actor VoiceEngine: LiveVoiceBackend {
         ModelSelection.supportedLanguages
     }
 
-    public func models(locale: String) async -> [LiveModelInfo] {
-        let required = Set(ModelSelection.plan(locale: locale)?.requiredModelIDs ?? [])
-        return ModelCatalog.all.map {
-            $0.info(isDownloaded: store.isDownloaded($0), isRequired: required.contains($0.id))
+    public func models(locale: String, textToSpeechModel: String?) async -> [LiveModelInfo] {
+        let catalog = store.allModels()
+        let configuration = LiveSessionConfiguration(
+            locale: locale, textToSpeechModel: textToSpeechModel)
+        // A chosen model that cannot speak the language falls back to the default choice.
+        let plan =
+            (try? ModelSelection.plan(for: configuration, catalog: catalog))
+            ?? ModelSelection.plan(locale: locale)
+        let required = Set(plan?.requiredModelIDs ?? [])
+        return catalog.map { model in
+            let isDownloaded = store.isDownloaded(model)
+            let hasVoices = model.kind == .textToSpeech && isDownloaded
+            return model.info(
+                isDownloaded: isDownloaded, isRequired: required.contains(model.id),
+                voices: hasVoices ? store.voices(of: model) : [],
+                customVoices: hasVoices ? store.customVoices(of: model) : [])
         }
     }
 
     public func downloadModels(ids: [String]) async {
         for id in ids {
-            guard let model = ModelCatalog.model(id: id) else {
+            guard let model = store.model(id: id) else {
                 emit(.downloadFailed(id: id, message: "Unknown model \(id)."))
+                continue
+            }
+            guard !model.isCustom else {
+                emit(
+                    .downloadFailed(
+                        id: id,
+                        message: String(
+                            describing: VoiceEngineError.customModelNotDownloadable(id))))
                 continue
             }
             if store.isDownloaded(model) {
@@ -70,7 +90,7 @@ public actor VoiceEngine: LiveVoiceBackend {
 
     public func deleteModels(ids: [String]) async throws {
         for id in ids {
-            guard let model = ModelCatalog.model(id: id) else {
+            guard let model = store.model(id: id) else {
                 throw VoiceEngineError.unknownModel(id)
             }
             loaded.forget(id)
@@ -79,24 +99,95 @@ public actor VoiceEngine: LiveVoiceBackend {
         }
     }
 
+    /// Copies a model folder into the store. Copying can take a while, so it runs off the
+    /// actor and never holds up a running session.
+    public nonisolated func importModel(path: String) async throws -> String {
+        try store.importModel(from: URL(fileURLWithPath: path, isDirectory: true)).id
+    }
+
+    public func importVoice(modelID: String, path: String) async throws -> String {
+        guard let model = store.model(id: modelID) else {
+            throw VoiceEngineError.unknownModel(modelID)
+        }
+        let voice = try store.importVoice(from: URL(fileURLWithPath: path), into: model)
+        // A loaded model only knows the voices it was loaded with.
+        loaded.forget(modelID)
+        return voice
+    }
+
+    public func deleteVoice(modelID: String, voice: String) async throws {
+        guard let model = store.model(id: modelID) else {
+            throw VoiceEngineError.unknownModel(modelID)
+        }
+        try store.deleteVoice(voice, of: model)
+        loaded.forget(modelID)
+    }
+
+    // MARK: Transcription
+
+    /// Transcribes a recording: Silero VAD finds the speech, and each stretch of it goes
+    /// through its own Nemotron session, as the listener does for a turn.
+    ///
+    /// It runs off the actor, so a running session keeps speaking and listening meanwhile.
+    /// Its VAD is a separate instance, because the listener's carries streaming state.
+    public nonisolated func transcribe(
+        path: String, locale: String
+    ) async throws -> [LiveTranscriptSegment] {
+        let startedAt = Date()
+        let language = ModelSelection.languageCode(of: locale)
+        guard ModelCatalog.nemotron.languages.contains(language) else {
+            throw ModelSelectionError.unsupportedLanguage(locale)
+        }
+        let missing = [ModelCatalog.sileroVAD, ModelCatalog.nemotron]
+            .filter { !store.isDownloaded($0) }.map(\.id)
+        guard missing.isEmpty else { throw VoiceEngineError.modelsMissing(missing) }
+
+        let audio = try RecordingReader.samples(of: URL(fileURLWithPath: path))
+        try Task.checkCancellation()
+        let vad = try await SileroVADModel.fromPretrained(
+            modelId: ModelCatalog.sileroVAD.repository, engine: .coreml,
+            cacheDir: store.directory(for: ModelCatalog.sileroVAD), offlineMode: true)
+        let recognizer = try await loaded.recognizer(store: store)
+        let transcriber = RecordingTranscriber(
+            vad: vad, recognizer: recognizer,
+            recognitionLanguage: ModelSelection.recognitionTag(for: locale))
+        let segments = try await transcriber.transcribe(audio)
+        let seconds = Double(audio.count) / RecordingTranscriber.sampleRate
+        Log.info(
+            String(
+                format: "Transcribed %.1f s of audio into %d segments in %.0f ms", seconds,
+                segments.count, Date().timeIntervalSince(startedAt) * 1000))
+        return segments
+    }
+
     // MARK: Session
+
+    /// The plan for a session, choosing among the built-in and added models.
+    private func plan(for configuration: LiveSessionConfiguration) throws -> VoicePlan {
+        try ModelSelection.plan(for: configuration, catalog: store.allModels())
+    }
 
     /// Loads and warms up the models of a session, without opening the microphone, so the
     /// Core ML compilation a new helper build needs happens before the user waits on it.
     public func prepare(_ configuration: LiveSessionConfiguration) async throws {
         let startedAt = Date()
-        let plan = try ModelSelection.plan(for: configuration)
+        let plan = try plan(for: configuration)
         try checkDownloaded(plan)
-        _ = try await loaded.vad(store: store)
-        _ = try await loaded.turnDetector(store: store)
-        _ = try await loaded.recognizer(store: store)
-        _ = try await loaded.synthesizer(for: plan.output, store: store)
+        if plan.speechToTextModel != nil {
+            _ = try await loaded.vad(store: store)
+            _ = try await loaded.turnDetector(store: store)
+            _ = try await loaded.recognizer(store: store)
+        }
+        if let output = plan.output {
+            _ = try await loaded.synthesizer(
+                for: output, locale: plan.recognitionLanguage, store: store)
+        }
         Log.info("Prepared in \(Int(Date().timeIntervalSince(startedAt) * 1000)) ms")
     }
 
     private func checkDownloaded(_ plan: VoicePlan) throws {
         let missing = plan.requiredModelIDs.filter { id in
-            ModelCatalog.model(id: id).map { !store.isDownloaded($0) } ?? true
+            store.model(id: id).map { !store.isDownloaded($0) } ?? true
         }
         guard missing.isEmpty else { throw VoiceEngineError.modelsMissing(missing) }
     }
@@ -104,38 +195,72 @@ public actor VoiceEngine: LiveVoiceBackend {
     public func start(_ configuration: LiveSessionConfiguration) async throws {
         await stop(reportStopped: false)
         let startedAt = Date()
-        let plan = try ModelSelection.plan(for: configuration)
+        let plan = try plan(for: configuration)
         try checkDownloaded(plan)
-        try await Self.requestMicrophoneAccess()
+        // A session that only speaks never asks for the microphone.
+        if configuration.listens { try await Self.requestMicrophoneAccess() }
 
-        let vad = try await loaded.vad(store: store)
-        let turnDetector = try await loaded.turnDetector(store: store)
-        let recognizer = try await loaded.recognizer(store: store)
-        let synthesizer = try await loaded.synthesizer(for: plan.output, store: store)
+        var synthesizer: (any SpeechSynthesizing)?
+        if let output = plan.output {
+            synthesizer = try await loaded.synthesizer(
+                for: output, locale: plan.recognitionLanguage, store: store)
+        }
+        var listenerModels:
+            (
+                vad: SileroVADModel, turnDetector: SmartTurnModel,
+                recognizer: NemotronStreamingASRModel
+            )?
+        if plan.speechToTextModel != nil {
+            listenerModels = (
+                try await loaded.vad(store: store), try await loaded.turnDetector(store: store),
+                try await loaded.recognizer(store: store)
+            )
+        }
         Log.info("Models ready in \(Int(Date().timeIntervalSince(startedAt) * 1000)) ms")
 
         let audio = AudioIO()
         let listenerBox = ListenerBox()
-        let maximumPieceLength =
-            if case .kokoro = plan.output { KokoroSynthesizer.maximumPieceLength } else { 180 }
-        let speaker = Speaker(
-            audio: audio, synthesizer: synthesizer, maximumPieceLength: maximumPieceLength,
-            emit: emit,
-            observer: Speaker.Observer(
-                started: { listenerBox.listener?.playbackStarted(id: $0) },
-                stopped: { listenerBox.listener?.playbackStopped() }))
-        let listener = Listener(
-            vad: vad, turnDetector: turnDetector, recognizer: recognizer,
-            configuration: configuration, recognitionLanguage: plan.recognitionLanguage, emit: emit,
-            speaker: Listener.SpeakerControl(interrupt: { [weak speaker] in speaker?.cancel() }))
-        listenerBox.listener = listener
-        listener.prepare()
-        try audio.start(capture: { listener.push($0) })
+        var speaker: Speaker?
+        if let synthesizer, let output = plan.output {
+            speaker = Speaker(
+                audio: audio, synthesizer: synthesizer,
+                maximumPieceLength: Self.maximumPieceLength(for: output), emit: emit,
+                observer: Speaker.Observer(
+                    started: { listenerBox.listener?.playbackStarted(id: $0) },
+                    stopped: { listenerBox.listener?.playbackStopped() }))
+        }
+        var listener: Listener?
+        if let models = listenerModels {
+            let newListener = Listener(
+                vad: models.vad, turnDetector: models.turnDetector, recognizer: models.recognizer,
+                configuration: configuration, recognitionLanguage: plan.recognitionLanguage,
+                emit: emit,
+                speaker: Listener.SpeakerControl(interrupt: { [weak speaker] in
+                    speaker?.cancel()
+                }))
+            listenerBox.listener = newListener
+            newListener.prepare()
+            try audio.start(playsOutput: speaker != nil, capture: { newListener.push($0) })
+            listener = newListener
+        } else {
+            try audio.startOutputOnly()
+        }
         session = LiveSession(audio: audio, listener: listener, speaker: speaker)
+        let listening =
+            listener != nil ? "listening in \(plan.recognitionLanguage)" : "not listening"
+        let speaking = plan.output.map { "speaking with \($0)" } ?? "not speaking"
         Log.info(
-            "Listening in \(plan.recognitionLanguage), speaking with \(plan.output), after \(Int(Date().timeIntervalSince(startedAt) * 1000)) ms"
+            "Session \(configuration.mode.rawValue): \(listening), \(speaking), after \(Int(Date().timeIntervalSince(startedAt) * 1000)) ms"
         )
         emit(.listening)
+    }
+
+    /// The longest piece of text the model reads at once.
+    private static func maximumPieceLength(for output: SpeechOutputEngine) -> Int {
+        switch output.architecture {
+        case .kokoro: KokoroSynthesizer.maximumPieceLength
+        case .supertonic: 180
+        }
     }
 
     public func stop() async {
@@ -145,9 +270,9 @@ public actor VoiceEngine: LiveVoiceBackend {
     private func stop(reportStopped: Bool) async {
         guard let session else { return }
         self.session = nil
-        session.speaker.cancel()
+        session.speaker?.cancel()
         session.audio.stop()
-        session.listener.drain()
+        session.listener?.drain()
         if reportStopped { emit(.stopped) }
     }
 
@@ -156,15 +281,22 @@ public actor VoiceEngine: LiveVoiceBackend {
             emit(.error(message: "No live session is running.", isFatal: false))
             return
         }
-        session.speaker.speak(id: id, text: text, isFinal: isFinal)
+        guard let speaker = session.speaker else {
+            emit(
+                .error(
+                    message: String(describing: VoiceEngineError.sessionDoesNotSpeak),
+                    isFatal: false))
+            return
+        }
+        speaker.speak(id: id, text: text, isFinal: isFinal)
     }
 
     public func cancelSpeech() async {
-        session?.speaker.cancel()
+        session?.speaker?.cancel()
     }
 
     public func setListeningPaused(_ isPaused: Bool) async {
-        session?.listener.setPaused(isPaused)
+        session?.listener?.setPaused(isPaused)
     }
 
     // MARK: Command line
@@ -172,21 +304,20 @@ public actor VoiceEngine: LiveVoiceBackend {
     /// Synthesises and plays `text` without listening, for `--say`. Returns the time to first
     /// audio and the real-time factor of each piece through the log.
     public func say(_ text: String, configuration: LiveSessionConfiguration) async throws {
-        let plan = try ModelSelection.plan(for: configuration)
-        if let id = plan.output.modelID, let model = ModelCatalog.model(id: id),
-            !store.isDownloaded(model)
-        {
-            throw VoiceEngineError.modelsMissing([id])
-        }
-        let synthesizer = try await loaded.synthesizer(for: plan.output, store: store)
+        var configuration = configuration
+        configuration.mode = .speak
+        let plan = try plan(for: configuration)
+        try checkDownloaded(plan)
+        guard let output = plan.output else { throw VoiceEngineError.sessionDoesNotSpeak }
+        let synthesizer = try await loaded.synthesizer(
+            for: output, locale: plan.recognitionLanguage, store: store)
         let audio = AudioIO()
         let finished = AsyncStream<Void>.makeStream()
-        let maximumPieceLength =
-            if case .kokoro = plan.output { KokoroSynthesizer.maximumPieceLength } else { 180 }
         let emit = emit
         let requested = RequestClock()
         let speaker = Speaker(
-            audio: audio, synthesizer: synthesizer, maximumPieceLength: maximumPieceLength,
+            audio: audio, synthesizer: synthesizer,
+            maximumPieceLength: Self.maximumPieceLength(for: output),
             emit: { event in
                 emit(event)
                 if case .speakingStarted = event {
@@ -195,7 +326,7 @@ public actor VoiceEngine: LiveVoiceBackend {
                 if case .speakingFinished = event { finished.continuation.finish() }
             },
             observer: Speaker.Observer(started: { _ in }, stopped: {}))
-        try audio.start(capture: { _ in })
+        try audio.startOutputOnly()
         requested.reset()
         speaker.speak(id: "say", text: text, isFinal: true)
         for await _ in finished.stream {}
@@ -216,11 +347,12 @@ public actor VoiceEngine: LiveVoiceBackend {
     }
 }
 
-/// The objects of a running session.
+/// The objects of a running session. A session that only speaks has no listener, and one
+/// that only listens has no speaker.
 private struct LiveSession: @unchecked Sendable {
     let audio: AudioIO
-    let listener: Listener
-    let speaker: Speaker
+    let listener: Listener?
+    let speaker: Speaker?
 }
 
 /// Lets the speaker reach the listener, which is created after it.
@@ -311,43 +443,63 @@ private final class LoadedModels: @unchecked Sendable {
         }
     }
 
+    /// The synthesizer for `output`, loading its model (built in or added) from the store.
+    /// A `nil` voice becomes the model's default for `locale`.
     func synthesizer(
-        for output: SpeechOutputEngine, store: ModelStore
-    ) async throws
-        -> any SpeechSynthesizing
-    {
+        for output: SpeechOutputEngine, locale: String, store: ModelStore
+    ) async throws -> any SpeechSynthesizing {
+        guard let model = store.model(id: output.modelID), let architecture = model.architecture
+        else {
+            throw VoiceEngineError.unknownModel(output.modelID)
+        }
+        let directory = store.directory(for: model)
+        let repository = model.repository.isEmpty ? model.id : model.repository
         let synthesizer: any SpeechSynthesizing
-        switch output {
-        case .kokoro(let voice, let language):
-            let model = ModelCatalog.kokoro
+        let voice: String
+        switch architecture {
+        case .kokoro:
             let kokoro = try await cached(model.id) {
                 try await KokoroTTSModel.fromPretrained(
-                    modelId: model.repository, cacheDir: store.directory(for: model),
-                    offlineMode: true)
+                    modelId: repository, cacheDir: directory, offlineMode: true)
             }
-            synthesizer = try KokoroSynthesizer(model: kokoro, voice: voice, language: language)
-        case .supertonic(let voice, let language):
-            let model = ModelCatalog.supertonic
+            voice = try Self.resolve(output, locale: locale, available: kokoro.availableVoices)
+            synthesizer = try KokoroSynthesizer(
+                model: kokoro, voice: voice, language: output.language)
+        case .supertonic:
             let supertonic = try await cached(model.id) {
                 // The CPU is fastest here (RTF 0.14 on an M1); the GPU path crashes in
                 // MPSGraph on dynamic shapes and the Neural Engine is 3× slower.
                 try await SupertonicTTSModel.fromPretrained(
-                    modelId: model.repository, cacheDir: store.directory(for: model),
-                    offlineMode: true,
-                    computeUnits: .cpuOnly)
+                    modelId: repository, localPath: directory.path, computeUnits: .cpuOnly)
             }
+            voice = try Self.resolve(
+                output, locale: locale, available: supertonic.availableVoices)
             synthesizer = try SupertonicSynthesizer(
-                model: supertonic, voice: voice, language: language)
-        case .apple(let identifier, let locale):
-            synthesizer = AppleSpeechSynthesizer(voiceIdentifier: identifier, locale: locale)
+                model: supertonic, voice: voice, language: output.language)
         }
+        Log.info("Speech: \(model.id), voice \(voice), language \(output.language)")
         // The first synthesis compiles the models; do it before the first real sentence.
-        let key = String(describing: output)
+        let key = "\(model.id)|\(voice)|\(output.language)"
         if lock.withLock({ warmed.insert(key).inserted }) {
             let start = Date()
             _ = try? synthesizer.synthesize("Hi.")
             Log.info("Speech warm-up took \(Int(Date().timeIntervalSince(start) * 1000)) ms")
         }
         return synthesizer
+    }
+
+    /// The requested voice, or the model's default.
+    private static func resolve(
+        _ output: SpeechOutputEngine, locale: String, available: [String]
+    ) throws -> String {
+        if let voice = output.voice { return voice }
+        guard
+            let voice = ModelSelection.defaultVoice(
+                architecture: output.architecture, language: output.language, locale: locale,
+                available: available)
+        else {
+            throw VoiceEngineError.noVoices(output.modelID)
+        }
+        return voice
     }
 }

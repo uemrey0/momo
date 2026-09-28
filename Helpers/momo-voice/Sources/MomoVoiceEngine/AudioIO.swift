@@ -6,8 +6,12 @@ import MomoVoiceCore
 ///
 /// Voice processing I/O cancels the engine's own playback from the microphone signal, so
 /// Momo does not hear itself. That only works when playback goes through the same engine,
-/// which is why speech, including the system voices, is rendered to samples and played
-/// here. Captured audio is delivered as 16 kHz mono samples.
+/// which is why speech is rendered to samples and played here. Captured audio is delivered
+/// as 16 kHz mono samples.
+///
+/// A session that only listens opens just the microphone, without voice processing; one that
+/// only speaks opens just the speaker, and never touches the input node, so the microphone
+/// stays closed and macOS asks for no permission.
 ///
 /// Thread safety: `start`, `stop` and `stopPlayback` are called from one queue at a time;
 /// `schedule` may be called from any thread. Audio callbacks never touch actor state.
@@ -23,6 +27,10 @@ final class AudioIO: @unchecked Sendable {
     private let lock = NSLock()
     private var generation = 0
     private var isRunning = false
+    /// Whether the input node is in use, so `stop` knows what to release.
+    private var capturesInput = false
+    /// Whether the player is attached, so `stop` knows what to release.
+    private var playsOutput = false
     /// Scheduled slices that have not played yet.
     private var outstandingSlices = 0
     /// Start callbacks of clips queued behind others, in order.
@@ -39,12 +47,68 @@ final class AudioIO: @unchecked Sendable {
     }
 
     /// Opens the devices and starts delivering microphone audio to `capture`.
-    func start(capture: @escaping @Sendable ([Float]) -> Void) throws {
-        // The output side must exist before voice processing is enabled, or the output unit
-        // ends up with no channels and the engine fails to start (-10875).
+    ///
+    /// - Parameters:
+    ///   - playsOutput: Whether Momo also speaks, which opens the speaker and turns on echo
+    ///     cancellation. Without it only the microphone opens.
+    ///   - capture: Receives 16 kHz mono samples on the audio thread.
+    func start(playsOutput: Bool = true, capture: @escaping @Sendable ([Float]) -> Void) throws {
+        let input: AVAudioInputNode
+        if playsOutput {
+            // The output side must exist before voice processing is enabled, or the output
+            // unit ends up with no channels and the engine fails to start (-10875).
+            _ = engine.mainMixerNode
+            _ = engine.outputNode
+            input = engine.inputNode
+            enableVoiceProcessing(on: input)
+            attachPlayer()
+        } else {
+            input = engine.inputNode
+        }
+
+        let inputFormat = input.outputFormat(forBus: 0)
+        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
+            throw VoiceEngineError.noMicrophone
+        }
+        let converter = try CaptureConverter(inputFormat: inputFormat, deliver: capture)
+        input.installTap(
+            onBus: 0, bufferSize: 1_024, format: inputFormat, block: converter.makeTapBlock())
+        capturesInput = true
+        engine.prepare()
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            capturesInput = false
+            detachPlayer()
+            throw error
+        }
+        if playsOutput { player.play() }
+        isRunning = true
+        Log.info(
+            "Audio running: input \(Int(inputFormat.sampleRate)) Hz × \(inputFormat.channelCount), output \(playsOutput ? "on" : "off"), echo cancellation \(isEchoCancelling ? "on" : "off")"
+        )
+    }
+
+    /// Opens only the speaker, for a session that speaks without listening. The input node
+    /// is never created, so the microphone stays closed.
+    func startOutputOnly() throws {
         _ = engine.mainMixerNode
         _ = engine.outputNode
-        let input = engine.inputNode
+        attachPlayer()
+        engine.prepare()
+        do {
+            try engine.start()
+        } catch {
+            detachPlayer()
+            throw error
+        }
+        player.play()
+        isRunning = true
+        Log.info("Audio running: output only")
+    }
+
+    private func enableVoiceProcessing(on input: AVAudioInputNode) {
         do {
             // MOMO_VOICE_ECHO_CANCELLATION=0 turns it off, for diagnosing audio problems.
             let wanted = ProcessInfo.processInfo.environment["MOMO_VOICE_ECHO_CANCELLATION"] != "0"
@@ -58,33 +122,32 @@ final class AudioIO: @unchecked Sendable {
             isEchoCancelling = false
             Log.error("Voice processing is unavailable, so there is no echo cancellation: \(error)")
         }
+    }
+
+    private func attachPlayer() {
+        guard !playsOutput else { return }
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: playbackFormat)
+        playsOutput = true
+    }
 
-        let inputFormat = input.outputFormat(forBus: 0)
-        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
-            throw VoiceEngineError.noMicrophone
-        }
-        let converter = try CaptureConverter(inputFormat: inputFormat, deliver: capture)
-        input.installTap(
-            onBus: 0, bufferSize: 1_024, format: inputFormat, block: converter.makeTapBlock())
-        engine.prepare()
-        try engine.start()
-        player.play()
-        isRunning = true
-        Log.info(
-            "Audio running: input \(Int(inputFormat.sampleRate)) Hz × \(inputFormat.channelCount), echo cancellation \(isEchoCancelling ? "on" : "off")"
-        )
+    private func detachPlayer() {
+        guard playsOutput else { return }
+        engine.detach(player)
+        playsOutput = false
     }
 
     /// Stops playback and releases the devices.
     func stop() {
         guard isRunning else { return }
         isRunning = false
-        stopPlayback()
-        engine.inputNode.removeTap(onBus: 0)
+        if playsOutput { stopPlayback() }
+        if capturesInput {
+            engine.inputNode.removeTap(onBus: 0)
+            capturesInput = false
+        }
         engine.stop()
-        engine.detach(player)
+        detachPlayer()
     }
 
     /// Stops playback at once and drops scheduled audio. Completion handlers of dropped
@@ -95,6 +158,8 @@ final class AudioIO: @unchecked Sendable {
             outstandingSlices = 0
             waitingStarts.removeAll()
         }
+        // A player that is detached or whose engine stopped must not be restarted.
+        guard playsOutput, engine.isRunning else { return }
         player.stop()
         player.play()
     }

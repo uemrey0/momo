@@ -20,8 +20,8 @@ final class FakeBackend: LiveVoiceBackend {
 
     func supportedLanguages() async -> [String] { ["en", "tr"] }
 
-    func models(locale: String) async -> [LiveModelInfo] {
-        record("models \(locale)")
+    func models(locale: String, textToSpeechModel: String?) async -> [LiveModelInfo] {
+        record("models \(locale) \(textToSpeechModel ?? "-")")
         return [ModelCatalog.nemotron.info(isDownloaded: false, isRequired: true)]
     }
 
@@ -33,6 +33,33 @@ final class FakeBackend: LiveVoiceBackend {
     func deleteModels(ids: [String]) async throws {
         record("delete \(ids.joined(separator: ","))")
         if ids.contains("locked") { throw CocoaError(.fileWriteNoPermission) }
+    }
+
+    func importModel(path: String) async throws -> String {
+        record("import model \(path)")
+        guard path.hasSuffix("Kokoro") else {
+            throw SpeechModelImportError.unrecognizedFolder(path)
+        }
+        return "custom-kokoro-abcdef"
+    }
+
+    func importVoice(modelID: String, path: String) async throws -> String {
+        record("import voice \(modelID) \(path)")
+        guard path.hasSuffix(".json") else {
+            throw SpeechModelImportError.notAVoiceFile(path)
+        }
+        return "mine"
+    }
+
+    func deleteVoice(modelID: String, voice: String) async throws {
+        record("delete voice \(modelID) \(voice)")
+        if voice == "F1" { throw SpeechModelImportError.notACustomVoice(voice) }
+    }
+
+    func transcribe(path: String, locale: String) async throws -> [LiveTranscriptSegment] {
+        record("transcribe \(path) \(locale)")
+        guard path.hasSuffix(".wav") else { throw CocoaError(.fileReadCorruptFile) }
+        return [LiveTranscriptSegment(text: "Merhaba.", start: 0.5, end: 1.2)]
     }
 
     func prepare(_ configuration: LiveSessionConfiguration) async throws {
@@ -113,7 +140,7 @@ struct LiveVoiceServerTests {
         let log = EventLog()
         let backend = FakeBackend(emit: log.append)
         let server = LiveVoiceServer(backend: backend, emit: log.append)
-        _ = await server.handle(.listModels(locale: "tr-TR"))
+        _ = await server.handle(.listModels(locale: "tr-TR", textToSpeechModel: nil))
         _ = await server.handle(.speak(id: "0", text: "early", isFinal: true))
         _ = await server.handle(.start(LiveSessionConfiguration(locale: "tr-TR")))
         _ = await server.handle(.speak(id: "1", text: "Merhaba.", isFinal: false))
@@ -124,7 +151,7 @@ struct LiveVoiceServerTests {
         _ = await server.handle(.stop)
         #expect(
             backend.calls.withLock { $0 } == [
-                "models tr-TR", "start tr-TR", "speak 1 Merhaba. false", "paused true",
+                "models tr-TR -", "start tr-TR", "speak 1 Merhaba. false", "paused true",
                 "paused false", "cancel", "delete kokoro-82m", "stop",
             ])
         let events = log.all
@@ -186,11 +213,82 @@ struct LiveVoiceServerTests {
         let log = EventLog()
         let server = LiveVoiceServer(backend: FakeBackend(emit: log.append), emit: log.append)
         _ = await server.handle(.downloadModels(ids: ["silero-vad", "kokoro-82m"]))
-        await server.waitForDownloads()
+        await server.waitForBackgroundTasks()
         #expect(
             log.all == [.downloadFinished(id: "silero-vad"), .downloadFinished(id: "kokoro-82m")])
         _ = await server.handle(.deleteModels(ids: ["locked"]))
         #expect(log.all.count == 3)
+    }
+
+    @Test("adding models and voices reports the outcome or a readable error")
+    func imports() async {
+        let log = EventLog()
+        let backend = FakeBackend(emit: log.append)
+        let server = LiveVoiceServer(backend: backend, emit: log.append)
+        _ = await server.handle(.importModel(path: "/tmp/My Kokoro"))
+        await server.waitForBackgroundTasks()
+        _ = await server.handle(.importModel(path: "/tmp/Photos"))
+        await server.waitForBackgroundTasks()
+        _ = await server.handle(.importVoice(modelID: "kokoro-82m", path: "/tmp/mine.json"))
+        _ = await server.handle(.importVoice(modelID: "kokoro-82m", path: "/tmp/mine.wav"))
+        #expect(
+            log.all == [
+                .modelImported(id: "custom-kokoro-abcdef"),
+                .importFailed(
+                    message: SpeechModelImportError.unrecognizedFolder("/tmp/Photos").description),
+                .voiceImported(modelID: "kokoro-82m", voice: "mine"),
+                .importFailed(
+                    message: SpeechModelImportError.notAVoiceFile("/tmp/mine.wav").description),
+            ])
+    }
+
+    @Test("deleting a built-in voice is a non-fatal error")
+    func deletesVoices() async {
+        let log = EventLog()
+        let backend = FakeBackend(emit: log.append)
+        let server = LiveVoiceServer(backend: backend, emit: log.append)
+        _ = await server.handle(.deleteVoice(modelID: "supertonic-3", voice: "mine"))
+        #expect(log.all.isEmpty)
+        _ = await server.handle(.deleteVoice(modelID: "supertonic-3", voice: "F1"))
+        #expect(log.all.count == 1)
+        if case .error(let message, let isFatal) = log.all.first {
+            #expect(!isFatal)
+            #expect(message.contains("cannot be deleted"))
+        } else {
+            Issue.record("no error")
+        }
+    }
+
+    @Test("transcriptions run in the background and report their id")
+    func transcribes() async {
+        let log = EventLog()
+        let backend = FakeBackend(emit: log.append)
+        let server = LiveVoiceServer(backend: backend, emit: log.append)
+        _ = await server.handle(.transcribe(id: "a", path: "/tmp/meeting.wav", locale: "tr-TR"))
+        _ = await server.handle(.transcribe(id: "b", path: "/tmp/meeting.txt", locale: "tr-TR"))
+        await server.waitForBackgroundTasks()
+        let events = log.all
+        #expect(events.count == 2)
+        #expect(
+            events.contains(
+                .transcribed(
+                    id: "a",
+                    segments: [LiveTranscriptSegment(text: "Merhaba.", start: 0.5, end: 1.2)])))
+        #expect(
+            events.contains {
+                if case .transcriptionFailed(let id, _) = $0 { id == "b" } else { false }
+            })
+    }
+
+    @Test("speaking sessions take speech")
+    func speakingSession() async {
+        let log = EventLog()
+        let backend = FakeBackend(emit: log.append)
+        let server = LiveVoiceServer(backend: backend, emit: log.append)
+        _ = await server.handle(.start(LiveSessionConfiguration(locale: "tr-TR", mode: .speak)))
+        _ = await server.handle(.speak(id: "1", text: "Merhaba.", isFinal: true))
+        #expect(backend.calls.withLock { $0 } == ["start tr-TR", "speak 1 Merhaba. true"])
+        #expect(log.all == [.listening])
     }
 
     @Test("quit stops the session and ends the loop")

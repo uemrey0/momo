@@ -26,13 +26,19 @@ public enum Log {
 }
 
 /// Why the engine could not do something.
-public enum VoiceEngineError: Error, CustomStringConvertible {
+///
+/// Momo recognises some of these by their text ("need to be downloaded", "microphone" with
+/// "not allowed", "No microphone"), so keep those phrasings.
+public enum VoiceEngineError: Error, CustomStringConvertible, LocalizedError {
     case modelsMissing([String])
     case unknownModel(String)
     case unknownVoice(String)
+    case noVoices(String)
+    case customModelNotDownloadable(String)
+    case sessionDoesNotSpeak
+    case unreadableRecording(String)
     case microphoneDenied
     case noMicrophone
-    case synthesisTimedOut
     case echoCancellationDisabled
 
     public var description: String {
@@ -43,14 +49,22 @@ public enum VoiceEngineError: Error, CustomStringConvertible {
             "Unknown model \(id)."
         case .unknownVoice(let voice):
             "The voice \(voice) does not exist."
+        case .noVoices(let model):
+            "The model \(model) has no voices."
+        case .customModelNotDownloadable(let id):
+            "The model \(id) was added from a folder and cannot be downloaded."
+        case .sessionDoesNotSpeak:
+            "This session only listens, so it cannot speak."
+        case .unreadableRecording(let reason):
+            "The recording cannot be read: \(reason)."
         case .microphoneDenied:
             "Momo is not allowed to use the microphone."
         case .noMicrophone:
             "No microphone is available."
-        case .synthesisTimedOut:
-            "Speech synthesis took too long."
         case .echoCancellationDisabled:
             "Echo cancellation was turned off."
         }
     }
+
+    public var errorDescription: String? { description }
 }
