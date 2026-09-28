@@ -3,12 +3,18 @@ import Foundation
 
 /// Which voice reads replies aloud.
 public enum SpeechVoiceChoice: String, Codable, CaseIterable, Sendable, Identifiable {
-    /// The system's voices, on the Mac.
-    case apple
+    /// Momo's voice models, on this Mac.
+    case onDevice
     /// OpenAI text to speech with the user's key. Replies are sent to OpenAI.
     case openAI
 
     public var id: String { rawValue }
+
+    /// Reads the choice; the Mac voices of earlier versions mean Momo's voice models now.
+    public init(from decoder: any Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        self = SpeechVoiceChoice(rawValue: value) ?? .onDevice
+    }
 }
 
 /// Builds requests for OpenAI's `/v1/audio/speech` endpoint.

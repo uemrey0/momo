@@ -31,36 +31,6 @@ struct SpeechTextTests {
     }
 }
 
-@Suite("Voice choice")
-struct VoiceChoiceTests {
-    let voices = [
-        VoiceDescriptor(id: "yelda", name: "Yelda", language: "tr-TR", quality: .standard),
-        VoiceDescriptor(id: "yelda-hq", name: "Yelda", language: "tr-TR", quality: .enhanced),
-        VoiceDescriptor(id: "samantha", name: "Samantha", language: "en-US", quality: .standard),
-        VoiceDescriptor(id: "daniel", name: "Daniel", language: "en-GB", quality: .enhanced),
-        VoiceDescriptor(id: "kate", name: "Kate", language: "en-GB", quality: .standard),
-    ]
-
-    @Test("prefers the best quality voice for the language")
-    func bestQuality() {
-        #expect(VoiceDescriptor.best(for: "tr", among: voices)?.id == "yelda-hq")
-        #expect(
-            VoiceDescriptor.best(for: "en", among: voices, preferredRegion: "US")?.id == "daniel")
-    }
-
-    @Test("honours the user's voice when it speaks the language")
-    func preferredVoice() {
-        #expect(VoiceDescriptor.best(for: "en", among: voices, preferredID: "kate")?.id == "kate")
-        #expect(
-            VoiceDescriptor.best(for: "tr", among: voices, preferredID: "kate")?.id == "yelda-hq")
-    }
-
-    @Test("returns nothing for languages without voices")
-    func missingLanguage() {
-        #expect(VoiceDescriptor.best(for: "ja", among: voices) == nil)
-    }
-}
-
 @Suite("Wake word")
 struct WakeWordTests {
     let detector = WakeWordDetector()

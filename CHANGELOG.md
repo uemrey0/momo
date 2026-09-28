@@ -9,6 +9,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Momo's own voice models everywhere: dictation, "Hey Momo", replies read aloud, spoken
+  questions and meeting notes run on the on-device models (Nemotron, Kokoro, Supertonic),
+  like live conversation. Settings → Voice → Voice models picks the model and voice, and adds
+  a Kokoro or Supertonic model folder or a voice style file of your own.
+- Live conversation says what is happening: which brain works on a slow answer ("Checking
+  with ChatGPT."), and why a reply failed (a usage limit, a sign-in, no internet) instead of a
+  generic apology. Codex thinks briefly for spoken requests, so answers start sooner.
 - Voice mode: ⌥⇧Space and "Hey Momo" work without opening the chat. A caption bubble under
   the notch shows what you said and Momo's answer while it is read aloud, and Momo's
   questions can be answered with "yes" or "no". Hold the shortcut to talk if you turn on
@@ -36,6 +43,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Apple's voices and Apple speech recognition are gone. Until Momo's voice models are
+  downloaded and ready, voice mode doesn't start and says where to get them; the models get
+  ready in the background at launch. The Speech Recognition permission is no longer asked.
 - The panel has a fresh, friendlier design and now grows and shrinks with its content
   instead of always being the same size. Sections have icons and a sliding highlight, and
   the brain picker, Settings and Close live in a small "⋯" menu.

@@ -60,11 +60,18 @@ public struct ChatRequest: Sendable {
     public var turns: [ChatTurn]
     /// Tools the model may call.
     public var tools: [ToolDefinition]
+    /// The answer is awaited in a live voice conversation, so a quick answer beats a
+    /// thorough one; brains that can think less (Codex's reasoning effort) should.
+    public var prefersSpeed: Bool
 
-    public init(systemPrompt: String, turns: [ChatTurn], tools: [ToolDefinition] = []) {
+    public init(
+        systemPrompt: String, turns: [ChatTurn], tools: [ToolDefinition] = [],
+        prefersSpeed: Bool = false
+    ) {
         self.systemPrompt = systemPrompt
         self.turns = turns
         self.tools = tools
+        self.prefersSpeed = prefersSpeed
     }
 }
 

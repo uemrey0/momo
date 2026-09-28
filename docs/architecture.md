@@ -137,23 +137,38 @@ speaking), the mood the user picked, and the ambient mood (music, focus).
 
 ## Voice
 
-`MomoVoice` hides every speech engine behind small interfaces, so the app only picks one:
+Everything that listens or speaks on the Mac runs on Momo's own voice models in the
+`momo-voice` helper ([below](#the-live-voice-helper), [ADR 0007](adr/0007-own-voice-models-only.md)):
+Nemotron recognises speech, Silero VAD and Smart Turn hear when the user is done, and Kokoro or
+Supertonic speak. Momo uses no Apple speech recognition and no system voices. Until the
+models are downloaded and ready for the Mac's language, voice mode doesn't start and the
+bubble says why, with a button to Settings → Voice. The only other engines are cloud ones
+the user chose with their own key. `MomoVoice` hides them behind small interfaces:
 
 | Type | What it does |
 | ---- | ------------ |
 | `DictationEngine` | Live dictation with partial and final transcripts and the input level. |
-| `SpeechRecognizer` | Apple Speech (`SFSpeechRecognizer`); works everywhere, the fallback. |
-| `AnalyzerDictationEngine` | Apple `SpeechAnalyzer` with the `SpeechTranscriber` module (macOS 26); installs the language's model through `AssetInventory`. |
-| `CloudDictationEngine` | Records, ends the utterance with `VoiceActivityDetector`, and sends WAV to an `AudioTranscriptionService`; falls back to Apple Speech on the recording. |
-| `AudioTranscriptionService` | Transcribes a recorded clip into text and timed segments: `OpenAITranscriptionService` (including `gpt-4o-transcribe-diarize` speaker labels) and `GeminiTranscriptionService`. Reusable for long recordings in chunks. |
-| `SpeechSynthesizer`, `CloudSpeechSynthesizer` | Mac voices, or OpenAI voices streamed as PCM with the mouth following the output level. |
+| `HelperDictationEngine` | Dictation on the voice models: a listening session whose turns become the transcript (collected until the key is let go with push to talk). |
+| `HelperWakeWordListener` | "Hey Momo" on the voice models: a listening session, gated by the voice activity detector, whose partials `WakeWordDetector` checks. |
+| `HelperSpeaker` | Reads replies aloud on the voice models in a session that only speaks and never opens the microphone, in the reply's language with the model and voice the user chose. |
+| `CloudDictationEngine` | Records, ends the utterance with `VoiceActivityDetector`, and sends WAV to an `AudioTranscriptionService`; falls back to the voice models on the recording. |
+| `AudioTranscriptionService` | Transcribes a recorded clip into text and timed segments: `HelperTranscriptionService` (the voice models, segmented by voice activity), `OpenAITranscriptionService` (including `gpt-4o-transcribe-diarize` speaker labels) and `GeminiTranscriptionService`. Reusable for long recordings in chunks. |
+| `CloudSpeechSynthesizer` | OpenAI voices streamed as PCM with the mouth following the output level; falls back to the voice models. |
 
 In the app, `VoiceController` runs spoken requests in voice mode: the character listens,
 `VoiceBubbleController` shows the transcript and the reply in a non-activating caption bubble
 under the notch, and consent or confirmation questions are asked aloud and answered with a
 spoken yes or no (`SpeechText.answer(in:)`). `DictationEngineSelector` turns the user's
-choice into an engine (cloud engines only with a key). The wake word always uses Apple Speech on the Mac. Cloud requests use the keys of the
-OpenAI and Gemini brains and are listed in the privacy log.
+choice into an engine (cloud engines only with a key). At launch, and when the user picks
+another model, `VoiceController` lists the models and, when this helper build hasn't loaded
+them yet, loads them in the background, so the first conversation after an update doesn't
+wait. Cloud requests use the keys of the OpenAI and Gemini brains and are listed in the
+privacy log.
+
+Settings → Voice → Voice models shows whether the models are ready for the Mac's language,
+downloads the suggested ones (only when the user asks), and picks the model and voice Momo
+speaks with. Users can add a folder with a Kokoro or Supertonic Core ML conversion of their
+own, or a voice style file for a model; the helper checks and copies what they add.
 
 ## Live conversation
 
@@ -184,10 +199,15 @@ flowchart LR
   say them; the full text still lands in the chat). `SpeechSentenceSplitter` cuts the
   streaming reply into speakable sentences (abbreviations, decimals, times, lists, Markdown
   and emoji, in English and Turkish), flushing at tool calls, so the first sentence plays as
-  soon as it exists. `LiveReplyPlanner` masks latency: when the brain has said nothing after
-  0.8 s, Momo says a short acknowledgement written by the fastest ready on-device brain
-  (`LiveAcknowledgement`, Apple Intelligence first) or a canned phrase, or the running
-  tool's activity label, and cancels it the moment the answer's first sentence is ready.
+  soon as it exists. `LiveReplyPlanner` masks latency by saying what Momo is doing: when the
+  brain has said nothing after 1.5 s (4 s for later turns), Momo says a short acknowledgement
+  written by the fastest ready on-device brain (`LiveAcknowledgement`, Apple Intelligence
+  first), or which brain works on it ("Checking with ChatGPT.", once per conversation), or a
+  canned phrase, or the running tool's activity label, and cancels it the moment the answer's
+  first sentence is ready. Spoken requests ask Codex for a low reasoning effort
+  (`ChatRequest.prefersSpeed`), so its first words come sooner. When a reply fails, Momo says
+  why in plain words (`AssistantLiveBrain.spoken`: a usage limit, a sign-in, no internet)
+  instead of a generic apology; the raw error stays in the chat.
 
 Talking over Momo cancels the reply and makes what the user says the next message; words
 added before the answer started are merged into the turn instead. After a reply Momo listens
@@ -198,26 +218,23 @@ yes or no; an unclear answer is asked once more, then the bubble's buttons take 
 listening pauses. With push to talk, holding the shortcut interrupts Momo and listens,
 letting go ends the turn, and turns are only listened to while the key is down.
 
-Engines (`LiveEngineSelector`; Automatic picks the helper only when `LiveVoiceModels` reports
-it `ready`: it answered the handshake and the model list just now, the language's models are
-downloaded, and this helper build has loaded them before, so it starts in seconds):
+Engines (`LiveEngineSelector`; the voice models run only when `LiveVoiceModels` reports
+them `ready`: the helper answered the handshake and the model list just now, the language's
+models are downloaded, and this helper build has loaded them before, so it starts in seconds):
 
 | Engine | How |
 | ------ | --- |
-| `AppleLiveSpeechIO` | Every Mac, no downloads. One `AVAudioEngine` with voice processing on the input node (Apple's echo cancellation) and Momo's voice on a player node of the same engine, so the canceller has the reference. Recognition runs per turn with `SpeechAnalyzer` when the language's model is installed (macOS 26), Apple Speech otherwise. `LiveTurnDetector` ends a turn after about 0.6 s of quiet when the words sound complete, longer when they trail off ("and", "çünkü", a comma), and when unchanged words stall in a noisy room. Replies are rendered per sentence with `AVSpeechSynthesizer.write` (or an OpenAI voice streamed as PCM) into the player; the mouth follows the output level. Barge-in needs a louder, longer sound while Momo talks, stops playback at once and replays the last half second of audio into the new recognition session. The output node is created before voice processing is turned on (otherwise the engine fails with -10875); a device that refuses voice processing runs without it, and without barge-in. |
-| `HelperLiveSpeechIO` | The open source engine in the `momo-voice` helper (shipped next to the app's executable, macOS 15+ on Apple silicon). `LiveVoiceHelperClient` launches it, checks the protocol version in the handshake, shares it between users and lets it quit when idle; a helper that crashes mid-session is restarted once. `LiveVoiceModels` lists, downloads (only when the user presses Download) and deletes its models for Settings, and prepares them: the first load of a new helper build compiles them for about half a minute, so it runs in the background (after a download, or when a conversation finds them cold) while Apple's engine talks, and is remembered per build and language. A start that doesn't listen within 12 s ends the helper, so it can't open the microphone later. |
-| `RealtimeConversation` | Cloud realtime voice (OpenAI Realtime or Gemini Live) with the user's key, offered once a key exists and never in local-only mode; Automatic never picks it. Not a speech layer: the cloud model is the live layer and hands real work to the brain (see below). |
+| `HelperLiveSpeechIO` | Momo's voice models in the `momo-voice` helper (shipped next to the app's executable, macOS 15+ on Apple silicon). `LiveVoiceHelperClient` launches it, checks the protocol version in the handshake, shares it between users and lets it quit when idle; a helper that crashes mid-session is restarted once. `LiveVoiceModels` lists, downloads (only when the user presses Download), adds and deletes models and voices for Settings, and prepares them: the first load of a new helper build compiles them, so it runs in the background (at launch, after a download, or when a conversation finds them cold) and is remembered per build, language and chosen model. A start that doesn't listen within 12 s ends the helper, so it can't open the microphone later. |
+| `RealtimeConversation` | Cloud realtime voice (OpenAI Realtime or Gemini Live) with the user's key, offered once a key exists and never in local-only mode, and only when the user picks it. Not a speech layer: the cloud model is the live layer and hands real work to the brain (see below). |
 
-When an engine can't start, the next one takes over (helper or cloud → Apple → the classic
-voice flow, `LiveFallbackPlan`), and the bubble says why in plain words with a button where
-the user can fix it (`LiveVoiceNotice`: download the voices in Settings → Voice, allow the
-microphone or speech recognition). A missing permission stops every engine, so it goes
-straight to that message.
+When the chosen engine can't start, a cloud session hands over to the voice models if they
+are ready (`LiveFallbackPlan`); otherwise nothing else talks, and the bubble says why in
+plain words with a button where the user can fix it (`LiveVoiceNotice`: download the models
+in Settings → Voice, allow the microphone).
 
-Everything runs on the Mac with the Apple and helper engines, except what the user already
-chose to send elsewhere: an OpenAI voice (each spoken sentence, logged in Privacy) and the
-brain itself. (Like dictation, Apple Speech falls back to Apple's servers only for languages
-it can't recognise on the Mac.)
+Everything runs on the Mac with the voice models, except what the user already chose to send
+elsewhere: an OpenAI voice for replies read aloud (each reply, logged in Privacy), cloud
+transcription or cloud realtime voice, and the brain itself.
 
 ### Cloud realtime voice
 
@@ -273,8 +290,8 @@ the character (and a different menu bar icon) the whole time it records.
 3. **Transcription.** `AudioChunker` cuts each track at the quietest moment between 20 and
    30 seconds (no overlap, so nothing is transcribed twice) and silent chunks are skipped.
    Chunks go to the chosen engine: OpenAI's `gpt-4o-transcribe-diarize` (timed segments and
-   speaker labels), Gemini, or `OnDeviceTranscriptionService` (SpeechAnalyzer on macOS 26,
-   Apple Speech otherwise, in memory). A failed cloud chunk is transcribed on the Mac instead.
+   speaker labels), Gemini, or `HelperTranscriptionService` (Momo's voice models; notes on the
+   Mac need their listening models). A failed cloud chunk is transcribed on the Mac instead.
    Cloud transcription asks for consent once per meeting, is never used in local-only mode,
    and every chunk is logged in Privacy. `Transcript.chunkSegments` moves segments into place
    and scopes speaker labels to their chunk ("3A"), because services label speakers per
@@ -298,27 +315,30 @@ the character (and a different menu bar icon) the whole time it records.
 
 ## The live voice helper
 
-`momo-voice` ([`Helpers/momo-voice`](../Helpers/momo-voice/README.md)) runs Momo's open
-source, on-device live voice engine in a separate process, so the app stays on macOS 14 with
+`momo-voice` ([`Helpers/momo-voice`](../Helpers/momo-voice/README.md)) runs Momo's
+on-device voice models in a separate process, so the app stays on macOS 14 with
 no dependencies ([ADR 0006](adr/0006-open-source-voice-helper.md)). It ships in
 `Contents/MacOS` next to `momo-mcp` and speaks `MomoLiveProtocol`: JSON commands on standard
 input, JSON events on standard output.
 
 ```mermaid
 flowchart LR
-  Momo["Momo"] -- "prepare, start, speak, cancelSpeech" --> Helper
-  Helper -- "partial, turn, mouth, interrupted" --> Momo
+  Momo["Momo"] -- "prepare, start, speak, cancelSpeech, transcribe, import" --> Helper
+  Helper -- "partial, turn, mouth, interrupted, transcribed" --> Momo
   subgraph Helper["momo-voice"]
     Mic["Microphone"] --> VPIO["Voice processing\n(echo cancellation)"]
     VPIO --> VAD["Silero VAD"] --> Turn["Smart Turn"]
     VPIO --> ASR["Nemotron streaming"]
-    TTS["Kokoro · Supertonic · Mac voices"] --> Out["Speaker"]
+    TTS["Kokoro · Supertonic · models the user adds"] --> Out["Speaker"]
     Out -. reference .-> VPIO
   end
 ```
 
 The helper owns the microphone and speaker during a session, because Apple's voice processing
-cancels only what plays through the same audio engine. `MomoVoiceCore` holds its pure logic
+cancels only what plays through the same audio engine. A session listens and speaks (a live
+conversation), only listens (dictation, the wake word) or only speaks (replies read aloud,
+with the microphone closed). Recordings are transcribed alongside sessions without touching
+the audio devices. `MomoVoiceCore` holds its pure logic
 (model selection per language, sentence splitting, barge-in, protocol dispatch) and is tested
 on its own; `MomoVoiceEngine` holds the audio and the speech-swift models, which are
 downloaded only on request into `~/Library/Application Support/Momo/Models`.

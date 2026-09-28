@@ -66,11 +66,16 @@ enum SettingsSearch {
     private static var voice: [SearchableSetting] {
         [
             SearchableSetting(
+                pane: .voice, title: L("Voice models"),
+                keywords: L(
+                    "voice, speech model, Kokoro, Supertonic, Nemotron, download, add model")),
+            SearchableSetting(pane: .voice, title: L("Test Voice")),
+            SearchableSetting(
                 pane: .voice, title: L("Read every reply aloud"),
                 keywords: L("speak, read aloud, voice replies")),
             SearchableSetting(
-                pane: .voice, title: L("Voices"), keywords: L("Mac voices, OpenAI voices, sound")),
-            SearchableSetting(pane: .voice, title: L("Test voice")),
+                pane: .voice, title: L("Voices"),
+                keywords: L("Momo's voice models, OpenAI voices, sound")),
             SearchableSetting(
                 pane: .voice, title: L("Hold the shortcut to talk"),
                 keywords: L("push to talk, shortcut, talk to Momo")),

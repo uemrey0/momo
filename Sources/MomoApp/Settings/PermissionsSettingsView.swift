@@ -7,7 +7,6 @@ extension MacPermission {
     var title: String {
         switch self {
         case .microphone: L("Microphone", comment: "Permission")
-        case .speechRecognition: L("Speech Recognition", comment: "Permission")
         case .calendars: L("Calendars", comment: "Permission")
         case .reminders: L("Reminders", comment: "Permission")
         case .contacts: L("Contacts", comment: "Permission")
@@ -26,7 +25,6 @@ extension MacPermission {
     var purpose: String {
         switch self {
         case .microphone: L("Talk to Momo, “Hey Momo” and meeting notes.")
-        case .speechRecognition: L("Turn what you say into text on this Mac.")
         case .calendars: L("Plan your day, add events and remind you before meetings.")
         case .reminders: L("Read and add reminders in the Reminders app.")
         case .contacts: L("Find people's numbers and addresses to message or email them.")
@@ -51,7 +49,6 @@ extension MacPermission {
     var systemImage: String {
         switch self {
         case .microphone: "mic.fill"
-        case .speechRecognition: "waveform"
         case .calendars: "calendar"
         case .reminders: "checklist"
         case .contacts: "person.crop.circle"
@@ -65,7 +62,7 @@ extension MacPermission {
 
     var tint: Color {
         switch self {
-        case .microphone, .speechRecognition: Color(red: 0.98, green: 0.36, blue: 0.47)
+        case .microphone: Color(red: 0.98, green: 0.36, blue: 0.47)
         case .calendars, .reminders: Color(red: 1.0, green: 0.45, blue: 0.3)
         case .contacts: Color(red: 0.6, green: 0.55, blue: 0.5)
         case .screenRecording: Color(red: 0.55, green: 0.42, blue: 0.98)

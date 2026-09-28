@@ -122,14 +122,14 @@ enum CloudRealtimeSetup {
         return recentFailure ? .recentFailure : nil
     }
 
-    /// The live engine that runs for the user's choice. Automatic never picks the cloud
-    /// engine; it runs only when the user chose it and it can run.
+    /// The live engine that runs for the user's choice. The cloud engine runs only when the
+    /// user chose it and it can run; otherwise Momo's voice models do, when they are ready.
     static func selectEngine(
-        _ preferences: Preferences, helperReady: Bool, key: (String) -> String?,
+        _ preferences: Preferences, helper: LiveHelperStatus, key: (String) -> String?,
         recentFailure: Bool
     ) -> LiveEngineSelector.Selection {
         LiveEngineSelector.select(
-            preferences.liveEngine, helperReady: helperReady,
+            preferences.liveEngine, helper: helper,
             cloudRealtimeReady: unavailableReason(
                 preferences, key: key, recentFailure: recentFailure) == nil)
     }

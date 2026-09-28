@@ -45,13 +45,20 @@ struct Preferences: Codable, Equatable {
     var reactsToBattery = true
     var reactsToLateNight = true
     var wakeWordEnabled = false
-    var voiceIdentifier = ""
+    /// The speech synthesis model Momo speaks with, or empty for the best one for the
+    /// language.
+    var voiceModel = ""
+    /// The voice of ``voiceModel``, or empty for its default.
+    var voiceName = ""
+    /// The language the user speaks to Momo, as an ISO 639-1 code; empty follows the Mac's
+    /// language.
+    var voiceLanguage = ""
     /// The speech recognition engine for dictation.
-    var dictationEngine = DictationEngineChoice.automatic
+    var dictationEngine = DictationEngineChoice.onDevice
     /// The OpenAI model used when ``dictationEngine`` is OpenAI.
     var openAITranscriptionModel = OpenAITranscriptionService.defaultModel.rawValue
     /// Which voice reads replies aloud.
-    var speechVoice = SpeechVoiceChoice.apple
+    var speechVoice = SpeechVoiceChoice.onDevice
     /// The OpenAI voice used when ``speechVoice`` is OpenAI.
     var openAIVoice = OpenAISpeechRequest.defaultVoice
     /// Hold the shortcut to talk and let go to send, instead of pressing it once.
@@ -62,7 +69,7 @@ struct Preferences: Codable, Equatable {
     /// can interrupt, and Momo keeps listening for a follow-up.
     var liveConversation = true
     /// The engine for live conversations.
-    var liveEngine = LiveEngineChoice.automatic
+    var liveEngine = LiveEngineChoice.onDevice
     /// How long Momo listens for a follow-up after answering, in seconds; 0 ends at once.
     var liveFollowUpSeconds = 8.0
     /// The cloud realtime service when ``liveEngine`` is cloud realtime.
@@ -107,7 +114,9 @@ struct Preferences: Codable, Equatable {
         reactsToBattery = value(.reactsToBattery, defaults.reactsToBattery)
         reactsToLateNight = value(.reactsToLateNight, defaults.reactsToLateNight)
         wakeWordEnabled = value(.wakeWordEnabled, defaults.wakeWordEnabled)
-        voiceIdentifier = value(.voiceIdentifier, defaults.voiceIdentifier)
+        voiceModel = value(.voiceModel, defaults.voiceModel)
+        voiceName = value(.voiceName, defaults.voiceName)
+        voiceLanguage = value(.voiceLanguage, defaults.voiceLanguage)
         dictationEngine = value(.dictationEngine, defaults.dictationEngine)
         openAITranscriptionModel = value(
             .openAITranscriptionModel, defaults.openAITranscriptionModel)

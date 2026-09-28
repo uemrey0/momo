@@ -4,28 +4,34 @@ import Foundation
 /// falls silent and never talks over the real answer.
 ///
 /// When the brain has not produced its first sentence ``Configuration/acknowledgementDelay``
-/// after the turn, Momo says a short acknowledgement: the contextual one a fast local brain
-/// wrote ("Takvimine bakıyorum."), if it arrived in time, otherwise a canned phrase. When a
-/// tool starts before the answer, its activity label is said instead ("Checking the
-/// weather"). As soon as the answer's first sentence exists, a playing acknowledgement is
-/// cancelled and the answer plays.
+/// after the turn, Momo says what it is doing: the contextual acknowledgement a fast local
+/// brain wrote ("Takvimine bakıyorum."), if it arrived in time, otherwise the brain's status
+/// ("Checking with ChatGPT."), otherwise a canned phrase. A status is said once per
+/// conversation, and after the first acknowledgement Momo waits
+/// ``Configuration/laterAcknowledgementDelay`` before filling the silence again, so replies
+/// don't all start with the same words. When a tool starts before the answer, its activity
+/// label is said ("Checking the weather"). As soon as the answer's first sentence exists, a
+/// playing acknowledgement is cancelled and the answer plays.
 ///
 /// The planner is a plain value that is told the time, so it is easy to test.
 public struct LiveReplyPlanner: Sendable {
     /// Timing and limits, in seconds.
     public struct Configuration: Sendable, Equatable {
-        /// How long the brain may be silent before Momo acknowledges the turn.
+        /// How long the brain may be silent before Momo acknowledges the first turn.
         public var acknowledgementDelay: TimeInterval
+        /// How long the brain may be silent before Momo acknowledges later turns.
+        public var laterAcknowledgementDelay: TimeInterval
         /// How much longer to wait for a contextual acknowledgement before a canned one.
         public var acknowledgementGrace: TimeInterval
         /// The most tool labels said for one reply.
         public var maximumToolLabels: Int
 
         public init(
-            acknowledgementDelay: TimeInterval = 0.8, acknowledgementGrace: TimeInterval = 0.4,
-            maximumToolLabels: Int = 2
+            acknowledgementDelay: TimeInterval = 1.5, laterAcknowledgementDelay: TimeInterval = 4,
+            acknowledgementGrace: TimeInterval = 0.4, maximumToolLabels: Int = 2
         ) {
             self.acknowledgementDelay = acknowledgementDelay
+            self.laterAcknowledgementDelay = laterAcknowledgementDelay
             self.acknowledgementGrace = acknowledgementGrace
             self.maximumToolLabels = maximumToolLabels
         }
@@ -55,6 +61,11 @@ public struct LiveReplyPlanner: Sendable {
     private var hasAcknowledged = false
     private var toolLabels: [String] = []
     private var isFinished = false
+    private var status: String?
+    /// Whether an acknowledgement was said earlier in the conversation.
+    private var acknowledgedEarlier = false
+    /// Statuses already said in the conversation.
+    private var saidStatuses: Set<String> = []
 
     /// - Parameters:
     ///   - cannedPhrases: Short phrases in the user's language, used in turn.
@@ -78,6 +89,14 @@ public struct LiveReplyPlanner: Sendable {
         isAcknowledging = false
         toolLabels = []
         isFinished = false
+        status = nil
+    }
+
+    /// The brain says what it is doing, e.g. which brain works on the reply. Said instead of
+    /// a canned phrase, once per conversation.
+    public mutating func statusChanged(_ label: String) {
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        status = trimmed.isEmpty ? nil : trimmed
     }
 
     /// The fast brain's acknowledgement arrived, or `nil` when it has none.
@@ -91,13 +110,19 @@ public struct LiveReplyPlanner: Sendable {
     public mutating func tick(at time: TimeInterval) -> [Action] {
         guard let startedAt, !hasAnswer, !hasAcknowledged, !isFinished else { return [] }
         let elapsed = time - startedAt
-        guard elapsed >= configuration.acknowledgementDelay else { return [] }
+        let delay =
+            acknowledgedEarlier
+            ? configuration.laterAcknowledgementDelay : configuration.acknowledgementDelay
+        guard elapsed >= delay else { return [] }
         if let contextual {
             return acknowledge(contextual)
         }
+        if let status, !saidStatuses.contains(status) {
+            saidStatuses.insert(status)
+            return acknowledge(status)
+        }
         let waitedEnough =
-            contextualIsSettled
-            || elapsed >= configuration.acknowledgementDelay + configuration.acknowledgementGrace
+            contextualIsSettled || elapsed >= delay + configuration.acknowledgementGrace
         guard waitedEnough, !cannedPhrases.isEmpty else { return [] }
         let phrase = cannedPhrases[cannedIndex % cannedPhrases.count]
         cannedIndex += 1
@@ -138,6 +163,7 @@ public struct LiveReplyPlanner: Sendable {
 
     private mutating func acknowledge(_ text: String) -> [Action] {
         hasAcknowledged = true
+        acknowledgedEarlier = true
         isAcknowledging = true
         return [.speakAcknowledgement(text)]
     }

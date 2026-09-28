@@ -78,6 +78,12 @@ final class AppModel {
         }
         voice.isTakingMeetingNotes = { [weak meetings] in meetings?.isRecording ?? false }
         meetings.onRecordingChanged = { [weak voice] in voice?.meetingNotesChanged() }
+        meetings.onDeviceTranscription = { [weak voice] locale in
+            voice?.onDeviceTranscription(locale: locale)
+        }
+        meetings.voiceModelsCanListen = { [weak voice] in
+            await voice?.listeningModelsStatus() ?? .unavailable
+        }
         voice.showPanel = { [weak panel] in panel?.show(tab: .chat) }
         voice.isPanelVisible = { [weak panel] in panel?.isVisible ?? false }
         voice.openSettings = { [weak self] in self?.openSettings($0) }

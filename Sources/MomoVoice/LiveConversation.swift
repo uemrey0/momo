@@ -8,6 +8,8 @@ public enum LiveBrainEvent: Sendable, Equatable {
     case toolStarted(label: String)
     /// A tool finished.
     case toolFinished
+    /// What the brain is doing, said while the answer is slow ("Checking with ChatGPT.").
+    case status(String)
     /// The brain needs a yes or no (consent to use a remote brain, confirming an action).
     /// `question` is said aloud; the bubble shows buttons too.
     case prompt(question: String)
@@ -15,7 +17,7 @@ public enum LiveBrainEvent: Sendable, Equatable {
     case promptResolved
     /// The reply is complete.
     case finished
-    /// The reply failed; `message` explains why.
+    /// The reply failed; `message` says why in a sentence Momo can say aloud.
     case failed(String)
 }
 
@@ -43,16 +45,20 @@ public struct LiveConversationPhrases: Sendable, Equatable {
     public var unclearAnswer: String
     /// Said when the user closes the conversation.
     public var farewells: [String]
-    /// Said when the reply failed.
+    /// Said when the reply failed without a reason.
     public var failure: String
+    /// Said when the brain is still busy with an earlier request.
+    public var busy: String
 
     public init(
-        acknowledgements: [String], unclearAnswer: String, farewells: [String], failure: String
+        acknowledgements: [String], unclearAnswer: String, farewells: [String], failure: String,
+        busy: String = "I'm still working on the last one."
     ) {
         self.acknowledgements = acknowledgements
         self.unclearAnswer = unclearAnswer
         self.farewells = farewells
         self.failure = failure
+        self.busy = busy
     }
 }
 
@@ -404,7 +410,9 @@ public final class LiveConversation {
             self.handle(event)
         }
         guard accepted else {
-            onError?(phrases.failure)
+            onError?(phrases.busy)
+            utteranceNumber += 1
+            io.speak(id: "busy-\(utteranceNumber)", text: phrases.busy, isFinal: true)
             state = .followUp
             restartWindow()
             return
@@ -481,6 +489,8 @@ public final class LiveConversation {
             apply(planner.toolStarted(label: label))
         case .toolFinished:
             break
+        case .status(let label):
+            planner.statusChanged(label)
         case .prompt(let question):
             ask(question)
         case .promptResolved:
@@ -491,7 +501,8 @@ public final class LiveConversation {
         case .failed(let message):
             onError?(message)
             splitter.reset()
-            apply(planner.answer(phrases.failure))
+            let spoken = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            apply(planner.answer(spoken.isEmpty ? phrases.failure : spoken))
             finishReply()
         }
     }

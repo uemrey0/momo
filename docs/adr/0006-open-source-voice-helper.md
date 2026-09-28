@@ -4,7 +4,7 @@ Date: 2026-09-26
 
 ## Status
 
-Accepted
+Accepted, amended by [ADR 0007](0007-own-voice-models-only.md)
 
 ## Context
 

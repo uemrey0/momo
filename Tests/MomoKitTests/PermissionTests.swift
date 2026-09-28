@@ -8,7 +8,7 @@ struct PermissionTests {
     @Test(
         "identifiers survive a round trip",
         arguments: [
-            MacPermission.microphone, .speechRecognition, .calendars, .reminders, .contacts,
+            MacPermission.microphone, .calendars, .reminders, .contacts,
             .screenRecording, .accessibility, .automation(nil), .automation("com.apple.Music"),
             .notifications, .location,
         ])

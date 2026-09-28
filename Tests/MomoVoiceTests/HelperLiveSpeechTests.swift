@@ -60,6 +60,22 @@ final class FakeHelperTransport: LiveVoiceTransport {
                 emit(.downloadProgress(id: id, fraction: 0.5))
                 emit(.downloadFinished(id: id))
             }
+        case .importModel(let path):
+            if path.hasSuffix("Broken") {
+                emit(.importFailed(message: "The folder has no voices."))
+            } else {
+                emit(.modelImported(id: "custom-mine"))
+            }
+        case .importVoice(let modelID, _):
+            emit(.voiceImported(modelID: modelID, voice: "my_voice"))
+        case .transcribe(let id, _, _):
+            emit(
+                .transcribed(
+                    id: id,
+                    segments: [
+                        LiveTranscriptSegment(text: "Merhaba", start: 0.2, end: 0.9),
+                        LiveTranscriptSegment(text: "nasılsın?", start: 1.4, end: 2.0),
+                    ]))
         case .quit:
             crash(status: 0)
         default:
@@ -136,8 +152,8 @@ struct HelperClientTests {
         io.onEvent = { events.append($0) }
         try await io.start(
             LiveSpeechConfiguration(
-                locale: Locale(identifier: "tr_TR"), voice: .apple(identifier: "tr-voice", rate: 1),
-                maximumPause: 1.1))
+                locale: Locale(identifier: "tr_TR"), maximumPause: 1.1,
+                textToSpeechModel: "supertonic-3", modelVoice: "F2"))
         #expect(io.isRunning)
         #expect(client.languages == ["en", "tr"])
         let helper = try #require(launches.latest)
@@ -146,7 +162,8 @@ struct HelperClientTests {
             helper.commands.dropFirst().first
                 == .start(
                     LiveSessionConfiguration(
-                        locale: "tr-TR", appleVoiceIdentifier: "tr-voice", maximumPause: 1.1)))
+                        locale: "tr-TR", textToSpeechModel: "supertonic-3", voice: "F2",
+                        maximumPause: 1.1)))
 
         helper.emit(.speechStarted)
         helper.emit(.partial("yarın hava"))
@@ -359,7 +376,8 @@ struct HelperProcessTests {
     func process() async throws {
         let ready = try #require(
             String(
-                data: LiveVoiceCoding.line(LiveVoiceEvent.ready(version: 1, languages: ["en"])),
+                data: LiveVoiceCoding.line(
+                    LiveVoiceEvent.ready(version: liveVoiceProtocolVersion, languages: ["en"])),
                 encoding: .utf8))
         let listening = try #require(
             String(data: LiveVoiceCoding.line(LiveVoiceEvent.listening), encoding: .utf8))

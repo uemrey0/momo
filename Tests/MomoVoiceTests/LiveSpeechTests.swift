@@ -216,46 +216,46 @@ struct ClosingPhraseTests {
 
 @Suite("Live engine selection")
 struct LiveEngineSelectionTests {
-    @Test("automatic prefers the helper when its models are ready")
-    func automatic() {
+    @Test("Momo's voice models run when they are ready")
+    func onDevice() {
         #expect(
-            LiveEngineSelector.select(.automatic, helperReady: true, cloudRealtimeReady: false)
-                == .init(kind: .openSource))
-        #expect(
-            LiveEngineSelector.select(.automatic, helperReady: false, cloudRealtimeReady: true)
-                == .init(kind: .apple))
-    }
-
-    @Test("an engine that can't run falls back to Apple and says so")
-    func fallback() {
-        #expect(
-            LiveEngineSelector.select(.openSource, helperReady: false, cloudRealtimeReady: false)
-                == .init(kind: .apple, isFallback: true))
-        #expect(
-            LiveEngineSelector.select(.cloudRealtime, helperReady: true, cloudRealtimeReady: false)
-                == .init(kind: .apple, isFallback: true))
-        #expect(
-            LiveEngineSelector.select(.cloudRealtime, helperReady: false, cloudRealtimeReady: true)
-                == .init(kind: .cloudRealtime))
+            LiveEngineSelector.select(.onDevice, helper: .ready, cloudRealtimeReady: true)
+                == .init(kind: .onDevice))
+        #expect(!LiveEngineChoice.onDevice.isRemote)
         #expect(LiveEngineChoice.cloudRealtime.isRemote)
-        #expect(!LiveEngineChoice.openSource.isRemote)
     }
 
     @Test(
-        "automatic only picks the helper when it answers and its models are downloaded and warm",
-        arguments: [
-            LiveHelperStatus.unavailable, .notResponding, .modelsMissing, .preparing,
-        ])
-    func automaticNeedsAReadyHelper(status: LiveHelperStatus) {
+        "nothing runs when the voice models aren't ready: no other voice stands in",
+        arguments: [LiveHelperStatus.unavailable, .notResponding, .modelsMissing, .preparing])
+    func notReady(status: LiveHelperStatus) {
         #expect(
-            LiveEngineSelector.select(.automatic, helper: status, cloudRealtimeReady: true)
-                == .init(kind: .apple))
+            LiveEngineSelector.select(.onDevice, helper: status, cloudRealtimeReady: true)
+                == .init(kind: nil, isFallback: true))
         #expect(
-            LiveEngineSelector.select(.openSource, helper: status, cloudRealtimeReady: false)
-                == .init(kind: .apple, isFallback: true))
+            LiveEngineSelector.select(.cloudRealtime, helper: status, cloudRealtimeReady: false)
+                == .init(kind: nil, isFallback: true))
+    }
+
+    @Test("cloud realtime runs when set up, and falls back to the voice models otherwise")
+    func cloud() {
         #expect(
-            LiveEngineSelector.select(.automatic, helper: .ready, cloudRealtimeReady: false)
-                == .init(kind: .openSource))
+            LiveEngineSelector.select(
+                .cloudRealtime, helper: .modelsMissing, cloudRealtimeReady: true)
+                == .init(kind: .cloudRealtime))
+        #expect(
+            LiveEngineSelector.select(.cloudRealtime, helper: .ready, cloudRealtimeReady: false)
+                == .init(kind: .onDevice, isFallback: true))
+    }
+
+    @Test("reads the engines of earlier versions as Momo's voice models")
+    func legacyChoices() throws {
+        for legacy in ["automatic", "apple", "openSource"] {
+            let data = Data("\"\(legacy)\"".utf8)
+            #expect(try JSONDecoder().decode(LiveEngineChoice.self, from: data) == .onDevice)
+        }
+        let cloud = Data("\"cloudRealtime\"".utf8)
+        #expect(try JSONDecoder().decode(LiveEngineChoice.self, from: cloud) == .cloudRealtime)
     }
 }
 
@@ -264,9 +264,6 @@ struct LiveStartProblemTests {
     @Test("classifies permission, language and audio errors")
     func dictation() {
         #expect(LiveStartProblem.classify(DictationError.microphoneDenied) == .microphoneDenied)
-        #expect(
-            LiveStartProblem.classify(DictationError.speechRecognitionDenied)
-                == .speechRecognitionDenied)
         #expect(
             LiveStartProblem.classify(DictationError.unsupportedLanguage("xx"))
                 == .unsupportedLanguage)
@@ -299,26 +296,31 @@ struct LiveStartProblemTests {
                 == .other("Something odd."))
     }
 
-    @Test("falls back from the helper to Apple, from Apple to the classic flow")
+    @Test("only a failed cloud session falls back, and only to voice models that are ready")
     func fallbackPlan() {
-        #expect(LiveFallbackPlan.next(after: .openSource, problem: .timedOut) == .appleLive)
-        #expect(LiveFallbackPlan.next(after: .cloudRealtime, problem: .other("x")) == .appleLive)
-        #expect(LiveFallbackPlan.next(after: .apple, problem: .audioDevice) == .classic)
-        #expect(LiveFallbackPlan.next(after: .apple, problem: .other("x")) == .classic)
+        #expect(
+            LiveFallbackPlan.next(after: .cloudRealtime, problem: .other("x"), helperReady: true)
+                == .onDevice)
+        #expect(
+            LiveFallbackPlan.next(after: .cloudRealtime, problem: .other("x"), helperReady: false)
+                == .stop)
+        #expect(
+            LiveFallbackPlan.next(after: .onDevice, problem: .timedOut, helperReady: true)
+                == .stop)
     }
 
-    @Test("stops when a permission is missing, because no engine can listen")
+    @Test("stops when the microphone isn't allowed, because nothing can listen")
     func permissionsStop() {
-        for kind in [LiveEngineKind.openSource, .apple, .cloudRealtime] {
-            #expect(LiveFallbackPlan.next(after: kind, problem: .microphoneDenied) == .stop)
+        for kind in [LiveEngineKind.onDevice, .cloudRealtime] {
             #expect(
-                LiveFallbackPlan.next(after: kind, problem: .speechRecognitionDenied) == .stop)
+                LiveFallbackPlan.next(after: kind, problem: .microphoneDenied, helperReady: true)
+                    == .stop)
         }
     }
 }
 
-@Suite("Apple live engine plumbing")
-struct AppleLiveEngineTests {
+@Suite("Live audio plumbing")
+struct LiveAudioPlumbingTests {
     func buffer(
         channels: AVAudioChannelCount, frames: Int, value: (Int, Int) -> Float
     )

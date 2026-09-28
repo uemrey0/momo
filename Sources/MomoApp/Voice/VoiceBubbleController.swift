@@ -312,7 +312,12 @@ struct VoiceBubbleView: View {
     private func replyText(_ reply: ChatMessage) -> String {
         let text = reply.text.trimmingCharacters(in: .whitespacesAndNewlines)
         if !text.isEmpty { return text }
-        return reply.activities.last(where: { $0.state == .running })?.label ?? L("Thinking…")
+        if let running = reply.activities.last(where: { $0.state == .running }) {
+            return running.label
+        }
+        // Say which brain works on it, so a slow answer isn't a mystery.
+        guard let brain = reply.brainName, !brain.isEmpty else { return L("Thinking…") }
+        return String(format: L("%@ is thinking…"), AssistantLiveBrain.spokenName(brain))
     }
 
     private var statusText: String {

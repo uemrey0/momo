@@ -55,7 +55,5 @@
 	<string>Momo reads and adds reminders in the Reminders app when you ask it to.</string>
 	<key>NSRemindersUsageDescription</key>
 	<string>Momo reads and adds reminders in the Reminders app when you ask it to.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Momo turns what you say into text, on your Mac whenever possible.</string>
 </dict>
 </plist>

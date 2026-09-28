@@ -109,6 +109,7 @@ final class AssistantRealtimeBrain: RealtimeBrain {
 
     private func replyEvent(_ event: ReplyStreamEvent) {
         switch event {
+        case .brainSelected: break
         case .text(let text): reply += text
         case .toolStarted(let label): onActivity?(label)
         case .toolFinished: onActivity?(nil)

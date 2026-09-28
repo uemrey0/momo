@@ -75,16 +75,19 @@ public actor Assistant {
         public var policy: RoutingPolicy
         public var masksPersonalData: Bool
         public var systemPrompt: String
+        /// The reply is awaited in a live voice conversation: see ``ChatRequest/prefersSpeed``.
+        public var prefersSpeed: Bool
 
         public init(
             providers: [any ChatProvider], toolbox: Toolbox, policy: RoutingPolicy,
-            masksPersonalData: Bool, systemPrompt: String
+            masksPersonalData: Bool, systemPrompt: String, prefersSpeed: Bool = false
         ) {
             self.providers = providers
             self.toolbox = toolbox
             self.policy = policy
             self.masksPersonalData = masksPersonalData
             self.systemPrompt = systemPrompt
+            self.prefersSpeed = prefersSpeed
         }
     }
 
@@ -161,7 +164,7 @@ public actor Assistant {
         let request = ChatRequest(
             systemPrompt: outgoing(configuration.systemPrompt),
             turns: turns.map { $0.mapText(outgoing) },
-            tools: configuration.toolbox.definitions)
+            tools: configuration.toolbox.definitions, prefersSpeed: configuration.prefersSpeed)
         let toolbox = configuration.toolbox
         let runTool: ToolRunner = { call in
             var call = call

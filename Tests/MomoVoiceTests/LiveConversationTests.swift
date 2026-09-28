@@ -95,10 +95,13 @@ final class FakeBrain: LiveBrain {
     private(set) var answers: [SpokenAnswer] = []
     var acknowledgement: String?
     var answersAcknowledgement = true
+    /// Whether the brain takes turns; `false` acts like a brain busy with another request.
+    var accepts = true
     private var handler: ((LiveBrainEvent) -> Void)?
 
     func send(_ turn: String, handler: @escaping (LiveBrainEvent) -> Void) -> Bool {
         turns.append(turn)
+        guard accepts else { return false }
         self.handler = handler
         return true
     }
@@ -174,7 +177,7 @@ struct LiveConversationTests {
         let conversation = makeConversation()
         try await conversation.start()
         io.send(.turn("What's on tomorrow?"))
-        clock.advance(by: 0.5)
+        clock.advance(by: 1.2)
         #expect(io.spoken.isEmpty)
         clock.advance(by: 0.4)
         #expect(io.spoken == ["Checking your calendar."])
@@ -196,10 +199,48 @@ struct LiveConversationTests {
         let conversation = makeConversation()
         try await conversation.start()
         io.send(.turn("Summarise my notes"))
-        clock.advance(by: 0.9)
+        clock.advance(by: 1.6)
         #expect(io.spoken.isEmpty)
         clock.advance(by: 0.4)
         #expect(io.spoken == ["One moment."])
+    }
+
+    @Test("says which brain works on a slow reply instead of a canned phrase, once")
+    func brainStatus() async throws {
+        brain.answersAcknowledgement = false
+        let conversation = makeConversation()
+        try await conversation.start()
+        io.send(.turn("Summarise my notes"))
+        brain.emit(.status("Checking with ChatGPT."))
+        clock.advance(by: 1.6)
+        #expect(io.spoken == ["Checking with ChatGPT."])
+        let ackID = try #require(io.lastSpokenID)
+        io.send(.speakingFinished(id: ackID))
+        brain.emit(.text("Here they are."))
+        brain.emit(.finished)
+        let replyID = try #require(io.lastSpokenID)
+        io.send(.speakingFinished(id: replyID))
+
+        // The next slow reply waits longer, and doesn't repeat the status.
+        io.send(.turn("And the tasks?"))
+        brain.emit(.status("Checking with ChatGPT."))
+        clock.advance(by: 2)
+        #expect(io.spoken == ["Checking with ChatGPT.", "Here they are."])
+        clock.advance(by: 2.5)
+        #expect(io.spoken.last == "One moment.")
+    }
+
+    @Test("a brain that is still busy says so")
+    func busy() async throws {
+        brain.accepts = false
+        let conversation = makeConversation()
+        var errors: [String] = []
+        conversation.onError = { errors.append($0) }
+        try await conversation.start()
+        io.send(.turn("Hi"))
+        #expect(io.spoken == ["I'm still working on the last one."])
+        #expect(errors == ["I'm still working on the last one."])
+        #expect(conversation.state == .followUp)
     }
 
     @Test("never acknowledges a reply that starts quickly")
@@ -276,7 +317,7 @@ struct LiveConversationTests {
         let conversation = makeConversation()
         try await conversation.start()
         io.send(.turn("Plan my day"))
-        clock.advance(by: 1.3)
+        clock.advance(by: 2)
         let ackID = try #require(io.lastSpokenID)
         io.send(.speakingStarted(id: ackID))
         io.send(.interrupted(id: ackID))
@@ -420,16 +461,16 @@ struct LiveConversationTests {
         #expect(conversation.state == .thinking)
     }
 
-    @Test("a failed reply is said and the conversation goes on")
+    @Test("a failed reply says why and the conversation goes on")
     func failure() async throws {
         let conversation = makeConversation()
         var errors: [String] = []
         conversation.onError = { errors.append($0) }
         try await conversation.start()
         io.send(.turn("Hi"))
-        brain.emit(.failed("No brain is ready."))
-        #expect(errors == ["No brain is ready."])
-        #expect(io.spoken == ["Sorry, that didn't work."])
+        brain.emit(.failed("ChatGPT has reached its usage limit."))
+        #expect(errors == ["ChatGPT has reached its usage limit."])
+        #expect(io.spoken == ["ChatGPT has reached its usage limit."])
         let id = try #require(io.lastSpokenID)
         io.send(.speakingFinished(id: id))
         #expect(conversation.state == .followUp)
@@ -453,18 +494,20 @@ struct ReplyPlannerTests {
     func rotation() {
         var planner = LiveReplyPlanner(cannedPhrases: ["A.", "B."], firstPhrase: 1)
         planner.begin(at: 0)
-        #expect(planner.tick(at: 1.3) == [.speakAcknowledgement("B.")])
+        #expect(planner.tick(at: 2) == [.speakAcknowledgement("B.")])
         planner.begin(at: 10)
-        #expect(planner.tick(at: 11.3) == [.speakAcknowledgement("A.")])
+        // Later replies wait longer before filling the silence.
+        #expect(planner.tick(at: 12).isEmpty)
+        #expect(planner.tick(at: 14.5) == [.speakAcknowledgement("A.")])
     }
 
     @Test("waits for the contextual acknowledgement within the grace period")
     func grace() {
         var planner = LiveReplyPlanner(cannedPhrases: ["A."])
         planner.begin(at: 0)
-        #expect(planner.tick(at: 0.9).isEmpty)
+        #expect(planner.tick(at: 1.6).isEmpty)
         planner.contextualAcknowledgementArrived("Looking it up.")
-        #expect(planner.tick(at: 1.0) == [.speakAcknowledgement("Looking it up.")])
+        #expect(planner.tick(at: 1.7) == [.speakAcknowledgement("Looking it up.")])
         #expect(planner.isAcknowledging)
         #expect(planner.answer("Found it.") == [.cancelAcknowledgement, .speakAnswer("Found it.")])
         #expect(planner.answer("Next.") == [.speakAnswer("Next.")])

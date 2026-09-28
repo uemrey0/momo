@@ -62,27 +62,31 @@ struct CloudRealtimeSetupTests {
         #expect(CloudRealtimeSetup.needsConsent(preferences))
     }
 
-    @Test("automatic never picks the cloud engine; a recent failure falls back once")
+    @Test("the voice models run by default; a recent cloud failure falls back to them once")
     func engineSelection() {
         var preferences = Preferences()
         let keys = key(Self.keys)
         #expect(
             CloudRealtimeSetup.selectEngine(
-                preferences, helperReady: false, key: keys, recentFailure: false
-            ).kind == .apple)
+                preferences, helper: .ready, key: keys, recentFailure: false
+            ).kind == .onDevice)
+        #expect(
+            CloudRealtimeSetup.selectEngine(
+                preferences, helper: .modelsMissing, key: keys, recentFailure: false
+            ).kind == nil)
         preferences.liveEngine = .cloudRealtime
         #expect(
             CloudRealtimeSetup.selectEngine(
-                preferences, helperReady: true, key: keys, recentFailure: false)
+                preferences, helper: .ready, key: keys, recentFailure: false)
                 == .init(kind: .cloudRealtime))
         #expect(
             CloudRealtimeSetup.selectEngine(
-                preferences, helperReady: true, key: keys, recentFailure: true)
-                == .init(kind: .apple, isFallback: true))
+                preferences, helper: .ready, key: keys, recentFailure: true)
+                == .init(kind: .onDevice, isFallback: true))
         #expect(
             CloudRealtimeSetup.selectEngine(
-                preferences, helperReady: true, key: key([:]), recentFailure: false)
-                == .init(kind: .apple, isFallback: true))
+                preferences, helper: .ready, key: key([:]), recentFailure: false)
+                == .init(kind: .onDevice, isFallback: true))
     }
 
     @Test("sets the session up with Momo's instructions, the voice, the language and ask_momo")

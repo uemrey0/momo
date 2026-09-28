@@ -48,12 +48,15 @@ public struct CodexProvider: ChatProvider {
     /// confirmation question.
     static let toolTimeoutSeconds = 600
 
-    func arguments(bridge: MCPLaunch? = nil) -> [String] {
+    /// - Parameter fast: The answer is awaited in a voice conversation, so Codex thinks
+    ///   briefly and the first words come sooner.
+    func arguments(bridge: MCPLaunch? = nil, fast: Bool = false) -> [String] {
         var arguments = [
             "exec", "--json", "--skip-git-repo-check", "--ephemeral", "--sandbox", "read-only",
             // Codex's own web search, for current information.
             "-c", #"web_search="live""#,
         ]
+        if fast { arguments += ["-c", #"model_reasoning_effort="low""#] }
         if let model { arguments += ["-m", model] }
         let server = "mcp_servers.\(ToolBridge.serverName)"
         if let bridge {
@@ -110,7 +113,8 @@ public struct CodexProvider: ChatProvider {
                     for try await line in CommandRunner.lines(
                         executable: executable,
                         arguments: Self.adding(
-                            images: images?.paths ?? [], to: arguments(bridge: bridge?.launch)),
+                            images: images?.paths ?? [],
+                            to: arguments(bridge: bridge?.launch, fast: request.prefersSpeed)),
                         input: prompt, workingDirectory: workingDirectory)
                     {
                         for event in try parser.consume(line) { continuation.yield(event) }

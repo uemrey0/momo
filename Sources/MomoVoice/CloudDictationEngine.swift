@@ -8,8 +8,9 @@ import Foundation
 /// it to an ``AudioTranscriptionService``. Nothing is transcribed live, so ``onPartial`` only
 /// fires once, with the result.
 ///
-/// When the request fails, the recording is transcribed on the device with Apple Speech
-/// instead, and ``onCloudFailure`` reports why, so the user's words are never lost.
+/// When the request fails, the recording is transcribed on this Mac with the `fallback`
+/// service (Momo's voice models) instead, and ``onCloudFailure`` reports why, so the user's
+/// words are never lost.
 @MainActor
 public final class CloudDictationEngine: DictationEngine {
     public var onPartial: ((String) -> Void)?
@@ -30,6 +31,7 @@ public final class CloudDictationEngine: DictationEngine {
     public static let sampleRate = 16_000
 
     private let service: any AudioTranscriptionService
+    private let fallback: (any AudioTranscriptionService)?
     private var detector: VoiceActivityDetector
     private let audioEngine = AVAudioEngine()
     private var recorder: PCMRecorder?
@@ -39,12 +41,15 @@ public final class CloudDictationEngine: DictationEngine {
 
     /// - Parameters:
     ///   - service: Where the audio goes.
+    ///   - fallback: Transcribes the recording on this Mac when `service` fails.
     ///   - detector: How utterances end. Its `endsOnSilence` follows ``isContinuous``.
     public init(
         service: any AudioTranscriptionService,
+        fallback: (any AudioTranscriptionService)? = nil,
         detector: VoiceActivityDetector = VoiceActivityDetector()
     ) {
         self.service = service
+        self.fallback = fallback
         self.detector = detector
     }
 
@@ -125,7 +130,7 @@ public final class CloudDictationEngine: DictationEngine {
         let clip = AudioClip.wav(samples: samples, sampleRate: Self.sampleRate)
         let options = TranscriptionOptions(language: locale.language.languageCode?.identifier)
         let service = service
-        let locale = locale
+        let fallback = fallback
         onUpload?(service.displayName, clip.duration ?? 0)
         transcription = Task { [weak self] in
             do {
@@ -135,7 +140,7 @@ public final class CloudDictationEngine: DictationEngine {
             } catch {
                 guard !Task.isCancelled, !(error is CancellationError) else { return }
                 self?.onCloudFailure?(error)
-                let text = (try? await Self.transcribeOnDevice(clip, locale: locale)) ?? ""
+                let text = (try? await fallback?.transcribe(clip, options: options))?.text ?? ""
                 guard !Task.isCancelled else { return }
                 self?.deliver(text)
             }
@@ -147,19 +152,6 @@ public final class CloudDictationEngine: DictationEngine {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if !text.isEmpty { onPartial?(text) }
         onFinal?(text)
-    }
-
-    /// Writes the clip to a temporary file and transcribes it with Apple Speech.
-    private nonisolated static func transcribeOnDevice(
-        _ clip: AudioClip, locale: Locale
-    ) async throws
-        -> String
-    {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("momo-\(UUID().uuidString).wav")
-        try clip.data.write(to: url)
-        defer { try? FileManager.default.removeItem(at: url) }
-        return try await SpeechRecognizer.transcribeFile(at: url, locale: locale)
     }
 }
 
