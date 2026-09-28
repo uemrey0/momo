@@ -11,11 +11,7 @@ struct BrainSetupSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
-                Image(systemName: option.systemImage)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
-                    .background(option.tint.gradient, in: RoundedRectangle(cornerRadius: 12))
+                BrainIcon(option: option, size: 48)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(verbatim: String(format: L("Connect %@"), option.title))
                         .font(.title2.weight(.semibold))

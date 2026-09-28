@@ -8,10 +8,14 @@ extension AssistantController {
     static let maximumAttachments = 10
 
     /// Reads files and adds them to the next message: images as pictures, documents as text.
+    /// Each file shows as a placeholder at once and is read in the background.
     func attach(fileURLs urls: [URL]) {
-        Task {
-            for url in urls {
+        for url in urls {
+            guard let placeholder = startLoading(name: url.lastPathComponent, isImage: DocumentText.isImage(url))
+            else { return }
+            Task {
                 let loaded = await Task.detached { Result { try Self.attachment(from: url) } }.value
+                guard finishLoading(placeholder) else { return }
                 switch loaded {
                 case .success(let attachment): add(attachment)
                 case .failure:
@@ -44,27 +48,55 @@ extension AssistantController {
             )
             return
         }
+        let name =
+            String(
+                format: L("Screenshot %@"),
+                Date().formatted(date: .omitted, time: .shortened)) + ".png"
+        guard let placeholder = startLoading(name: name, isImage: true) else { return }
         Task {
             do {
                 let data = try await ScreenReader.screenshot()
-                let name =
-                    String(
-                        format: L("Screenshot %@"),
-                        Date().formatted(date: .omitted, time: .shortened)) + ".png"
+                guard finishLoading(placeholder) else { return }
                 attach(imageData: data, name: name)
             } catch {
+                guard finishLoading(placeholder) else { return }
                 attachmentNotice = L("The screenshot didn't work. Try again.")
             }
         }
     }
 
+    /// Removes a pending attachment, or stops one that is still loading.
     func removeAttachment(id: String) {
         pendingAttachments.removeAll { $0.id == id }
+        loadingAttachments.removeAll { $0.id == id }
         attachmentNotice = nil
     }
 
+    /// Shows a placeholder for an attachment being read, or returns `nil` when the message
+    /// is already full.
+    private func startLoading(name: String, isImage: Bool) -> LoadingAttachment? {
+        guard pendingAttachments.count + loadingAttachments.count < Self.maximumAttachments else {
+            attachmentNotice = String(
+                format: L("A message can have up to %d attachments."), Self.maximumAttachments)
+            return nil
+        }
+        attachmentNotice = nil
+        let placeholder = LoadingAttachment(name: name, isImage: isImage)
+        loadingAttachments.append(placeholder)
+        return placeholder
+    }
+
+    /// Removes a placeholder once its attachment is read. Returns `false` if the user removed
+    /// it meanwhile, so the result should be dropped.
+    private func finishLoading(_ placeholder: LoadingAttachment) -> Bool {
+        guard let index = loadingAttachments.firstIndex(where: { $0.id == placeholder.id })
+        else { return false }
+        loadingAttachments.remove(at: index)
+        return true
+    }
+
     private func add(_ attachment: ChatAttachment) {
-        guard pendingAttachments.count < Self.maximumAttachments else {
+        guard pendingAttachments.count + loadingAttachments.count < Self.maximumAttachments else {
             attachmentNotice = String(
                 format: L("A message can have up to %d attachments."), Self.maximumAttachments)
             return
@@ -88,6 +120,13 @@ extension AssistantController {
             name: url.lastPathComponent,
             content: .image(data: prepared.data, mimeType: prepared.mimeType))
     }
+}
+
+/// An attachment still being read, shown in the composer until it is ready.
+struct LoadingAttachment: Identifiable, Equatable, Sendable {
+    let id = UUID().uuidString
+    var name: String
+    var isImage: Bool
 }
 
 /// Something dropped or pasted onto the panel.

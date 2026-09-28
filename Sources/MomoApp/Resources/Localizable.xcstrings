@@ -3353,6 +3353,16 @@
         }
       }
     },
+    "Loading %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ yükleniyor"
+          }
+        }
+      }
+    },
     "Loading…" : {
       "localizations" : {
         "tr" : {
