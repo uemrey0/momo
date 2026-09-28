@@ -1,7 +1,13 @@
 import Foundation
 import MomoKit
+import MomoLiveProtocol
 import MomoVoice
 import Observation
+
+/// Momo's voice models can't run now, so a voice feature that needs them didn't start.
+struct VoiceModelsNotReady: Error, Equatable {
+    var status: LiveHelperStatus
+}
 
 /// A spoken request answered in the caption bubble instead of the chat panel.
 struct VoiceSession: Equatable {
@@ -21,6 +27,10 @@ struct RealtimeConsentRequest: Equatable {
 }
 
 /// Connects dictation, spoken replies and the wake word to the assistant and the character.
+///
+/// Everything that listens or speaks on this Mac runs on Momo's voice models in the
+/// `momo-voice` helper. When they aren't downloaded or ready yet, voice mode doesn't start
+/// and the bubble says why and where to fix it; cloud engines the user chose still work.
 ///
 /// With live conversation on (the default), the shortcut and "Hey Momo" start a
 /// ``LiveConversation`` instead: Momo listens continuously, speaks the reply while it
@@ -56,13 +66,15 @@ final class VoiceController {
     /// Bumped when dictation is cancelled, so an engine that finishes starting afterwards is
     /// stopped again.
     @ObservationIgnored private var dictationGeneration = 0
-    @ObservationIgnored private let answerListener = SpeechRecognizer()
+    /// Listens for a spoken yes or no.
+    @ObservationIgnored private var answerEngine: HelperDictationEngine?
     @ObservationIgnored private var answerTimeout: Task<Void, Never>?
-    @ObservationIgnored private let appleVoice = SpeechSynthesizer()
+    /// Reads replies aloud with Momo's voice models.
+    @ObservationIgnored private let modelVoice: HelperSpeaker?
     @ObservationIgnored private var cloudVoice: CloudSpeechSynthesizer?
     /// Runs when the current speech ends, instead of resuming the wake word.
     @ObservationIgnored private var afterSpeech: (() -> Void)?
-    @ObservationIgnored private let wakeWord = WakeWordListener()
+    @ObservationIgnored private let wakeWord: HelperWakeWordListener?
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private weak var assistant: AssistantController?
     @ObservationIgnored private weak var character: CharacterController?
@@ -84,7 +96,7 @@ final class VoiceController {
 
     /// The live conversation's state, while one runs.
     private(set) var liveState: LiveConversation.State?
-    /// The open source engine's models, for Settings.
+    /// Momo's voice models, for Settings.
     let liveModels: LiveVoiceModels
     @ObservationIgnored private var live: (any LiveConversing)?
     @ObservationIgnored private let liveBrain: AssistantLiveBrain
@@ -113,28 +125,131 @@ final class VoiceController {
         realtimeBrain = AssistantRealtimeBrain(assistant: assistant)
         if LiveVoiceHelperClient.isSupportedOnThisMac, let path = AppSettings.liveVoiceHelperPath {
             let url = URL(fileURLWithPath: path)
-            liveHelper = LiveVoiceHelperClient(executableURL: url)
+            let helper = LiveVoiceHelperClient(executableURL: url)
+            liveHelper = helper
             liveModels = LiveVoiceModels(
-                client: liveHelper, buildID: LiveVoiceModels.buildID(ofExecutableAt: url))
+                client: helper, buildID: LiveVoiceModels.buildID(ofExecutableAt: url))
+            wakeWord = HelperWakeWordListener(client: helper)
+            let speaker = HelperSpeaker(client: helper)
+            modelVoice = speaker
+            speaker.configuration = { [weak self] language in
+                self?.speechConfiguration(language: language)
+                    ?? LiveSpeechConfiguration(locale: Locale(identifier: language))
+            }
+            speaker.onStart = { [weak self] in self?.speechStarted() }
+            speaker.onLevel = { [weak self] level in
+                self?.character?.engine.pulseMouth(strength: min(1, level * 1.3))
+            }
+            speaker.onFinish = { [weak self] in self?.speechFinished() }
+            speaker.onError = { [weak self] message in
+                self?.show(LiveVoiceNotice.blocked(LiveStartProblem.classify(message: message)))
+            }
         } else {
             liveHelper = nil
             liveModels = LiveVoiceModels(client: nil)
+            wakeWord = nil
+            modelVoice = nil
         }
 
-        appleVoice.onStart = { [weak self] in self?.speechStarted() }
-        appleVoice.onWord = { [weak self] in self?.character?.engine.pulseMouth() }
-        appleVoice.onFinish = { [weak self] in self?.speechFinished() }
-
-        answerListener.silenceTimeout = .seconds(1)
-        answerListener.onFinal = { [weak self] text in self?.heardAnswer(text) }
-        answerListener.onLevel = { [weak self] level in self?.level = level }
-
-        wakeWord.onWake = { [weak self] command in self?.woke(command: command) }
+        wakeWord?.onWake = { [weak self] command in self?.woke(command: command) }
         assistant.onReply = { [weak self] reply in self?.replyFinished(reply) }
         assistant.onPrompt = { [weak self] in self?.promptAppeared() }
         assistant.onRequestFinished = { [weak self] in self?.requestFinished() }
         assistant.onPromptAnswered = { [weak self] in self?.liveBrain.promptAnswered() }
         realtimeBrain.onActivity = { [weak self] label in self?.realtimeActivity = label }
+        Task { await prepareVoiceModels() }
+    }
+
+    // MARK: - Voice models
+
+    /// Brings Momo's voice models up to date for the Mac's language and the user's choice:
+    /// lists them and, when this helper build hasn't loaded them yet, loads them in the
+    /// background, so no conversation waits on it. Runs at launch and when the choice changes.
+    func prepareVoiceModels() async {
+        guard liveHelper != nil else { return }
+        syncModelChoice()
+        await liveModels.refresh()
+        if liveModels.status == .preparing, !liveModels.isPreparing {
+            await liveModels.prepare()
+        }
+        startWakeWordIfEnabled()
+    }
+
+    private func syncModelChoice() {
+        liveModels.locale = voiceLocale.identifier(.bcp47)
+        let chosen = settings.preferences.voiceModel
+        liveModels.textToSpeechModel = chosen.isEmpty ? nil : chosen
+    }
+
+    /// Where the voice models stand right now, asked fresh. Models that still need their
+    /// first load start loading, so trying again shortly works.
+    private func voiceModelStatus() async -> LiveHelperStatus {
+        guard liveHelper != nil else { return .unavailable }
+        syncModelChoice()
+        await liveModels.refresh()
+        let status = liveModels.status
+        if status == .preparing, !liveModels.isPreparing {
+            Task { await liveModels.prepare() }
+        }
+        return status
+    }
+
+    /// The language the user speaks to Momo: the one chosen in Settings, or the Mac's.
+    var voiceLocale: Locale {
+        Self.voiceLocale(settings.preferences.voiceLanguage)
+    }
+
+    /// The language code of ``voiceLocale``, e.g. "tr".
+    var voiceLanguage: String {
+        voiceLocale.language.languageCode?.identifier ?? "en"
+    }
+
+    /// The locale for a chosen language code; an empty code means the Mac's language. A code
+    /// in the Mac's language keeps the Mac's region.
+    static func voiceLocale(_ code: String) -> Locale {
+        guard !code.isEmpty, code != Locale.current.language.languageCode?.identifier else {
+            return Locale.current
+        }
+        if let region = Locale.current.region?.identifier {
+            return Locale(identifier: "\(code)-\(region)")
+        }
+        return Locale(identifier: code)
+    }
+
+    /// A transcription service on Momo's voice models, for meeting notes.
+    func onDeviceTranscription(locale: Locale) -> (any AudioTranscriptionService)? {
+        liveHelper.map { HelperTranscriptionService(client: $0, locale: locale) }
+    }
+
+    /// Whether Momo's voice models can transcribe: the listening models are downloaded.
+    /// Speaking isn't needed for that.
+    func listeningModelsStatus() async -> LiveHelperStatus {
+        guard liveHelper != nil else { return .unavailable }
+        syncModelChoice()
+        await liveModels.refresh()
+        if liveModels.isPreparing || liveModels.canListen { return .ready }
+        return liveModels.status == .ready ? .ready : .modelsMissing
+    }
+
+    /// The model and voice to speak `language` (a code such as "tr") with: the user's choice
+    /// when it speaks the language, otherwise the helper's choice.
+    func speechConfiguration(
+        language: String, mode: LiveSessionMode = .speak
+    )
+        -> LiveSpeechConfiguration
+    {
+        let preferences = settings.preferences
+        var configuration = LiveSpeechConfiguration(
+            locale: language == voiceLanguage ? voiceLocale : Locale(identifier: language),
+            mode: mode)
+        let speaks = liveModels.speechModels(speaking: language).contains {
+            $0.id == preferences.voiceModel
+        }
+        if !preferences.voiceModel.isEmpty, speaks {
+            configuration.textToSpeechModel = preferences.voiceModel
+            configuration.modelVoice = preferences.voiceName.isEmpty ? nil : preferences.voiceName
+        }
+        return configuration
     }
 
     // MARK: - Shortcut
@@ -224,7 +339,7 @@ final class VoiceController {
         stopSpeaking()
         errorMessage = nil
         errorAction = nil
-        wakeWord.stop()
+        wakeWord?.stop()
         isStarting = true
         releasedWhileStarting = false
         let generation = dictationGeneration
@@ -246,7 +361,15 @@ final class VoiceController {
             } catch {
                 guard generation == dictationGeneration else { return }
                 isStarting = false
-                errorMessage = error.localizedDescription
+                let failed = engine
+                engine = nil
+                if let notReady = error as? VoiceModelsNotReady {
+                    show(LiveVoiceNotice.modelsNotReady(notReady.status))
+                } else if failed is CloudDictationEngine {
+                    errorMessage = error.localizedDescription
+                } else {
+                    show(LiveVoiceNotice.blocked(LiveStartProblem.classify(error)))
+                }
                 character?.showTrouble()
                 if session != nil {
                     bubble?.hide(after: .seconds(4)) { [weak self] in self?.endSession() }
@@ -256,58 +379,35 @@ final class VoiceController {
         }
     }
 
-    /// Starts the chosen engine, falling back to Apple Speech when it cannot run.
+    /// Starts the chosen engine. Momo's voice models must be ready; a cloud engine the user
+    /// chose runs without them.
     private func startEngine(continuous: Bool) async throws {
         engine?.stop(deliver: false)
         let preferences = settings.preferences
         let selection = DictationEngineSelector.select(
-            preferences.dictationEngine,
-            speechAnalyzerAvailable: DictationEngineSelector.isSpeechAnalyzerAvailable,
-            hasOpenAIKey: openAIKey != nil, hasGeminiKey: geminiKey != nil)
+            preferences.dictationEngine, hasOpenAIKey: openAIKey != nil,
+            hasGeminiKey: geminiKey != nil)
         if selection.isMissingKey {
             errorMessage = L(
-                "The chosen speech engine needs an API key, so Momo listened on this Mac instead.")
+                "The chosen speech engine needs an API key, so Momo listened with its own voice models instead."
+            )
         }
-        let preferred = makeEngine(selection.kind, continuous: continuous)
-        do {
-            try await start(preferred)
-        } catch {
-            guard selection.kind != .appleSpeech else { throw error }
-            errorMessage = String(
-                format: L("%@ Momo listened with Apple Speech instead."),
-                error.localizedDescription)
-            try await start(makeEngine(.appleSpeech, continuous: continuous))
-        }
-    }
-
-    private func start(_ engine: any DictationEngine) async throws {
-        self.engine = engine
-        try await engine.start(locale: Locale.current)
-    }
-
-    private func makeEngine(_ kind: DictationEngineKind, continuous: Bool) -> any DictationEngine {
         let engine: any DictationEngine
-        switch kind {
-        case .appleSpeech:
-            engine = SpeechRecognizer()
-        case .speechAnalyzer:
-            if #available(macOS 26, *) {
-                let analyzer = AnalyzerDictationEngine()
-                analyzer.onPreparing = { [weak self] _ in
-                    self?.errorMessage = L("Downloading the speech model for your language…")
-                }
-                engine = analyzer
-            } else {
-                engine = SpeechRecognizer()
+        if selection.kind.isRemote, let cloud = makeCloudEngine(selection.kind) {
+            engine = cloud
+        } else {
+            let status = await voiceModelStatus()
+            guard status == .ready, let liveHelper else {
+                throw VoiceModelsNotReady(status: status)
             }
-        case .openAI, .gemini:
-            engine = makeCloudEngine(kind) ?? SpeechRecognizer()
+            engine = HelperDictationEngine(client: liveHelper)
         }
         engine.isContinuous = continuous
         engine.onPartial = { [weak self] text in self?.heardPartial(text) }
         engine.onFinal = { [weak self] text in self?.finishDictation(text) }
         engine.onLevel = { [weak self] level in self?.level = level }
-        return engine
+        self.engine = engine
+        try await engine.start(locale: voiceLocale)
     }
 
     private func makeCloudEngine(_ kind: DictationEngineKind) -> CloudDictationEngine? {
@@ -323,10 +423,11 @@ final class VoiceController {
         case .gemini:
             guard let key = geminiKey else { return nil }
             service = GeminiTranscriptionService(apiKey: key)
-        default:
+        case .onDevice:
             return nil
         }
-        let engine = CloudDictationEngine(service: service)
+        let fallback = liveHelper.map { HelperTranscriptionService(client: $0) }
+        let engine = CloudDictationEngine(service: service, fallback: fallback)
         engine.onTranscribing = { [weak self] in
             self?.isTranscribing = true
             self?.character?.showWorking()
@@ -336,7 +437,8 @@ final class VoiceController {
         }
         engine.onCloudFailure = { [weak self] error in
             self?.errorMessage = String(
-                format: L("Cloud transcription failed, so Momo used Apple Speech instead. %@"),
+                format: L(
+                    "Cloud transcription failed, so Momo used its own voice models instead. %@"),
                 error.localizedDescription)
         }
         return engine
@@ -504,24 +606,36 @@ final class VoiceController {
     }
 
     private func listenForAnswer() {
-        guard session != nil, hasOpenPrompt else { return }
-        wakeWord.stop()
+        guard session != nil, hasOpenPrompt, let liveHelper, liveModels.status == .ready else {
+            // Without the voice models the buttons in the bubble answer.
+            return
+        }
+        wakeWord?.stop()
+        let engine = HelperDictationEngine(client: liveHelper)
+        engine.onFinal = { [weak self, weak engine] text in
+            guard let self, let engine, self.answerEngine === engine else { return }
+            self.heardAnswer(text)
+        }
+        engine.onLevel = { [weak self] level in self?.level = level }
+        answerEngine = engine
         Task {
             do {
-                try await answerListener.start(locale: Locale.current)
-                guard session != nil, hasOpenPrompt else {
-                    answerListener.stop(deliver: false)
+                try await engine.start(locale: voiceLocale)
+                guard session != nil, hasOpenPrompt, answerEngine === engine else {
+                    engine.stop(deliver: false)
                     return
                 }
                 isAwaitingAnswer = true
                 character?.showListening()
                 answerTimeout?.cancel()
-                answerTimeout = Task { [weak self] in
+                answerTimeout = Task { [weak self, weak engine] in
                     try? await Task.sleep(for: .seconds(7))
                     guard !Task.isCancelled else { return }
-                    self?.answerListener.stop(deliver: true)
+                    engine?.stop(deliver: true)
+                    _ = self
                 }
             } catch {
+                if answerEngine === engine { answerEngine = nil }
                 startWakeWordIfEnabled()
             }
         }
@@ -530,13 +644,16 @@ final class VoiceController {
     private func stopListeningForAnswer() {
         answerTimeout?.cancel()
         answerTimeout = nil
-        if answerListener.isListening { answerListener.stop(deliver: false) }
+        let engine = answerEngine
+        answerEngine = nil
+        engine?.stop(deliver: false)
         isAwaitingAnswer = false
     }
 
     private func heardAnswer(_ text: String) {
         answerTimeout?.cancel()
         answerTimeout = nil
+        answerEngine = nil
         isAwaitingAnswer = false
         level = 0
         startWakeWordIfEnabled()
@@ -566,33 +683,46 @@ final class VoiceController {
         speak(reply)
     }
 
-    /// Reads `text` aloud with the chosen voice. A cloud voice that fails falls back to the
-    /// system voice.
-    func speak(_ text: String) {
-        wakeWord.stop()
+    /// Reads `text` aloud with the chosen voice: Momo's voice models, or an OpenAI voice,
+    /// which falls back to Momo's voice models when it fails. With `withVoiceModels`, the
+    /// voice models speak whatever the choice is (Settings tests them).
+    func speak(_ text: String, withVoiceModels: Bool = false) {
+        wakeWord?.stop()
         let pending = afterSpeech
         afterSpeech = nil
         stopSpeaking()
         afterSpeech = pending
-        if settings.preferences.speechVoice == .openAI, let voice = makeCloudVoice() {
+        if !withVoiceModels, settings.preferences.speechVoice == .openAI,
+            let voice = makeCloudVoice()
+        {
             let plain = SpeechText.plain(fromMarkdown: text)
             assistant?.recordOutbound(service: voice.request.displayName, characters: plain.count)
             voice.onError = { [weak self] error in
                 self?.errorMessage = String(
-                    format: L("The OpenAI voice failed, so Momo used a system voice. %@"),
+                    format: L("The OpenAI voice failed, so Momo used its own voice. %@"),
                     error.localizedDescription)
-                self?.speakWithAppleVoice(text)
+                self?.speakWithModels(text)
             }
             voice.speak(text)
         } else {
-            speakWithAppleVoice(text)
+            speakWithModels(text)
         }
     }
 
-    private func speakWithAppleVoice(_ text: String) {
-        appleVoice.preferredVoiceID = settings.preferences.voiceIdentifier
-        appleVoice.speak(
-            text, fallbackLanguage: Locale.current.language.languageCode?.identifier ?? "en")
+    private func speakWithModels(_ text: String) {
+        let status = liveHelper == nil ? LiveHelperStatus.unavailable : liveModels.status
+        guard let modelVoice, status == .ready else {
+            show(LiveVoiceNotice.modelsNotReady(status))
+            if status == .preparing || status == .notResponding {
+                Task { await prepareVoiceModels() }
+            }
+            // Nothing is said, so whatever waited on it doesn't happen either.
+            afterSpeech = nil
+            finishSessionSoon()
+            return
+        }
+        modelVoice.speak(
+            text, fallbackLanguage: voiceLanguage)
     }
 
     private func makeCloudVoice() -> CloudSpeechSynthesizer? {
@@ -620,7 +750,7 @@ final class VoiceController {
 
     private func speechFinished() {
         // A cancelled utterance reports its end late, after the next one started.
-        guard !appleVoice.isSpeaking, cloudVoice?.isSpeaking != true else { return }
+        guard modelVoice?.isSpeaking != true, cloudVoice?.isSpeaking != true else { return }
         isSpeaking = false
         character?.engine.setVoiceDriven(false)
         if let next = afterSpeech {
@@ -629,13 +759,13 @@ final class VoiceController {
             return
         }
         character?.showIdle()
-        wakeWord.resume()
+        wakeWord?.resume()
         finishSessionSoon()
     }
 
     func stopSpeaking() {
         live?.interrupt()
-        appleVoice.stop()
+        modelVoice?.stop()
         cloudVoice?.stop()
     }
 
@@ -643,27 +773,29 @@ final class VoiceController {
 
     /// Whether Momo itself has the microphone open (dictation, a spoken answer, the wake word).
     var usesMicrophone: Bool {
-        isListening || isAwaitingAnswer || wakeWord.isRunning || live != nil
+        isListening || isAwaitingAnswer || wakeWord?.isRunning == true || live != nil
     }
 
     /// Turns the wake word off while meeting notes are taken, and back on afterwards.
     func meetingNotesChanged() {
         if isTakingMeetingNotes() {
             live?.end()
-            wakeWord.stop()
+            wakeWord?.stop()
         } else {
             startWakeWordIfEnabled()
         }
     }
 
-    /// Starts or stops the wake word listener to match the preference.
+    /// Starts or stops the wake word listener to match the preference. It runs on Momo's
+    /// voice models, so it waits until they are ready.
     func startWakeWordIfEnabled() {
+        guard let wakeWord else { return }
         guard settings.preferences.wakeWordEnabled, !isTakingMeetingNotes() else {
             wakeWord.stop()
             return
         }
         guard !isListening, !isStarting, !isSpeaking, !isAwaitingAnswer, live == nil,
-            realtimeConsent == nil
+            realtimeConsent == nil, liveModels.status == .ready
         else {
             return
         }
@@ -673,10 +805,10 @@ final class VoiceController {
         }
         Task {
             do {
-                try await wakeWord.start(locale: Locale.current)
+                try await wakeWord.start(locale: voiceLocale)
             } catch {
-                errorMessage = error.localizedDescription
-                settings.preferences.wakeWordEnabled = false
+                wakeWord.stop()
+                show(LiveVoiceNotice.blocked(LiveStartProblem.classify(error)))
             }
         }
     }
@@ -729,7 +861,7 @@ extension VoiceController {
         stopSpeaking()
         errorMessage = nil
         errorAction = nil
-        wakeWord.stop()
+        wakeWord?.stop()
         if engine != nil {
             engine?.stop(deliver: false)
             engine = nil
@@ -741,7 +873,11 @@ extension VoiceController {
         liveState = .starting
         liveReleasedWhileStarting = false
         Task {
-            switch await makeLiveIO() {
+            guard let setup = await makeLiveIO() else {
+                liveBlocked()
+                return
+            }
+            switch setup {
             case .speech(let io, let kind):
                 launchSpeechEngine(io: io, kind: kind, firstTurn: firstTurn, pushToTalk: pushToTalk)
             case .realtime(let service):
@@ -792,53 +928,40 @@ extension VoiceController {
         }
     }
 
-    /// A live engine couldn't start: the next one takes over, down to the classic voice flow,
-    /// and the user is told why and what to do about it.
+    /// A live engine couldn't start: a failed cloud session hands over to Momo's voice
+    /// models when they are ready; otherwise the user is told why and what to do about it.
     private func liveFailed(
         kind: LiveEngineKind, problem: LiveStartProblem, firstTurn: String?, pushToTalk: Bool
     ) {
-        if kind == .openSource, problem == .timedOut {
+        if kind == .onDevice, problem == .timedOut {
             // The models went cold (a new build, or the system dropped its cache): load them
-            // again in the background before a conversation relies on the helper again.
+            // again in the background before a conversation relies on them again.
             liveModels.forgetPrepared()
             Task { await liveModels.prepare() }
         }
-        switch LiveFallbackPlan.next(after: kind, problem: problem) {
-        case .appleLive:
-            let notice = LiveVoiceNotice.fallback(from: kind, problem: problem)
-            show(notice)
+        let helperReady = liveHelper != nil && liveModels.status == .ready
+        let plan = LiveFallbackPlan.next(after: kind, problem: problem, helperReady: helperReady)
+        if plan == .onDevice, let liveHelper {
+            show(LiveVoiceNotice.cloudFallback())
             liveState = .starting
             launchSpeechEngine(
-                io: makeAppleLiveIO(), kind: .apple, firstTurn: firstTurn, pushToTalk: pushToTalk)
-        case .classic:
-            liveState = nil
-            startClassicAfterLiveFailure(firstTurn: firstTurn, pushToTalk: pushToTalk)
-            show(LiveVoiceNotice.classicFallback(problem: problem))
-        case .stop:
-            show(LiveVoiceNotice.blocked(problem))
-            liveState = nil
-            isHoldingToTalk = false
-            character?.showTrouble()
-            bubble?.hide(after: .seconds(errorAction == nil ? 4 : 10)) { [weak self] in
-                self?.endSession()
-            }
-            startWakeWordIfEnabled()
-        }
-    }
-
-    /// Live conversation can't run at all: the spoken request goes the classic way, which
-    /// records one request and speaks the finished reply.
-    private func startClassicAfterLiveFailure(firstTurn: String?, pushToTalk: Bool) {
-        if let firstTurn, !firstTurn.trimmingCharacters(in: .whitespaces).isEmpty {
-            character?.showWorking()
-            send(firstTurn)
-            startWakeWordIfEnabled()
+                io: HelperLiveSpeechIO(client: liveHelper), kind: .onDevice,
+                firstTurn: firstTurn, pushToTalk: pushToTalk)
             return
         }
-        let released = pushToTalk && (!isHoldingToTalk || liveReleasedWhileStarting)
-        liveReleasedWhileStarting = false
-        startDictation(continuous: pushToTalk)
-        if released { releasedWhileStarting = true }
+        show(LiveVoiceNotice.blocked(problem))
+        liveBlocked()
+    }
+
+    /// No live engine can run: the bubble shows the notice a while and closes.
+    private func liveBlocked() {
+        liveState = nil
+        isHoldingToTalk = false
+        character?.showTrouble()
+        bubble?.hide(after: .seconds(errorAction == nil ? 5 : 10)) { [weak self] in
+            self?.endSession()
+        }
+        startWakeWordIfEnabled()
     }
 
     private func show(_ notice: LiveVoiceNotice) {
@@ -852,7 +975,6 @@ extension VoiceController {
         switch action {
         case .openVoiceSettings: openSettings?(.voice)
         case .allowMicrophone: openPermissions?(.microphone)
-        case .allowSpeechRecognition: openPermissions?(.speechRecognition)
         }
         cancelVoiceSession()
     }
@@ -865,106 +987,71 @@ extension VoiceController {
         case realtime(RealtimeVoiceService)
     }
 
-    /// The engine for the user's choice.
-    private func makeLiveIO() async -> LiveEngineSetup {
+    /// The engine for the user's choice, or `nil` when none can run; the notice says why.
+    private func makeLiveIO() async -> LiveEngineSetup? {
         let preferences = settings.preferences
-        let choice = preferences.liveEngine
-        var helper = LiveHelperStatus.unavailable
-        if liveHelper != nil, choice == .automatic || choice == .openSource {
-            // Always ask: the helper must answer and have the language's models right now,
-            // or the conversation would wait on a helper that can't start.
-            liveModels.locale = Locale.current.identifier(.bcp47)
-            await liveModels.refresh()
-            helper = liveModels.status
-            if helper == .preparing, !liveModels.isPreparing {
-                // A new helper build compiles its models on first use, which takes far longer
-                // than a conversation may wait. Do it now; Apple's engine talks meanwhile.
-                Task { await liveModels.prepare() }
-            }
-        }
+        // Always ask: the helper must answer and have the language's models right now, or
+        // the conversation would wait on a helper that can't start.
+        let helper = await voiceModelStatus()
         let unavailable = CloudRealtimeSetup.unavailableReason(
             preferences, key: key(for:), recentFailure: realtimeFailedRecently)
         let selection = CloudRealtimeSetup.selectEngine(
-            preferences, helperReady: helper == .ready, key: key(for:),
-            recentFailure: realtimeFailedRecently)
-        if choice == .cloudRealtime {
+            preferences, helper: helper, key: key(for:), recentFailure: realtimeFailedRecently)
+        if preferences.liveEngine == .cloudRealtime {
             // One conversation on the Mac after a failure, then the cloud engine again.
             realtimeFailedRecently = false
-        }
-        if selection.isFallback {
-            if choice == .openSource {
-                show(LiveVoiceNotice.helperNotReady(helper))
-            } else {
-                errorMessage = realtimeFallbackMessage(unavailable)
-            }
         }
         switch selection.kind {
         case .cloudRealtime:
             if let service = CloudRealtimeSetup.service(preferences, key: key(for:)) {
                 return .realtime(service)
             }
-        case .openSource:
+        case .onDevice:
             if let liveHelper {
-                return .speech(HelperLiveSpeechIO(client: liveHelper), .openSource)
+                if selection.isFallback { errorMessage = realtimeFallbackMessage(unavailable) }
+                return .speech(HelperLiveSpeechIO(client: liveHelper), .onDevice)
             }
-        case .apple:
+        case nil:
             break
         }
-        return .speech(makeAppleLiveIO(), .apple)
+        show(LiveVoiceNotice.modelsNotReady(helper))
+        return nil
     }
 
     private func realtimeFallbackMessage(_ reason: CloudRealtimeSetup.Unavailable?) -> String {
         switch reason {
         case .localOnly:
             L(
-                "Everything stays on this Mac, so Momo used its built-in voice engine instead of cloud realtime voice."
+                "Everything stays on this Mac, so Momo used its own voice models instead of cloud realtime voice."
             )
         case .recentFailure:
             L(
-                "Cloud realtime voice failed last time, so Momo used Apple's built-in engine for this conversation."
+                "Cloud realtime voice failed last time, so Momo used its own voice models for this conversation."
             )
         case .missingKey, nil:
             L(
-                "Cloud realtime voice needs an API key for the chosen service, so Momo used Apple's built-in engine."
+                "Cloud realtime voice needs an API key for the chosen service, so Momo used its own voice models."
             )
         }
-    }
-
-    private func makeAppleLiveIO() -> AppleLiveSpeechIO {
-        let io = AppleLiveSpeechIO()
-        io.onCloudSpeech = { [weak self] service, characters in
-            self?.assistant?.recordOutbound(service: service, characters: characters)
-        }
-        return io
     }
 
     private func makeLiveConversation(io: any LiveSpeechIO, pushToTalk: Bool) -> LiveConversation {
         let preferences = settings.preferences
-        let voice: LiveVoiceOutput
-        if preferences.speechVoice == .openAI, let key = openAIKey {
-            voice = .openAI(
-                OpenAISpeechRequest(
-                    apiKey: key, voice: preferences.openAIVoice,
-                    instructions:
-                        "Speak warmly and naturally, like a friendly little companion, at a lively conversational pace."
-                ))
-        } else {
-            voice = .apple(
-                identifier: preferences.voiceIdentifier.isEmpty ? nil : preferences.voiceIdentifier,
-                rate: 1)
-        }
+        var speech = speechConfiguration(
+            language: voiceLanguage,
+            mode: .conversation)
+        speech.locale = voiceLocale
+        speech.endsTurnsOnPause = !pushToTalk
         let phrases = LiveConversationPhrases(
-            acknowledgements: [
-                L("One moment."), L("Let me check."), L("Let me see."), L("On it."),
-            ],
+            acknowledgements: [L("Let me think."), L("Let me check."), L("On it.")],
             unclearAnswer: L("Sorry, was that a yes or a no?"),
             farewells: [L("Talk to you later!"), L("Bye for now!")],
-            failure: L("Sorry, that didn't work."))
+            failure: L("Something went wrong. The details are in the chat."),
+            busy: L("I'm still working on the last one."))
         let conversation = LiveConversation(
             io: io, brain: liveBrain, phrases: phrases,
             settings: .init(
-                speech: LiveSpeechConfiguration(
-                    locale: Locale.current, voice: voice, endsTurnsOnPause: !pushToTalk),
+                speech: speech,
                 followUpWindow: max(0, preferences.liveFollowUpSeconds)),
             firstPhrase: Int.random(in: 0..<4))
         conversation.onTurn = { [weak self] text in self?.liveTurnSent(text) }
@@ -1016,10 +1103,13 @@ extension VoiceController {
             launchRealtime(
                 service: request.service, firstTurn: request.firstTurn,
                 pushToTalk: request.pushToTalk)
-        } else {
+        } else if let liveHelper, liveModels.status == .ready {
             launchSpeechEngine(
-                io: makeAppleLiveIO(), kind: .apple, firstTurn: request.firstTurn,
-                pushToTalk: request.pushToTalk)
+                io: HelperLiveSpeechIO(client: liveHelper), kind: .onDevice,
+                firstTurn: request.firstTurn, pushToTalk: request.pushToTalk)
+        } else {
+            show(LiveVoiceNotice.modelsNotReady(liveModels.status))
+            liveBlocked()
         }
     }
 
@@ -1029,7 +1119,7 @@ extension VoiceController {
         let conversation = RealtimeConversation(
             settings: .init(
                 service: service,
-                session: CloudRealtimeSetup.sessionConfiguration(preferences),
+                session: CloudRealtimeSetup.sessionConfiguration(preferences, locale: voiceLocale),
                 followUpWindow: max(0, preferences.liveFollowUpSeconds), pushToTalk: pushToTalk),
             audio: RealtimeAudioEngine(), brain: realtimeBrain)
         observe(conversation)

@@ -1,8 +1,9 @@
 import Foundation
 
-// The protocol between Momo and `momo-voice`, the helper process that runs the on-device,
-// open source live voice engine (streaming speech recognition, turn detection, echo
-// cancellation and speech synthesis).
+// The protocol between Momo and `momo-voice`, the helper process that runs Momo's on-device
+// voice models: streaming speech recognition, turn detection, echo cancellation, speech
+// synthesis and the transcription of recordings. Every part of Momo that listens or speaks
+// goes through it.
 //
 // Momo starts `momo-voice` as a child process and exchanges one JSON object per line over
 // its standard input (commands) and standard output (events). The helper owns the
@@ -11,7 +12,7 @@ import Foundation
 // back sentence by sentence.
 
 /// The protocol version. Momo refuses a helper that reports another major version.
-public let liveVoiceProtocolVersion = 1
+public let liveVoiceProtocolVersion = 2
 
 /// What a live voice model does.
 public enum LiveModelKind: String, Codable, Sendable, Hashable {
@@ -41,10 +42,17 @@ public struct LiveModelInfo: Codable, Sendable, Hashable, Identifiable {
     public var isDownloaded: Bool
     /// Whether the model is needed for a live session in the requested language.
     public var isRequired: Bool
+    /// Whether the user added the model from a folder on this Mac.
+    public var isCustom: Bool
+    /// The voices of a downloaded speech synthesis model; empty for other models.
+    public var voices: [String]
+    /// The voices among ``voices`` that the user added from files, which can be deleted.
+    public var customVoices: [String]
 
     public init(
         id: String, kind: LiveModelKind, name: String, languages: [String], sizeBytes: Int64,
-        isDownloaded: Bool, isRequired: Bool = false
+        isDownloaded: Bool, isRequired: Bool = false, isCustom: Bool = false,
+        voices: [String] = [], customVoices: [String] = []
     ) {
         self.id = id
         self.kind = kind
@@ -53,7 +61,22 @@ public struct LiveModelInfo: Codable, Sendable, Hashable, Identifiable {
         self.sizeBytes = sizeBytes
         self.isDownloaded = isDownloaded
         self.isRequired = isRequired
+        self.isCustom = isCustom
+        self.voices = voices
+        self.customVoices = customVoices
     }
+}
+
+/// What a session does with the audio devices.
+public enum LiveSessionMode: String, Codable, Sendable, Hashable {
+    /// Listens with turn detection and speaks, with echo cancellation: a live conversation.
+    case conversation
+    /// Only listens and reports partials and turns (dictation, the wake word). No speech
+    /// synthesis model is needed.
+    case listen
+    /// Only speaks (reading replies aloud). The microphone stays closed and only the speech
+    /// synthesis model is needed.
+    case speak
 }
 
 /// How a live session should listen and speak.
@@ -66,8 +89,8 @@ public struct LiveSessionConfiguration: Codable, Sendable, Hashable {
     public var textToSpeechModel: String?
     /// A voice of that model, or `nil` for its default.
     public var voice: String?
-    /// An Apple voice identifier, used when no open model speaks the language.
-    public var appleVoiceIdentifier: String?
+    /// What the session does with the audio devices.
+    public var mode: LiveSessionMode
     /// Whether the user speaking over Momo stops Momo at once.
     public var allowsBargeIn: Bool
     /// How long a pause may be, in seconds, before a turn can end. The turn detector may end
@@ -76,16 +99,36 @@ public struct LiveSessionConfiguration: Codable, Sendable, Hashable {
 
     public init(
         locale: String, speechToTextModel: String? = nil, textToSpeechModel: String? = nil,
-        voice: String? = nil, appleVoiceIdentifier: String? = nil, allowsBargeIn: Bool = true,
+        voice: String? = nil, mode: LiveSessionMode = .conversation, allowsBargeIn: Bool = true,
         maximumPause: Double = 1.2
     ) {
         self.locale = locale
         self.speechToTextModel = speechToTextModel
         self.textToSpeechModel = textToSpeechModel
         self.voice = voice
-        self.appleVoiceIdentifier = appleVoiceIdentifier
+        self.mode = mode
         self.allowsBargeIn = allowsBargeIn
         self.maximumPause = maximumPause
+    }
+
+    /// Whether the session opens the microphone.
+    public var listens: Bool { mode != .speak }
+    /// Whether the session speaks and needs a speech synthesis model.
+    public var speaks: Bool { mode != .listen }
+}
+
+/// A timed piece of a transcribed recording.
+public struct LiveTranscriptSegment: Codable, Sendable, Hashable {
+    public var text: String
+    /// Seconds from the start of the recording.
+    public var start: Double
+    /// Seconds from the start of the recording.
+    public var end: Double
+
+    public init(text: String, start: Double, end: Double) {
+        self.text = text
+        self.start = start
+        self.end = end
     }
 }
 
@@ -93,18 +136,35 @@ public struct LiveSessionConfiguration: Codable, Sendable, Hashable {
 public enum LiveVoiceCommand: Codable, Sendable, Hashable {
     /// The first message. The helper answers with ``LiveVoiceEvent/ready(version:languages:)``.
     case hello(version: Int)
-    /// Asks for ``LiveVoiceEvent/models(_:)``, marking which models `locale` needs.
-    case listModels(locale: String)
+    /// Asks for ``LiveVoiceEvent/models(_:)``, marking which models a conversation in
+    /// `locale` needs, speaking with `textToSpeechModel` (or the helper's choice for `nil`).
+    case listModels(locale: String, textToSpeechModel: String?)
     /// Downloads models, reporting progress. Only sent after the user asked for it.
     case downloadModels(ids: [String])
-    /// Deletes downloaded models.
+    /// Deletes downloaded models, including models the user added.
     case deleteModels(ids: [String])
+    /// Adds the speech synthesis model in the folder at `path`, which must hold a conversion
+    /// the helper can run (Kokoro or Supertonic). The folder is copied. Answers with
+    /// ``LiveVoiceEvent/modelImported(id:)`` or ``LiveVoiceEvent/importFailed(message:)``.
+    case importModel(path: String)
+    /// Adds the voice file at `path` (a voice style for the model's architecture) to the
+    /// speech synthesis model `modelID`. Answers with
+    /// ``LiveVoiceEvent/voiceImported(modelID:voice:)`` or ``LiveVoiceEvent/importFailed(message:)``.
+    case importVoice(modelID: String, path: String)
+    /// Deletes a voice the user added to `modelID`.
+    case deleteVoice(modelID: String, voice: String)
+    /// Transcribes the recording at `path` (a WAV file) in `locale`'s language, without
+    /// touching the audio devices. Runs alongside other commands and answers with
+    /// ``LiveVoiceEvent/transcribed(id:segments:)`` or
+    /// ``LiveVoiceEvent/transcriptionFailed(id:message:)``.
+    case transcribe(id: String, path: String, locale: String)
     /// Loads and warms up the models a session with this configuration needs, without
     /// opening the microphone, and answers with ``LiveVoiceEvent/prepared``, or a non-fatal
     /// ``LiveVoiceEvent/error(message:isFatal:)``. The first load of a new helper build
     /// compiles its models, which can take much longer than a normal start.
     case prepare(LiveSessionConfiguration)
-    /// Starts listening with the microphone.
+    /// Starts a session: listening with the microphone, speaking, or both, as its
+    /// ``LiveSessionConfiguration/mode`` says.
     case start(LiveSessionConfiguration)
     /// Stops listening and speaking and releases the audio devices.
     case stop
@@ -132,7 +192,16 @@ public enum LiveVoiceEvent: Codable, Sendable, Hashable {
     case downloadFailed(id: String, message: String)
     /// The models of a ``LiveVoiceCommand/prepare(_:)`` are loaded and warm.
     case prepared
-    /// The session runs and the microphone is open.
+    /// A model from a folder was added as `id`.
+    case modelImported(id: String)
+    /// A voice file was added to `modelID` as `voice`.
+    case voiceImported(modelID: String, voice: String)
+    /// Adding a model or a voice failed.
+    case importFailed(message: String)
+    /// The recording of ``LiveVoiceCommand/transcribe(id:path:locale:)`` `id` was transcribed.
+    case transcribed(id: String, segments: [LiveTranscriptSegment])
+    case transcriptionFailed(id: String, message: String)
+    /// The session runs: the microphone is open, or for a speaking session, the speaker is.
     case listening
     /// The microphone level, 0...1, a few times a second.
     case level(Double)

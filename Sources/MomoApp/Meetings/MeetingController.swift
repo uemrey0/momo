@@ -91,6 +91,10 @@ final class MeetingController {
     @ObservationIgnored var showMeetings: (() -> Void)?
     /// Called when recording starts or stops.
     @ObservationIgnored var onRecordingChanged: (() -> Void)?
+    /// Transcribes on this Mac with Momo's voice models, in a language.
+    @ObservationIgnored var onDeviceTranscription: ((Locale) -> (any AudioTranscriptionService)?)?
+    /// Whether Momo's voice models can transcribe now, or why not.
+    @ObservationIgnored var voiceModelsCanListen: () async -> LiveHelperStatus = { .unavailable }
 
     @ObservationIgnored private var pending: PendingStart?
     @ObservationIgnored private var capture: MeetingAudioCapture?
@@ -115,7 +119,7 @@ final class MeetingController {
         /// Ask the service for speaker labels (and timed segments).
         var identifiesSpeakers: Bool
         /// Used when a remote request fails, so no part of the meeting is lost.
-        var fallback: OnDeviceTranscriptionService?
+        var fallback: (any AudioTranscriptionService)?
     }
 
     init(
@@ -181,6 +185,16 @@ final class MeetingController {
             return .waitingForAnswer
         }
         let engine = request.onDevice ? onDeviceEngine() : transcriptionEngine()
+        if !engine.isRemote {
+            let status = await voiceModelsCanListen()
+            guard status == .ready else {
+                startPrompt = nil
+                pending = nil
+                let message = LiveVoiceNotice.modelsNotReady(status).message
+                errorMessage = message
+                return .failed(message)
+            }
+        }
         if engine.isRemote, !request.approvedCloud {
             startPrompt = .cloudTranscription(service: engine.service.displayName)
             showMeetings?()
@@ -373,9 +387,8 @@ final class MeetingController {
     private func transcriptionEngine() -> TranscriptionEngine {
         let preferences = settings.preferences
         let selection = DictationEngineSelector.select(
-            preferences.dictationEngine,
-            speechAnalyzerAvailable: DictationEngineSelector.isSpeechAnalyzerAvailable,
-            hasOpenAIKey: key("openai") != nil, hasGeminiKey: key("gemini-api") != nil)
+            preferences.dictationEngine, hasOpenAIKey: key("openai") != nil,
+            hasGeminiKey: key("gemini-api") != nil)
         guard !preferences.brains.localOnly else { return onDeviceEngine() }
         switch selection.kind {
         case .openAI:
@@ -389,7 +402,7 @@ final class MeetingController {
             return TranscriptionEngine(
                 service: GeminiTranscriptionService(apiKey: key), isRemote: true,
                 identifiesSpeakers: true, fallback: onDeviceService)
-        case .appleSpeech, .speechAnalyzer:
+        case .onDevice:
             return onDeviceEngine()
         }
     }
@@ -399,12 +412,12 @@ final class MeetingController {
             service: onDeviceService, isRemote: false, identifiesSpeakers: false, fallback: nil)
     }
 
-    private var onDeviceService: OnDeviceTranscriptionService {
+    private var onDeviceService: any AudioTranscriptionService {
         let code = meetingLanguageCode
         let locale =
             code == nil || code == Locale.current.language.languageCode?.identifier
             ? Locale.current : Locale(identifier: code ?? "en")
-        return OnDeviceTranscriptionService(locale: locale)
+        return onDeviceTranscription?(locale) ?? UnavailableTranscription()
     }
 
     /// The meeting language from Settings, or `nil` to follow the system (and let cloud
@@ -607,5 +620,16 @@ final class MeetingController {
         )
         .map(CalendarService.meeting(from:))
         return MeetingDetector.currentEvent(in: events, at: now)
+    }
+}
+
+/// Stands in for Momo's voice models where they can't run, so a meeting says why instead of
+/// losing its words silently.
+private struct UnavailableTranscription: AudioTranscriptionService {
+    var displayName: String { "Momo voice models" }
+
+    func transcribe(_ audio: AudioClip, options: TranscriptionOptions) async throws -> Transcript {
+        throw CloudVoiceError(
+            "Momo's voice models aren't available, so this part of the meeting wasn't transcribed.")
     }
 }

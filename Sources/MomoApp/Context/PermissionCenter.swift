@@ -6,7 +6,6 @@ import CoreLocation
 import EventKit
 import MomoKit
 import Observation
-import Speech
 import UserNotifications
 
 /// Whether Momo has a macOS permission.
@@ -67,7 +66,7 @@ final class PermissionCenter {
 
     /// The permissions besides Automation, in the order Settings lists them.
     nonisolated static let basics: [MacPermission] = [
-        .microphone, .speechRecognition, .calendars, .reminders, .contacts, .screenRecording,
+        .microphone, .calendars, .reminders, .contacts, .screenRecording,
         .accessibility, .notifications, .location,
     ]
 
@@ -118,12 +117,6 @@ final class PermissionCenter {
         switch permission {
         case .microphone:
             switch AVCaptureDevice.authorizationStatus(for: .audio) {
-            case .authorized: return .allowed
-            case .notDetermined: return .notDetermined
-            default: return .denied
-            }
-        case .speechRecognition:
-            switch SFSpeechRecognizer.authorizationStatus() {
             case .authorized: return .allowed
             case .notDetermined: return .notDetermined
             default: return .denied
@@ -189,8 +182,6 @@ final class PermissionCenter {
         switch permission {
         case .microphone:
             _ = await AVCaptureDevice.requestAccess(for: .audio)
-        case .speechRecognition:
-            await Self.requestSpeechRecognition()
         case .calendars:
             _ = try? await EKEventStore().requestFullAccessToEvents()
         case .reminders:
@@ -239,12 +230,6 @@ final class PermissionCenter {
         }.value
     }
 
-    nonisolated private static func requestSpeechRecognition() async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            SFSpeechRecognizer.requestAuthorization { _ in continuation.resume() }
-        }
-    }
-
     nonisolated private static func notificationStatus() async -> UNAuthorizationStatus {
         await withCheckedContinuation { continuation in
             UNUserNotificationCenter.current().getNotificationSettings {
@@ -258,7 +243,6 @@ final class PermissionCenter {
         let anchor: String
         switch permission {
         case .microphone: anchor = "Privacy_Microphone"
-        case .speechRecognition: anchor = "Privacy_SpeechRecognition"
         case .calendars: anchor = "Privacy_Calendars"
         case .reminders: anchor = "Privacy_Reminders"
         case .contacts: anchor = "Privacy_Contacts"

@@ -1,16 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@ Momo listened with Apple Speech instead." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Momo bunun yerine Apple Konuşma ile dinledi."
-          }
-        }
-      }
-    },
     "%@ at %@" : {
       "localizations" : {
         "tr" : {
@@ -41,6 +31,16 @@
         }
       }
     },
+    "%@ has reached its usage limit. Try again later, or pick another brain in AI settings." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kullanım limitine ulaştı. Biraz sonra tekrar dene ya da Yapay Zekâ ayarlarından başka bir beyin seç."
+          }
+        }
+      }
+    },
     "%@ is connected with your key." : {
       "localizations" : {
         "tr" : {
@@ -51,12 +51,42 @@
         }
       }
     },
+    "%@ is thinking…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ düşünüyor…"
+          }
+        }
+      }
+    },
     "%@ needs an API key, which you can add in AI settings." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ bir API anahtarı gerektirir; bunu Yapay Zekâ ayarlarından ekleyebilirsin."
+          }
+        }
+      }
+    },
+    "%@ needs you to sign in again. Open AI settings to reconnect it." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ için yeniden giriş yapman gerekiyor. Yeniden bağlamak için Yapay Zekâ ayarlarını aç."
+          }
+        }
+      }
+    },
+    "%@ ran into a problem. The details are in the chat." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bir sorunla karşılaştı. Ayrıntılar sohbette."
           }
         }
       }
@@ -87,6 +117,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d saniye"
+          }
+        }
+      }
+    },
+    "%d voices" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d ses"
           }
         }
       }
@@ -313,12 +353,52 @@
         }
       }
     },
+    "Add Model" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Ekle"
+          }
+        }
+      }
+    },
+    "Add Model Folder…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Klasörü Ekle…"
+          }
+        }
+      }
+    },
     "Add Routine…" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rutin Ekle…"
+          }
+        }
+      }
+    },
+    "Add Voice" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses Ekle"
+          }
+        }
+      }
+    },
+    "Add Voice File…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses Dosyası Ekle…"
           }
         }
       }
@@ -409,6 +489,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“%@” etkinliğini %@ saatine takvimine ekle"
+          }
+        }
+      }
+    },
+    "Added %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ eklendi."
+          }
+        }
+      }
+    },
+    "Added by you" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senin eklediğin"
+          }
+        }
+      }
+    },
+    "Added the voice %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ sesi eklendi."
           }
         }
       }
@@ -523,16 +633,6 @@
         }
       }
     },
-    "Allow Speech Recognition" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konuşma Tanımaya İzin Ver"
-          }
-        }
-      }
-    },
     "Allow access" : {
       "localizations" : {
         "tr" : {
@@ -613,6 +713,16 @@
         }
       }
     },
+    "American" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amerikan"
+          }
+        }
+      }
+    },
     "Anthropic doesn't let other apps use Claude plans, but Claude can use Momo: connect them and Claude can read and update your tasks, notes and memories." : {
       "localizations" : {
         "tr" : {
@@ -643,16 +753,6 @@
         }
       }
     },
-    "Apple (built in)" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple (yerleşik)"
-          }
-        }
-      }
-    },
     "Apple Intelligence is on. Momo uses it for quick, private answers." : {
       "localizations" : {
         "tr" : {
@@ -669,16 +769,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apple Intelligence Mac'inde çalışır; macOS 26 ve açık bir Apple Intelligence gerektirir."
-          }
-        }
-      }
-    },
-    "Apple Speech" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple Konuşma"
           }
         }
       }
@@ -733,12 +823,12 @@
         }
       }
     },
-    "Asking the engine for its models…" : {
+    "Asking the voice engine for its models…" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Motordan modelleri isteniyor…"
+            "value" : "Ses motorundan modeller alınıyor…"
           }
         }
       }
@@ -823,22 +913,12 @@
         }
       }
     },
-    "Automatic (best voice for each language)" : {
+    "Automatic (best for your language)" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Otomatik (her dil için en iyi ses)"
-          }
-        }
-      }
-    },
-    "Automatic (on this Mac)" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otomatik (bu Mac'te)"
+            "value" : "Otomatik (dilin için en iyisi)"
           }
         }
       }
@@ -940,6 +1020,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brave Search API anahtarı"
+          }
+        }
+      }
+    },
+    "Brazilian" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brezilya"
+          }
+        }
+      }
+    },
+    "British" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İngiliz"
           }
         }
       }
@@ -1204,6 +1304,16 @@
         }
       }
     },
+    "Checking with %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ile bakıyorum."
+          }
+        }
+      }
+    },
     "Checking your Mac" : {
       "localizations" : {
         "tr" : {
@@ -1284,12 +1394,42 @@
         }
       }
     },
+    "Chinese" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çince"
+          }
+        }
+      }
+    },
+    "Choose a folder with a Kokoro or Supertonic Core ML conversion." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kokoro veya Supertonic Core ML dönüşümü içeren bir klasör seç."
+          }
+        }
+      }
+    },
     "Choose a model" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Model seç"
+          }
+        }
+      }
+    },
+    "Choose a voice style file for %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ için bir ses stili dosyası seç."
           }
         }
       }
@@ -1384,32 +1524,32 @@
         }
       }
     },
-    "Cloud realtime voice couldn't start, so Momo is using Apple's voice this time." : {
+    "Cloud realtime voice couldn't start, so Momo is using its own voice models this time." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bulut gerçek zamanlı ses başlatılamadı, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
+            "value" : "Bulut gerçek zamanlı ses başlatılamadı, bu yüzden Momo bu sefer kendi ses modellerini kullanıyor."
           }
         }
       }
     },
-    "Cloud realtime voice failed last time, so Momo used Apple's built-in engine for this conversation." : {
+    "Cloud realtime voice failed last time, so Momo used its own voice models for this conversation." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bulut gerçek zamanlı ses geçen sefer başarısız oldu, bu yüzden Momo bu sohbette Apple'ın yerleşik motorunu kullandı."
+            "value" : "Bulut gerçek zamanlı ses geçen sefer başarısız oldu, bu yüzden Momo bu sohbette kendi ses modellerini kullandı."
           }
         }
       }
     },
-    "Cloud realtime voice needs an API key for the chosen service, so Momo used Apple's built-in engine." : {
+    "Cloud realtime voice needs an API key for the chosen service, so Momo used its own voice models." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bulut gerçek zamanlı ses, seçilen hizmet için bir API anahtarı gerektirir; bu yüzden Momo Apple'ın yerleşik motorunu kullandı."
+            "value" : "Bulut gerçek zamanlı ses, seçilen hizmet için bir API anahtarı gerektiriyor, bu yüzden Momo kendi ses modellerini kullandı."
           }
         }
       }
@@ -1424,12 +1564,12 @@
         }
       }
     },
-    "Cloud transcription failed, so Momo used Apple Speech instead. %@" : {
+    "Cloud transcription failed, so Momo used its own voice models instead. %@" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buluttaki yazıya dökme başarısız oldu, bu yüzden Momo Apple Konuşma'yı kullandı. %@"
+            "value" : "Bulutta yazıya çevirme başarısız oldu, bu yüzden Momo kendi ses modellerini kullandı. %@"
           }
         }
       }
@@ -1784,12 +1924,32 @@
         }
       }
     },
+    "Default" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Varsayılan"
+          }
+        }
+      }
+    },
     "Delete" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sil"
+          }
+        }
+      }
+    },
+    "Delete Voice" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesi Sil"
           }
         }
       }
@@ -2035,12 +2195,12 @@
         }
       }
     },
-    "Downloading the speech model for your language…" : {
+    "Downloading your language's models…" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dilin için konuşma modeli indiriliyor…"
+            "value" : "Dilinin modelleri indiriliyor…"
           }
         }
       }
@@ -2205,12 +2365,22 @@
         }
       }
     },
-    "Everything stays on this Mac, so Momo used its built-in voice engine instead of cloud realtime voice." : {
+    "Every reply Momo reads aloud is sent to OpenAI with your API key, and each one is listed in Privacy. If OpenAI can't be reached, Momo uses its own voice models." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Her şey bu Mac'te kalıyor, bu yüzden Momo bulut gerçek zamanlı ses yerine yerleşik ses motorunu kullandı."
+            "value" : "Momo'nun sesli okuduğu her yanıt API anahtarınla OpenAI'ye gönderilir ve her biri Gizlilik'te listelenir. OpenAI'ye ulaşılamazsa Momo kendi ses modellerini kullanır."
+          }
+        }
+      }
+    },
+    "Everything stays on this Mac, so Momo used its own voice models instead of cloud realtime voice." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her şey bu Mac'te kalıyor, bu yüzden Momo bulut gerçek zamanlı ses yerine kendi ses modellerini kullandı."
           }
         }
       }
@@ -2221,6 +2391,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Her şey tamam. Harikasın!"
+          }
+        }
+      }
+    },
+    "Female %d" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kadın %d"
           }
         }
       }
@@ -2352,6 +2532,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ücretsiz, bu Mac'te"
+          }
+        }
+      }
+    },
+    "French" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fransız"
           }
         }
       }
@@ -2522,6 +2712,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Model listesi alınıyor…"
+          }
+        }
+      }
+    },
+    "Getting the models ready for their first use…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modeller ilk kullanım için hazırlanıyor…"
           }
         }
       }
@@ -2718,6 +2918,16 @@
         }
       }
     },
+    "Hindi" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hint"
+          }
+        }
+      }
+    },
     "Hold the shortcut to talk" : {
       "localizations" : {
         "tr" : {
@@ -2804,6 +3014,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seni ve görüşmeyi dinlerim, durdurduğunda kararları ve yapılacakları içeren bir özet yazarım."
+          }
+        }
+      }
+    },
+    "I'm still working on the last one." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hâlâ bir öncekiyle uğraşıyorum."
           }
         }
       }
@@ -2901,12 +3121,32 @@
         }
       }
     },
+    "Italian" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İtalyan"
+          }
+        }
+      }
+    },
     "Its usage limit was reached. Try again in a little while, or pick another brain in AI settings." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kullanım sınırına ulaşıldı. Biraz sonra tekrar dene ya da AI ayarlarından başka bir beyin seç."
+          }
+        }
+      }
+    },
+    "Japanese" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Japon"
           }
         }
       }
@@ -2971,12 +3211,12 @@
         }
       }
     },
-    "Let me see." : {
+    "Let me think." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hemen bakıyorum."
+            "value" : "Bir düşüneyim."
           }
         }
       }
@@ -3042,12 +3282,12 @@
         }
       }
     },
-    "Listening and speaking stay on this Mac." : {
+    "Listening and speaking stay on this Mac, with Momo's voice models. A live conversation always speaks with them, even when replies are read with an OpenAI voice." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dinleme ve konuşma bu Mac'te kalır."
+            "value" : "Dinleme ve konuşma, Momo'nun ses modelleriyle bu Mac'te kalır. Yanıtlar bir OpenAI sesiyle okunsa bile canlı sohbet her zaman bu modellerle konuşur."
           }
         }
       }
@@ -3058,16 +3298,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Devamını dinliyorum…"
-          }
-        }
-      }
-    },
-    "Listening stays on this Mac; with an OpenAI voice, each sentence Momo says is sent to OpenAI." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dinleme bu Mac'te kalır; OpenAI sesiyle, Momo'nun söylediği her cümle OpenAI'a gönderilir."
           }
         }
       }
@@ -3098,26 +3328,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Canlı sohbet"
-          }
-        }
-      }
-    },
-    "Live conversation couldn't open the microphone and speakers together, so Momo is listening the classic way. Say your request, then pause." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canlı sohbet mikrofonu ve hoparlörleri birlikte açamadı, bu yüzden Momo klasik yolla dinliyor. İsteğini söyle, sonra biraz bekle."
-          }
-        }
-      }
-    },
-    "Live conversation couldn't start, so Momo is listening the classic way. Say your request, then pause." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canlı sohbet başlatılamadı, bu yüzden Momo klasik yolla dinliyor. İsteğini söyle, sonra biraz bekle."
           }
         }
       }
@@ -3294,26 +3504,6 @@
         }
       }
     },
-    "Mac voices" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mac sesleri"
-          }
-        }
-      }
-    },
-    "Mac voices, OpenAI voices, sound" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mac sesleri, OpenAI sesleri, ses"
-          }
-        }
-      }
-    },
     "Mail, Messages & contacts" : {
       "localizations" : {
         "tr" : {
@@ -3340,6 +3530,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Küçük bir JSON dosyasıyla kendi karakterini yap."
+          }
+        }
+      }
+    },
+    "Male %d" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erkek %d"
           }
         }
       }
@@ -3569,16 +3769,6 @@
         }
       }
     },
-    "Momo can't use speech recognition. Allow it in Settings → Permissions." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Momo konuşma tanımayı kullanamıyor. Ayarlar → İzinler'den izin ver."
-          }
-        }
-      }
-    },
     "Momo can't use the microphone. Allow it in Settings → Permissions." : {
       "localizations" : {
         "tr" : {
@@ -3595,6 +3785,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo bu uygulamaları yalnızca sen istediğinde kontrol eder ve bir şey göndermeden önce sorar. Açık olmayan bir uygulama, sen açana kadar kontrol edilemez."
+          }
+        }
+      }
+    },
+    "Momo couldn't open the microphone or the speakers. Check your audio devices and try again." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo mikrofonu veya hoparlörleri açamadı. Ses aygıtlarını kontrol edip tekrar dene."
           }
         }
       }
@@ -3645,6 +3845,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo hâlâ yanıt veriyor. Birazdan tekrar dene."
+          }
+        }
+      }
+    },
+    "Momo listens, recognises speech, knows when you finish and speaks entirely on this Mac with these models. Without them, voice mode stays off. Models are downloaded once, only when you press Download." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo bu modellerle tamamen bu Mac'te dinler, konuşmayı tanır, sözünü bitirdiğini anlar ve konuşur. Bu modeller olmadan sesli mod kapalı kalır. Modeller yalnızca İndir'e bastığında, bir kez indirilir."
           }
         }
       }
@@ -3805,6 +4015,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo günlük istekler için Mac'indeki ilk hazır beyni kullanır, büyük işleri uzak bir beyne göndermeden önce sorar. Sırayı oklarla değiştirebilirsin."
+          }
+        }
+      }
+    },
+    "Momo's voice engine didn't answer. Try again in a moment." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses motoru yanıt vermedi. Birazdan tekrar dene."
+          }
+        }
+      }
+    },
+    "Momo's voice engine isn't included in this build of Momo." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses motoru bu Momo sürümünde yok."
+          }
+        }
+      }
+    },
+    "Momo's voice models" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses modelleri"
+          }
+        }
+      }
+    },
+    "Momo's voice models (on this Mac)" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses modelleri (bu Mac'te)"
+          }
+        }
+      }
+    },
+    "Momo's voice models are getting ready for their first use. This takes a minute or two, once; try again shortly." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses modelleri ilk kullanım için hazırlanıyor. Bu yalnızca bir kez, bir iki dakika sürer; birazdan tekrar dene."
+          }
+        }
+      }
+    },
+    "Momo's voice models aren't downloaded yet. Download them in Settings → Voice to talk with Momo." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses modelleri henüz indirilmedi. Momo ile konuşmak için Ayarlar → Ses'ten indir."
+          }
+        }
+      }
+    },
+    "Momo's voice models don't understand your Mac's language yet." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses modelleri Mac'inin dilini henüz anlamıyor."
+          }
+        }
+      }
+    },
+    "Momo's voice models need macOS 15 or later on a Mac with Apple silicon." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses modelleri, Apple çipli bir Mac'te macOS 15 veya sonrasını gerektirir."
+          }
+        }
+      }
+    },
+    "Momo's voice models took too long to start. They're being prepared again; try again in a minute." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses modellerinin başlaması çok uzun sürdü. Yeniden hazırlanıyorlar; bir dakika sonra tekrar dene."
+          }
+        }
+      }
+    },
+    "Momo's voice models, OpenAI voices, sound" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses modelleri, OpenAI sesleri, ses"
           }
         }
       }
@@ -4092,6 +4402,16 @@
         }
       }
     },
+    "Not available" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kullanılamıyor"
+          }
+        }
+      }
+    },
     "Not now" : {
       "localizations" : {
         "tr" : {
@@ -4239,16 +4559,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bu Mac'te"
-          }
-        }
-      }
-    },
-    "One moment." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bir saniye."
           }
         }
       }
@@ -4493,26 +4803,6 @@
         }
       }
     },
-    "Open source on-device" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak, cihazda"
-          }
-        }
-      }
-    },
-    "Open source voice models" : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak ses modelleri"
-          }
-        }
-      }
-    },
     "Open the app to check" : {
       "localizations" : {
         "tr" : {
@@ -4579,16 +4869,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OpenAI sesleri"
-          }
-        }
-      }
-    },
-    "OpenAI voices sound more natural, but every reply Momo reads aloud is sent to OpenAI with your API key, and each one is listed in Privacy. If OpenAI can't be reached, Momo uses a Mac voice." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI sesleri daha doğal duyulur, ama Momo'nun sesli okuduğu her yanıt API anahtarınla OpenAI'ye gönderilir ve her biri Gizlilik'te listelenir. OpenAI'ye ulaşılamazsa Momo bir Mac sesi kullanır."
           }
         }
       }
@@ -5294,12 +5574,22 @@
         }
       }
     },
-    "Replies to spoken messages are always read aloud. Download better voices in System Settings → Accessibility → Spoken Content." : {
+    "Replies" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sesli mesajlara verilen cevaplar her zaman sesli okunur. Daha iyi sesleri Sistem Ayarları → Erişilebilirlik → Sesli İçerik bölümünden indirebilirsin."
+            "value" : "Yanıtlar"
+          }
+        }
+      }
+    },
+    "Replies to spoken messages are always read aloud, with the voice chosen under Voice models." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesli mesajlara verilen yanıtlar her zaman, Ses modelleri altında seçilen sesle okunur."
           }
         }
       }
@@ -6070,12 +6360,12 @@
         }
       }
     },
-    "Sorry, that didn't work." : {
+    "Something went wrong. The details are in the chat." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Üzgünüm, olmadı."
+            "value" : "Bir şeyler ters gitti. Ayrıntılar sohbette."
           }
         }
       }
@@ -6086,6 +6376,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pardon, evet mi dedin hayır mı?"
+          }
+        }
+      }
+    },
+    "Spanish" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İspanyol"
           }
         }
       }
@@ -6141,42 +6441,22 @@
         }
       }
     },
-    "Speech Recognition" : {
+    "Speaks with" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Konuşma Tanıma"
+            "value" : "Konuşma modeli"
           }
         }
       }
     },
-    "Speech is recognised on this Mac with Apple's newest speech model, downloaded once per language." : {
+    "Speech is recognised on this Mac with Momo's voice models." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Konuşman bu Mac'te, Apple'ın her dil için bir kez indirilen en yeni konuşma modeliyle tanınır."
-          }
-        }
-      }
-    },
-    "Speech is recognised on this Mac." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konuşman bu Mac'te tanınır."
-          }
-        }
-      }
-    },
-    "Speech is recognised with Apple Speech, on this Mac whenever the language allows it." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konuşman Apple Konuşma ile, dil izin verdiğinde bu Mac'te tanınır."
+            "value" : "Konuşma, Momo'nun ses modelleriyle bu Mac'te tanınır."
           }
         }
       }
@@ -6187,16 +6467,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Konuşma tanıma"
-          }
-        }
-      }
-    },
-    "Speech recognition doesn't understand your Mac's language yet." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konuşma tanıma Mac'inin dilini henüz anlamıyor."
           }
         }
       }
@@ -6337,6 +6607,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toplantı notlarını durduruyorum"
+          }
+        }
+      }
+    },
+    "Suggested and added models" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Önerilen ve eklenen modeller"
           }
         }
       }
@@ -6513,6 +6793,16 @@
         }
       }
     },
+    "Test Voice" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesi Dene"
+          }
+        }
+      }
+    },
     "Test voice" : {
       "localizations" : {
         "tr" : {
@@ -6563,12 +6853,22 @@
         }
       }
     },
-    "The OpenAI voice failed, so Momo used a system voice. %@" : {
+    "The Mac's language (%@)" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OpenAI sesi başarısız oldu, bu yüzden Momo bir sistem sesi kullandı. %@"
+            "value" : "Mac'in dili (%@)"
+          }
+        }
+      }
+    },
+    "The OpenAI voice failed, so Momo used its own voice. %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI sesi başarısız oldu, bu yüzden Momo kendi sesini kullandı. %@"
           }
         }
       }
@@ -6593,12 +6893,12 @@
         }
       }
     },
-    "The chosen speech engine needs an API key, so Momo listened on this Mac instead." : {
+    "The chosen speech engine needs an API key, so Momo listened with its own voice models instead." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seçilen konuşma motoru bir API anahtarı gerektiriyor, bu yüzden Momo bunun yerine bu Mac'te dinledi."
+            "value" : "Seçilen konuşma motoru bir API anahtarı gerektiriyor, bu yüzden Momo kendi ses modelleriyle dinledi."
           }
         }
       }
@@ -6639,106 +6939,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo not alırken toplantının sesi kısa parçalar halinde API anahtarınla bu hizmete gönderilir ve her parça Gizlilik bölümünde listelenir. Ya da Momo her şeyi bu Mac'te yazıya dökebilir."
-          }
-        }
-      }
-    },
-    "The open source engine isn't included in this build of Momo." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak motor, Momo'nun bu sürümünde yok."
-          }
-        }
-      }
-    },
-    "The open source engine needs macOS 15 or later on a Mac with Apple silicon." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak motor, Apple çipli bir Mac'te macOS 15 veya sonrasını gerektirir."
-          }
-        }
-      }
-    },
-    "The open source engine recognises speech, detects when you finish, cancels echo and speaks entirely on this Mac. Its models are downloaded once, only when you press Download. Without them, Momo uses Apple's built-in engine." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak motor konuşmayı tanır, sözünü ne zaman bitirdiğini anlar, yankıyı engeller ve tamamen bu Mac'te konuşur. Modelleri yalnızca İndir'e bastığında bir kez indirilir. Onlar olmadan Momo Apple'ın yerleşik motorunu kullanır."
-          }
-        }
-      }
-    },
-    "The open source voice engine can't run on this Mac, so Momo is using Apple's voice." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak ses motoru bu Mac'te çalışamıyor, bu yüzden Momo Apple'ın sesini kullanıyor."
-          }
-        }
-      }
-    },
-    "The open source voice engine couldn't open the microphone or speakers, so Momo is using Apple's voice." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak ses motoru mikrofonu veya hoparlörleri açamadı, bu yüzden Momo Apple'ın sesini kullanıyor."
-          }
-        }
-      }
-    },
-    "The open source voice engine couldn't start, so Momo is using Apple's voice this time." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak ses motoru başlatılamadı, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
-          }
-        }
-      }
-    },
-    "The open source voice engine didn't answer, so Momo is using Apple's voice this time." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak ses motoru yanıt vermedi, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
-          }
-        }
-      }
-    },
-    "The open source voice engine took too long to start, so Momo is using Apple's voice this time." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak ses motorunun başlaması çok uzun sürdü, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
-          }
-        }
-      }
-    },
-    "The open source voices are getting ready for their first use, so Momo is using Apple's voice this time." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak sesler ilk kullanım için hazırlanıyor, bu yüzden Momo bu sefer Apple'ın sesini kullanıyor."
-          }
-        }
-      }
-    },
-    "The open source voices aren't downloaded yet, so Momo is using Apple's voice. Download them in Settings → Voice." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Açık kaynak sesler henüz indirilmedi, bu yüzden Momo Apple'ın sesini kullanıyor. Onları Ayarlar → Ses'ten indir."
           }
         }
       }
@@ -6975,16 +7175,6 @@
         }
       }
     },
-    "Turn what you say into text on this Mac." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Söylediklerini bu Mac'te yazıya çevirir."
-          }
-        }
-      }
-    },
     "Turned off" : {
       "localizations" : {
         "tr" : {
@@ -7195,6 +7385,16 @@
         }
       }
     },
+    "Voice models" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses modelleri"
+          }
+        }
+      }
+    },
     "Voices" : {
       "localizations" : {
         "tr" : {
@@ -7295,12 +7495,12 @@
         }
       }
     },
-    "What you say is recorded until you pause, then sent to the service with your API key and listed in Privacy. If it fails, Momo recognises the recording on this Mac instead." : {
+    "What you say is recorded until you pause, then sent to the service with your API key and listed in Privacy. If it fails, Momo recognises the recording on this Mac with its voice models instead." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Söylediklerin duraklayana kadar kaydedilir, sonra API anahtarınla servise gönderilir ve Gizlilik'te listelenir. Başarısız olursa Momo kaydı bunun yerine bu Mac'te tanır."
+            "value" : "Söylediklerin durana kadar kaydedilir, sonra API anahtarınla hizmete gönderilir ve Gizlilik'te listelenir. Başarısız olursa Momo kaydı bu Mac'te kendi ses modelleriyle tanır."
           }
         }
       }
@@ -7495,6 +7695,16 @@
         }
       }
     },
+    "You can add a speech model of your own: a folder with a Kokoro or Supertonic Core ML conversion, or a voice style file (.json) for the model Momo speaks with. Momo copies what you add." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kendi konuşma modelini ekleyebilirsin: Kokoro veya Supertonic Core ML dönüşümü içeren bir klasör ya da Momo'nun konuştuğu model için bir ses stili dosyası (.json). Momo eklediklerinin bir kopyasını alır."
+          }
+        }
+      }
+    },
     "You have %lld tasks due and %lld events today. Want me to plan your day?" : {
       "localizations" : {
         "tr" : {
@@ -7521,6 +7731,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bu sohbet için bu beyni sen seçtin."
+          }
+        }
+      }
+    },
+    "You speak" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuştuğun dil"
           }
         }
       }
@@ -7715,6 +7935,16 @@
         }
       }
     },
+    "female" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kadın"
+          }
+        }
+      }
+    },
     "local only, offline" : {
       "localizations" : {
         "tr" : {
@@ -7741,6 +7971,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "görünüm, dış görünüş, kaplama, tema, özel, kişilik, ton, neşeli, sakin, esprili"
+          }
+        }
+      }
+    },
+    "male" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "erkek"
           }
         }
       }
@@ -7951,6 +8191,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "sürüm, lisans, web sitesi, sorun bildir, version, license"
+          }
+        }
+      }
+    },
+    "voice, speech model, Kokoro, Supertonic, Nemotron, download, add model" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ses, konuşma modeli, Kokoro, Supertonic, Nemotron, indir, model ekle"
           }
         }
       }

@@ -1,57 +1,42 @@
 import Foundation
+import MomoLiveProtocol
 
 // The speech layer of a live conversation: it listens all the time, decides when the user
 // finished a turn, speaks the reply as it streams in and stops when the user talks over it.
 // It never thinks; `LiveConversation` sends turns to Momo's brain and streams the reply back.
 //
 // The vocabulary mirrors `MomoLiveProtocol` (the `momo-voice` helper protocol) one to one, so
-// the helper engine maps each command and event directly, and so can any other engine, such
-// as a cloud realtime session used as a speech layer.
-
-/// How the reply is spoken.
-public enum LiveVoiceOutput: Sendable, Equatable {
-    /// A Mac voice. `identifier` is the user's chosen voice, or `nil` for the best voice of
-    /// the conversation language. `rate` goes from 0.5 (slow) to 1.5 (fast).
-    case apple(identifier: String?, rate: Float)
-    /// An OpenAI voice with the user's key; each sentence is sent to OpenAI.
-    case openAI(OpenAISpeechRequest)
-}
-
-extension OpenAISpeechRequest: Equatable {
-    public static func == (lhs: OpenAISpeechRequest, rhs: OpenAISpeechRequest) -> Bool {
-        lhs.apiKey == rhs.apiKey && lhs.model == rhs.model && lhs.voice == rhs.voice
-            && lhs.instructions == rhs.instructions && lhs.baseURL == rhs.baseURL
-    }
-}
+// the helper engine maps each command and event directly. Momo's on-device voice models in the
+// helper are the only speech layer; cloud realtime models replace the whole live layer.
 
 /// How a live session should listen and speak. Mirrors `LiveSessionConfiguration` of the
-/// helper protocol, plus what only in-app engines need.
+/// helper protocol.
 public struct LiveSpeechConfiguration: Sendable, Equatable {
     /// The conversation language.
     public var locale: Locale
-    /// How replies are spoken.
-    public var voice: LiveVoiceOutput
+    /// Whether the session listens, speaks or both.
+    public var mode: LiveSessionMode
     /// Whether the user speaking over Momo stops Momo at once.
     public var allowsBargeIn: Bool
     /// The longest pause inside a turn, in seconds. Turns that sound complete end sooner.
     public var maximumPause: TimeInterval
     /// Whether pauses end turns. Off for push to talk, where ``LiveSpeechIO/endTurn()`` does.
     public var endsTurnsOnPause: Bool
-    /// A speech recognition model to prefer (helper engine), or `nil` for its choice.
+    /// A speech recognition model to prefer, or `nil` for the helper's choice.
     public var speechToTextModel: String?
-    /// A speech synthesis model to prefer (helper engine), or `nil` for its choice.
+    /// A speech synthesis model to prefer, or `nil` for the helper's choice.
     public var textToSpeechModel: String?
-    /// A voice of that model (helper engine), or `nil` for its default.
+    /// A voice of that model, or `nil` for its default.
     public var modelVoice: String?
 
     public init(
-        locale: Locale, voice: LiveVoiceOutput = .apple(identifier: nil, rate: 1),
-        allowsBargeIn: Bool = true, maximumPause: TimeInterval = 1.4,
-        endsTurnsOnPause: Bool = true, speechToTextModel: String? = nil,
-        textToSpeechModel: String? = nil, modelVoice: String? = nil
+        locale: Locale, mode: LiveSessionMode = .conversation, allowsBargeIn: Bool = true,
+        maximumPause: TimeInterval = 1.4, endsTurnsOnPause: Bool = true,
+        speechToTextModel: String? = nil, textToSpeechModel: String? = nil,
+        modelVoice: String? = nil
     ) {
         self.locale = locale
-        self.voice = voice
+        self.mode = mode
         self.allowsBargeIn = allowsBargeIn
         self.maximumPause = maximumPause
         self.endsTurnsOnPause = endsTurnsOnPause
@@ -92,10 +77,9 @@ public enum LiveSpeechEvent: Sendable, Equatable {
 /// The speech layer of a live conversation: continuous listening with turn detection, echo
 /// cancellation and barge-in, and streamed speech output.
 ///
-/// Engines: ``AppleLiveSpeechIO`` (built in, every Mac) and ``HelperLiveSpeechIO`` (the open
-/// source `momo-voice` helper). Cloud realtime models are not a speech layer but the live
-/// layer itself (``RealtimeConversation``). Commands mirror `LiveVoiceCommand` of the helper
-/// protocol.
+/// The engine is ``HelperLiveSpeechIO``: Momo's voice models in the `momo-voice` helper.
+/// Cloud realtime models are not a speech layer but the live layer itself
+/// (``RealtimeConversation``). Commands mirror `LiveVoiceCommand` of the helper protocol.
 ///
 /// Rules every engine follows:
 /// - Events arrive on the main actor through ``onEvent``, in order.
@@ -135,13 +119,8 @@ public protocol LiveSpeechIO: AnyObject {
 
 /// The live conversation engine the user picked in Settings.
 public enum LiveEngineChoice: String, Codable, CaseIterable, Sendable, Identifiable {
-    /// The open source helper when it answers and its models are downloaded and warm,
-    /// otherwise Apple.
-    case automatic
-    /// Apple's speech recognition and voices with the Mac's echo cancellation.
-    case apple
-    /// The open source on-device engine in the `momo-voice` helper.
-    case openSource
+    /// Momo's voice models, on this Mac.
+    case onDevice
     /// A cloud realtime voice session (OpenAI Realtime, Gemini Live) with the user's key.
     case cloudRealtime
 
@@ -149,18 +128,24 @@ public enum LiveEngineChoice: String, Codable, CaseIterable, Sendable, Identifia
 
     /// Whether this choice sends audio off the Mac.
     public var isRemote: Bool { self == .cloudRealtime }
+
+    /// Reads the choice; choices of earlier versions (Apple's engine, automatic, open
+    /// source) all mean Momo's voice models now.
+    public init(from decoder: any Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        self = LiveEngineChoice(rawValue: value) ?? .onDevice
+    }
 }
 
 /// The live engine that will actually run.
 public enum LiveEngineKind: Sendable, Equatable {
-    case apple
-    case openSource
+    case onDevice
     case cloudRealtime
 }
 
-/// Where the open source helper stands for the conversation language.
+/// Where Momo's voice models stand for the conversation language.
 public enum LiveHelperStatus: Sendable, Equatable {
-    /// The helper is not installed or can't run on this Mac.
+    /// The voice helper is not installed or can't run on this Mac.
     case unavailable
     /// The helper didn't start or didn't answer in time.
     case notResponding
@@ -177,12 +162,14 @@ public enum LiveHelperStatus: Sendable, Equatable {
 public enum LiveEngineSelector {
     /// The outcome of a selection.
     public struct Selection: Sendable, Equatable {
-        public var kind: LiveEngineKind
-        /// Set when the chosen engine can't run, so another one runs and the user should be
-        /// told why.
+        /// The engine that runs, or `nil` when none can: Momo's voice models aren't ready and
+        /// the cloud isn't an option.
+        public var kind: LiveEngineKind?
+        /// Set when the chosen engine can't run, so another one runs (or none), and the user
+        /// should be told why.
         public var isFallback: Bool
 
-        public init(kind: LiveEngineKind, isFallback: Bool = false) {
+        public init(kind: LiveEngineKind?, isFallback: Bool = false) {
             self.kind = kind
             self.isFallback = isFallback
         }
@@ -190,39 +177,21 @@ public enum LiveEngineSelector {
 
     /// Picks the engine for `choice`.
     /// - Parameters:
-    ///   - helper: Where the open source helper stands. Automatic only picks it when it is
-    ///     ``LiveHelperStatus/ready``, so a conversation never waits on a helper that can't
+    ///   - helper: Where Momo's voice models stand. They only run when
+    ///     ``LiveHelperStatus/ready``, so a conversation never waits on models that can't
     ///     start quickly.
     ///   - cloudRealtimeReady: A cloud realtime engine is set up with a key.
     public static func select(
         _ choice: LiveEngineChoice, helper: LiveHelperStatus, cloudRealtimeReady: Bool
     ) -> Selection {
-        let helperReady = helper == .ready
+        let onDevice: LiveEngineKind? = helper == .ready ? .onDevice : nil
         switch choice {
-        case .automatic:
-            return Selection(kind: helperReady ? .openSource : .apple)
-        case .apple:
-            return Selection(kind: .apple)
-        case .openSource:
-            return helperReady
-                ? Selection(kind: .openSource) : Selection(kind: .apple, isFallback: true)
+        case .onDevice:
+            return Selection(kind: onDevice, isFallback: onDevice == nil)
         case .cloudRealtime:
             return cloudRealtimeReady
-                ? Selection(kind: .cloudRealtime) : Selection(kind: .apple, isFallback: true)
+                ? Selection(kind: .cloudRealtime) : Selection(kind: onDevice, isFallback: true)
         }
-    }
-
-    /// Picks the engine for `choice`.
-    /// - Parameters:
-    ///   - helperReady: The helper exists, runs on this Mac, answers and has warm models for
-    ///     the conversation language.
-    ///   - cloudRealtimeReady: A cloud realtime engine is set up with a key.
-    public static func select(
-        _ choice: LiveEngineChoice, helperReady: Bool, cloudRealtimeReady: Bool
-    ) -> Selection {
-        select(
-            choice, helper: helperReady ? .ready : .unavailable,
-            cloudRealtimeReady: cloudRealtimeReady)
     }
 }
 
@@ -230,11 +199,9 @@ public enum LiveEngineSelector {
 public enum LiveStartProblem: Sendable, Equatable {
     /// Momo may not use the microphone.
     case microphoneDenied
-    /// Momo may not use speech recognition.
-    case speechRecognitionDenied
-    /// The open source engine's models are not downloaded.
+    /// Momo's voice models are not downloaded.
     case modelsMissing
-    /// The open source helper didn't start listening in time.
+    /// The voice helper didn't start listening in time.
     case timedOut
     /// The microphone or the speakers couldn't be opened.
     case audioDevice
@@ -243,13 +210,10 @@ public enum LiveStartProblem: Sendable, Equatable {
     /// Anything else, with the engine's own words.
     case other(String)
 
-    /// Whether another on-device engine may still work. A missing permission stops them
-    /// all, so trying another one only delays the message that says what to do.
+    /// Whether another engine may still work. A missing permission stops them all, so
+    /// trying another one only delays the message that says what to do.
     public var allowsFallback: Bool {
-        switch self {
-        case .microphoneDenied, .speechRecognitionDenied: false
-        default: true
-        }
+        self != .microphoneDenied
     }
 
     /// The problem behind an error thrown by ``LiveSpeechIO/start(_:)``.
@@ -258,7 +222,6 @@ public enum LiveStartProblem: Sendable, Equatable {
         case let error as DictationError:
             switch error {
             case .microphoneDenied: return .microphoneDenied
-            case .speechRecognitionDenied: return .speechRecognitionDenied
             case .unsupportedLanguage: return .unsupportedLanguage
             case .unavailable: return .audioDevice
             }
@@ -283,6 +246,11 @@ public enum LiveStartProblem: Sendable, Equatable {
         }
     }
 
+    /// The problem behind an error message from the helper.
+    public static func classify(message: String) -> LiveStartProblem {
+        classifyHelper(message)
+    }
+
     /// The problem behind a fatal error message from the helper.
     static func classifyHelper(_ message: String) -> LiveStartProblem {
         let text = message.lowercased()
@@ -303,23 +271,17 @@ public enum LiveStartProblem: Sendable, Equatable {
 
 /// What runs after a live engine failed to start.
 public enum LiveFallbackPlan: Sendable, Equatable {
-    /// Apple's live engine, which needs no downloads and no key.
-    case appleLive
-    /// The classic voice flow: one recorded request, and the finished reply read aloud.
-    case classic
-    /// Nothing: the user has to allow something first.
+    /// Momo's voice models, which need no key.
+    case onDevice
+    /// Nothing: the user has to fix something first, and is told what.
     case stop
 
-    /// The next step after `kind` failed with `problem`.
+    /// The next step after `kind` failed with `problem`. Only a failed cloud session falls
+    /// back, and only to voice models that are ready.
     public static func next(
-        after kind: LiveEngineKind, problem: LiveStartProblem
-    )
-        -> LiveFallbackPlan
-    {
-        guard problem.allowsFallback else { return .stop }
-        switch kind {
-        case .openSource, .cloudRealtime: return .appleLive
-        case .apple: return .classic
-        }
+        after kind: LiveEngineKind, problem: LiveStartProblem, helperReady: Bool
+    ) -> LiveFallbackPlan {
+        guard problem.allowsFallback, kind == .cloudRealtime, helperReady else { return .stop }
+        return .onDevice
     }
 }

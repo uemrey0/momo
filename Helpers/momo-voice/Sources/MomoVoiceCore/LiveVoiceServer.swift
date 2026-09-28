@@ -3,23 +3,35 @@ import MomoLiveProtocol
 
 /// What the protocol server drives: the models and the audio session.
 ///
-/// Methods are called one at a time, in the order the commands arrive. The ones that affect
-/// a running session (`speak`, `cancelSpeech`, …) must return quickly; long work belongs in
-/// the backend's own tasks, reporting through the event sink it was given.
+/// Methods are called one at a time, in the order the commands arrive, except the ones the
+/// server runs in its own tasks (`downloadModels`, `importModel`, `transcribe`), which may run
+/// alongside the others. The ones that affect a running session (`speak`, `cancelSpeech`, …)
+/// must return quickly, and the long ones must not hold them up.
 public protocol LiveVoiceBackend: Sendable {
     /// Conversation languages the backend can serve with downloaded or downloadable models.
     func supportedLanguages() async -> [String]
-    /// Every model, marking the ones `locale` needs and the ones on this Mac.
-    func models(locale: String) async -> [LiveModelInfo]
+    /// Every model, built in or added, marking the ones on this Mac and the ones a
+    /// conversation in `locale` needs when it speaks with `textToSpeechModel` (or the
+    /// backend's choice for `nil`).
+    func models(locale: String, textToSpeechModel: String?) async -> [LiveModelInfo]
     /// Downloads models, reporting `downloadProgress`, `downloadFinished` or `downloadFailed`
     /// for each. Returns when all are done.
     func downloadModels(ids: [String]) async
-    /// Deletes downloaded models.
+    /// Deletes downloaded models and models the user added.
     func deleteModels(ids: [String]) async throws
+    /// Copies the speech synthesis model in the folder at `path` and returns its new id.
+    /// Errors describe for the user what is wrong with the folder.
+    func importModel(path: String) async throws -> String
+    /// Adds the voice file at `path` to the model `modelID` and returns the voice's name.
+    func importVoice(modelID: String, path: String) async throws -> String
+    /// Deletes a voice the user added to `modelID`.
+    func deleteVoice(modelID: String, voice: String) async throws
+    /// Transcribes the recording at `path` in `locale`'s language, without the audio devices.
+    func transcribe(path: String, locale: String) async throws -> [LiveTranscriptSegment]
     /// Loads and warms up the models a session with `configuration` needs, without opening
     /// the microphone.
     func prepare(_ configuration: LiveSessionConfiguration) async throws
-    /// Opens the microphone and starts a session; reports `listening` when it runs.
+    /// Starts a session in the configuration's mode; reports `listening` when it runs.
     func start(_ configuration: LiveSessionConfiguration) async throws
     /// Ends the session and releases the audio devices; reports `stopped`.
     func stop() async
@@ -41,7 +53,8 @@ public actor LiveVoiceServer {
 
     private let backend: any LiveVoiceBackend
     private let emit: @Sendable (LiveVoiceEvent) -> Void
-    private var downloads: [Task<Void, Never>] = []
+    /// Downloads, imports and transcriptions, which run alongside other commands.
+    private var backgroundTasks: [UUID: Task<Void, Never>] = [:]
     private var isSessionRunning = false
 
     /// - Parameters:
@@ -80,16 +93,56 @@ public actor LiveVoiceServer {
                 .ready(
                     version: liveVoiceProtocolVersion, languages: await backend.supportedLanguages()
                 ))
-        case .listModels(let locale):
-            emit(.models(await backend.models(locale: locale)))
+        case .listModels(let locale, let textToSpeechModel):
+            emit(
+                .models(
+                    await backend.models(locale: locale, textToSpeechModel: textToSpeechModel)))
         case .downloadModels(let ids):
             let backend = backend
-            downloads.append(Task { await backend.downloadModels(ids: ids) })
+            runInBackground { await backend.downloadModels(ids: ids) }
         case .deleteModels(let ids):
             do {
                 try await backend.deleteModels(ids: ids)
             } catch {
-                emit(.error(message: "Could not delete models: \(error)", isFatal: false))
+                emit(
+                    .error(
+                        message: "Could not delete models: \(Self.message(for: error))",
+                        isFatal: false))
+            }
+        case .importModel(let path):
+            let (backend, emit) = (backend, emit)
+            runInBackground {
+                do {
+                    emit(.modelImported(id: try await backend.importModel(path: path)))
+                } catch {
+                    emit(.importFailed(message: Self.message(for: error)))
+                }
+            }
+        case .importVoice(let modelID, let path):
+            do {
+                let voice = try await backend.importVoice(modelID: modelID, path: path)
+                emit(.voiceImported(modelID: modelID, voice: voice))
+            } catch {
+                emit(.importFailed(message: Self.message(for: error)))
+            }
+        case .deleteVoice(let modelID, let voice):
+            do {
+                try await backend.deleteVoice(modelID: modelID, voice: voice)
+            } catch {
+                emit(
+                    .error(
+                        message: "Could not delete the voice: \(Self.message(for: error))",
+                        isFatal: false))
+            }
+        case .transcribe(let id, let path, let locale):
+            let (backend, emit) = (backend, emit)
+            runInBackground {
+                do {
+                    let segments = try await backend.transcribe(path: path, locale: locale)
+                    emit(.transcribed(id: id, segments: segments))
+                } catch {
+                    emit(.transcriptionFailed(id: id, message: Self.message(for: error)))
+                }
             }
         case .prepare(let configuration):
             do {
@@ -133,17 +186,41 @@ public actor LiveVoiceServer {
         return .proceed
     }
 
-    /// Stops the session and cancels downloads, for `quit` or the end of input.
+    /// Stops the session and cancels downloads, imports and transcriptions, for `quit` or
+    /// the end of input.
     public func shutDown() async {
         await stopSession()
-        for download in downloads { download.cancel() }
-        downloads.removeAll()
+        for task in backgroundTasks.values { task.cancel() }
+        backgroundTasks.removeAll()
     }
 
-    /// Waits for running downloads, for the command line mode.
-    public func waitForDownloads() async {
-        for download in downloads { await download.value }
-        downloads.removeAll()
+    /// Waits for running downloads, imports and transcriptions, for tests and the command
+    /// line.
+    public func waitForBackgroundTasks() async {
+        while let task = backgroundTasks.values.first {
+            await task.value
+        }
+    }
+
+    /// Runs long work in its own task, so the commands after it are not held up.
+    private func runInBackground(_ work: @escaping @Sendable () async -> Void) {
+        let id = UUID()
+        backgroundTasks[id] = Task {
+            await work()
+            self.finishBackgroundTask(id)
+        }
+    }
+
+    private func finishBackgroundTask(_ id: UUID) {
+        backgroundTasks[id] = nil
+    }
+
+    /// The text Momo shows for an error: its localized description when it has one.
+    static func message(for error: any Error) -> String {
+        if let localized = error as? LocalizedError, let description = localized.errorDescription {
+            return description
+        }
+        return String(describing: error)
     }
 
     private func stopSession() async {

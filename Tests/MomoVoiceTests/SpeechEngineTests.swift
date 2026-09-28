@@ -5,45 +5,43 @@ import Testing
 
 @Suite("Engine selection")
 struct EngineSelectionTests {
-    @Test("automatic prefers SpeechAnalyzer when it is available")
-    func automatic() {
+    @Test("Momo's voice models recognise speech by default")
+    func onDevice() {
         #expect(
-            DictationEngineSelector.select(
-                .automatic, speechAnalyzerAvailable: true, hasOpenAIKey: true, hasGeminiKey: true
-            ).kind == .speechAnalyzer)
-        #expect(
-            DictationEngineSelector.select(
-                .automatic, speechAnalyzerAvailable: false, hasOpenAIKey: true, hasGeminiKey: true
-            ).kind == .appleSpeech)
+            DictationEngineSelector.select(.onDevice, hasOpenAIKey: true, hasGeminiKey: true)
+                == .init(kind: .onDevice))
     }
 
-    @Test("Apple Speech stays Apple Speech")
-    func apple() {
-        let selection = DictationEngineSelector.select(
-            .appleSpeech, speechAnalyzerAvailable: true, hasOpenAIKey: true, hasGeminiKey: true)
-        #expect(selection == .init(kind: .appleSpeech))
-    }
-
-    @Test("cloud engines need a key, otherwise on-device runs and the user is told")
+    @Test("cloud engines need a key, otherwise the voice models run and the user is told")
     func cloud() {
         #expect(
-            DictationEngineSelector.select(
-                .openAI, speechAnalyzerAvailable: false, hasOpenAIKey: true, hasGeminiKey: false)
+            DictationEngineSelector.select(.openAI, hasOpenAIKey: true, hasGeminiKey: false)
                 == .init(kind: .openAI))
         #expect(
-            DictationEngineSelector.select(
-                .openAI, speechAnalyzerAvailable: true, hasOpenAIKey: false, hasGeminiKey: true)
-                == .init(kind: .speechAnalyzer, isMissingKey: true))
+            DictationEngineSelector.select(.openAI, hasOpenAIKey: false, hasGeminiKey: true)
+                == .init(kind: .onDevice, isMissingKey: true))
         #expect(
-            DictationEngineSelector.select(
-                .gemini, speechAnalyzerAvailable: false, hasOpenAIKey: true, hasGeminiKey: true)
+            DictationEngineSelector.select(.gemini, hasOpenAIKey: true, hasGeminiKey: true)
                 == .init(kind: .gemini))
         #expect(
-            DictationEngineSelector.select(
-                .gemini, speechAnalyzerAvailable: false, hasOpenAIKey: true, hasGeminiKey: false)
-                == .init(kind: .appleSpeech, isMissingKey: true))
+            DictationEngineSelector.select(.gemini, hasOpenAIKey: true, hasGeminiKey: false)
+                == .init(kind: .onDevice, isMissingKey: true))
         #expect(DictationEngineChoice.openAI.isRemote)
-        #expect(!DictationEngineChoice.automatic.isRemote)
+        #expect(!DictationEngineChoice.onDevice.isRemote)
+    }
+
+    @Test("reads Apple's engines of earlier versions as Momo's voice models")
+    func legacyChoices() throws {
+        for legacy in ["automatic", "appleSpeech"] {
+            let data = Data("\"\(legacy)\"".utf8)
+            #expect(try JSONDecoder().decode(DictationEngineChoice.self, from: data) == .onDevice)
+        }
+        #expect(
+            try JSONDecoder().decode(SpeechVoiceChoice.self, from: Data("\"apple\"".utf8))
+                == .onDevice)
+        #expect(
+            try JSONDecoder().decode(SpeechVoiceChoice.self, from: Data("\"openAI\"".utf8))
+                == .openAI)
     }
 }
 

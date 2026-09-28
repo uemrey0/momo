@@ -1,8 +1,10 @@
 # momo-voice
 
-`momo-voice` is the helper process that runs Momo's open source, on-device live voice engine:
+`momo-voice` is the helper process that runs Momo's open source, on-device voice models:
 voice activity detection, end-of-turn detection, streaming speech recognition, echo
-cancellation and speech synthesis. It ships inside `Momo.app/Contents/MacOS` next to
+cancellation, speech synthesis and the transcription of recordings. Every part of Momo that
+listens or speaks goes through it; Momo uses neither Apple's voices nor Apple's speech
+recognition. It ships inside `Momo.app/Contents/MacOS` next to
 `momo-mcp`. Momo starts it as a child process and speaks the JSON-lines protocol in
 [`Sources/MomoLiveProtocol/LiveVoiceProtocol.swift`](../../Sources/MomoLiveProtocol/LiveVoiceProtocol.swift):
 one command per line on standard input, one event per line on standard output. Diagnostics go
@@ -40,11 +42,37 @@ Which models a language uses:
 | Turkish | Nemotron | Supertonic 3 (`F1`) |
 | es, fr, hi, it, ja, pt | Nemotron | Kokoro |
 | ar, de, ko, nl, ru, uk, vi | Nemotron | Supertonic 3 |
-| other | not served (`start` fails) | |
+| other | not served (`start` fails) | Supertonic 3 or Kokoro where they speak it, for speak-only sessions |
 
-`textToSpeechModel` in the session configuration can pick `kokoro-82m`, `supertonic-3` or
-`apple-speech` (the Mac's voices, from `appleVoiceIdentifier` or the best installed voice for
-the locale); `voice` picks a Kokoro voice or a Supertonic style (`F1`–`F5`, `M1`–`M5`).
+`textToSpeechModel` in the session configuration can pick `kokoro-82m`, `supertonic-3` or a
+model the user added; `voice` picks a Kokoro voice or a Supertonic style (`F1`–`F5`,
+`M1`–`M5`), and `nil` uses the model's default (the table above, else its first voice). A
+language no speech model speaks is an error.
+
+### Models and voices the user adds
+
+`importModel` copies a folder holding a Core ML conversion of Kokoro or Supertonic into
+`custom-<name>-<6 hex>/` next to the other models, with a `momo-model.json` manifest (name,
+architecture, size). It must hold what speech-swift loads:
+
+- **Kokoro:** `vocab_index.json`, an end-to-end model (`kokoro_5s.mlmodelc`, or the 10 s,
+  15 s or plain `kokoro` variant) and `voices/*.json` with at least one voice
+  (`{"embedding": [256 or more numbers]}`). The G2P models, `g2p_vocab.json` and the
+  pronunciation dictionaries are optional.
+- **Supertonic:** `unicode_indexer.json`, `DurationPredictor`, `TextEncoder`,
+  `VectorEstimator` and `Vocoder` (`.mlpackage` or `.mlmodelc`) and `voice_styles/*.json`
+  with at least one style (`style_ttl.data` of 50 × 256 and `style_dp.data` of 8 × 16
+  numbers).
+
+Symbolic links in the folder (a Hugging Face snapshot, for example) are replaced with the
+files they point to. An added model speaks the languages of its architecture's built-in model
+and cannot be downloaded again; `deleteModels` removes it.
+
+`importVoice` adds a voice file of the model's architecture to any downloaded speech model;
+its name comes from the file name (letters, digits, `_` and `-`, with a number added when the
+name is taken). Added voices are listed in the model's `.momo-custom-voices.json` and only
+they can be removed with `deleteVoice`. Failures come back as `importFailed` with a message
+for the user.
 
 ### How the models were chosen
 
@@ -79,12 +107,12 @@ Measured on an Apple M1 with 16 GB, macOS 27, release build:
   | OmniVoice (MLX fp16, 12 steps) | 4.4 s | 1.6–2.5 | 1.05 GB | Apache-2.0 |
 
   Only Supertonic meets the target (first audio under 600 ms, RTF under 0.5), so Turkish uses
-  it, and Apple speech remains available. Chatterbox and OmniVoice also need a reference voice
+  it. Chatterbox and OmniVoice also need a reference voice
   recording. **Pronunciation and naturalness have not been judged by ear yet**: listen to
   `momo-voice --say "…" --locale tr-TR` before relying on it.
 - **Echo cancellation.** The helper uses Apple's voice processing I/O
-  (`AVAudioInputNode.setVoiceProcessingEnabled(true)`) with all speech, including the Mac's
-  voices, played through the same `AVAudioEngine`. It needs no model, adapts to device
+  (`AVAudioInputNode.setVoiceProcessingEnabled(true)`) with all speech played through the
+  same `AVAudioEngine`. It needs no model, adapts to device
   changes and double-talk, and in testing cancelled not only Momo's own output but other
   apps' audio too. speech-swift's LocalVQE canceller needs the exact playback signal, time
   aligned with the microphone, and an extra model; its own documentation recommends Apple's
@@ -93,6 +121,12 @@ Measured on an Apple M1 with 16 GB, macOS 27, release build:
 
 ## Behaviour
 
+- **Modes.** A `conversation` session listens and speaks with echo cancellation. A `listen`
+  session (dictation, the wake word) loads only the listening models, opens only the
+  microphone, without voice processing, and answers `speak` with a non-fatal `error`. A
+  `speak` session (reading replies aloud) loads only the speech model and opens only the
+  speaker: the microphone is never touched and no permission is asked. Each reports
+  `listening` once it runs.
 - **Listening.** Silero finds speech; after a 0.3 s pause Smart Turn hears whether the
   sentence is finished and either ends the turn or waits, up to `maximumPause`. `level` is
   reported every 100 ms, `partial` whenever the words change, `turn` with the final text.
@@ -105,6 +139,13 @@ Measured on an Apple M1 with 16 GB, macOS 27, release build:
 - **Barge-in.** With `allowsBargeIn`, speech that lasts 0.3 s while Momo talks stops playback
   at once and reports `interrupted`, then `speechStarted`; shorter speech is treated as echo.
   Without it, the user's speech is a turn and Momo keeps talking.
+- **Transcription.** `transcribe` reads a recording with `AVAudioFile` (mixed down to
+  16 kHz mono), finds speech with its own Silero VAD instance, joins stretches less than
+  0.6 s apart (up to 30 s) and transcribes each with a fresh Nemotron session primed like a
+  live turn. Nemotron sometimes drops the first word depending on where speech falls in its
+  320 ms chunks, so each stretch is decoded at three offsets a third of a chunk apart and the
+  longest text is kept. It runs beside the other commands, so a session keeps speaking; an
+  18.8 s recording took 4.4 s on an M1.
 - **Robustness.** Unreadable commands produce a non-fatal `error`. `quit` or the end of
   standard input stops the audio and exits.
 
@@ -137,8 +178,13 @@ speech-swift is pinned to release 0.0.28 (`231f8eb`); `Package.resolved` pins ev
 momo-voice --list-models tr-TR                 # * = needed for tr-TR, ✓ = downloaded
 momo-voice --download silero-vad smart-turn-v3 nemotron-streaming-multilingual supertonic-3
 momo-voice --prepare tr-TR                     # loads and warms the models, no microphone
-momo-voice --say "Merhaba, nasılsın?" --locale tr-TR
+momo-voice --prepare tr-TR --mode listen       # conversation (default), listen or speak
+momo-voice --say "Merhaba, nasılsın?" --locale tr-TR [--tts MODEL] [--voice V]
 momo-voice --listen --locale tr-TR [--levels]  # prints partials and turns until Ctrl-C
+momo-voice --transcribe meeting.wav tr-TR      # timed segments
+momo-voice --import-model ~/Downloads/Kokoro-82M-CoreML
+momo-voice --import-voice kokoro-82m my_voice.json
+momo-voice --delete-voice kokoro-82m my_voice
 momo-voice --delete kokoro-82m
 ```
 
@@ -151,6 +197,6 @@ standard error.
 
 | Target | What it holds |
 | ------ | ------------- |
-| `MomoVoiceCore` | Pure logic, tested: the model catalog and per-language selection, sentence splitting and the speech queue, the barge-in state machine, the protocol server. |
-| `MomoVoiceEngine` | Audio and models: `VoiceEngine` (the protocol backend), `AudioIO` (one `AVAudioEngine` with voice processing), `Listener`, `Speaker`, the synthesizers and `ModelStore`. |
+| `MomoVoiceCore` | Pure logic, tested: the model catalog and per-mode, per-language selection, the checks for added model folders and voice files, sentence splitting and the speech queue, the barge-in state machine, joining speech stretches, the protocol server. |
+| `MomoVoiceEngine` | Audio and models: `VoiceEngine` (the protocol backend), `AudioIO` (one `AVAudioEngine` with voice processing), `Listener`, `Speaker`, `RecordingTranscriber`, the synthesizers and `ModelStore`. |
 | `momo-voice` | The executable: the stdin reader and the command line modes. |

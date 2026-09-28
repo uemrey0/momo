@@ -5,8 +5,7 @@ import SwiftUI
 extension DictationEngineChoice {
     var displayName: String {
         switch self {
-        case .automatic: L("Automatic (on this Mac)", comment: "Speech engine")
-        case .appleSpeech: L("Apple Speech", comment: "Speech engine")
+        case .onDevice: L("Momo's voice models (on this Mac)", comment: "Speech engine")
         case .openAI: L("OpenAI", comment: "Speech engine")
         case .gemini: L("Gemini", comment: "Speech engine")
         }
@@ -25,13 +24,14 @@ extension DictationEngineChoice {
 extension SpeechVoiceChoice {
     var displayName: String {
         switch self {
-        case .apple: L("Mac voices", comment: "Voice engine")
+        case .onDevice: L("Momo's voice models", comment: "Voice engine")
         case .openAI: L("OpenAI voices", comment: "Voice engine")
         }
     }
 }
 
-/// Voice settings: reading replies aloud, the voice, the speech engine and the wake word.
+/// Voice settings: Momo's voice models, reading replies aloud, voice mode, live conversation,
+/// the speech engine and the wake word.
 struct VoiceSettingsView: View {
     @Bindable var settings: AppSettings
     var model: AppModel
@@ -41,26 +41,17 @@ struct VoiceSettingsView: View {
         self.settings = model.settings
     }
 
-    private var voices: [VoiceDescriptor] {
-        let language = Locale.current.language.languageCode?.identifier ?? "en"
-        return SpeechSynthesizer.voices
-            .filter { $0.language.hasPrefix(language) || $0.language.hasPrefix("en") }
-            .sorted {
-                ($0.language, -$0.quality.rawValue, $0.name) < (
-                    $1.language, -$1.quality.rawValue, $1.name
-                )
-            }
-    }
-
     private func hasKey(_ providerID: String) -> Bool {
         !(settings.keys.key(for: providerID) ?? "").isEmpty
     }
 
     var body: some View {
         Form {
+            VoiceModelsSection(
+                settings: settings, models: model.voice?.liveModels, voice: model.voice)
             repliesSection
             voiceModeSection
-            LiveConversationSection(settings: settings, models: model.voice?.liveModels)
+            LiveConversationSection(settings: settings)
             listeningSection
         }
         .formStyle(.grouped)
@@ -76,19 +67,7 @@ struct VoiceSettingsView: View {
                     Text(verbatim: choice.displayName).tag(choice)
                 }
             }
-            switch settings.preferences.speechVoice {
-            case .apple:
-                Picker(L("Voice"), selection: $settings.preferences.voiceIdentifier) {
-                    Text(verbatim: L("Automatic (best voice for each language)")).tag("")
-                    ForEach(voices) { voice in
-                        Text(
-                            verbatim:
-                                "\(voice.name) · \(voice.language)\(voice.quality > .standard ? " ★" : "")"
-                        )
-                        .tag(voice.id)
-                    }
-                }
-            case .openAI:
+            if settings.preferences.speechVoice == .openAI {
                 Picker(L("Voice"), selection: $settings.preferences.openAIVoice) {
                     ForEach(OpenAISpeechRequest.voices, id: \.self) { voice in
                         Text(verbatim: voice.capitalized).tag(voice)
@@ -97,21 +76,23 @@ struct VoiceSettingsView: View {
                 if !hasKey("openai") {
                     missingKey
                 }
+                Button(L("Test voice")) {
+                    model.voice?.speak(L("Hi! I'm Momo. This is how I sound."))
+                }
             }
-            Button(L("Test voice")) {
-                model.voice?.speak(L("Hi! I'm Momo. This is how I sound."))
-            }
+        } header: {
+            Text(verbatim: L("Replies"))
         } footer: {
             switch settings.preferences.speechVoice {
-            case .apple:
+            case .onDevice:
                 Text(
                     verbatim: L(
-                        "Replies to spoken messages are always read aloud. Download better voices in System Settings → Accessibility → Spoken Content."
+                        "Replies to spoken messages are always read aloud, with the voice chosen under Voice models."
                     ))
             case .openAI:
                 Text(
                     verbatim: L(
-                        "OpenAI voices sound more natural, but every reply Momo reads aloud is sent to OpenAI with your API key, and each one is listed in Privacy. If OpenAI can't be reached, Momo uses a Mac voice."
+                        "Every reply Momo reads aloud is sent to OpenAI with your API key, and each one is listed in Privacy. If OpenAI can't be reached, Momo uses its own voice models."
                     ))
             }
         }
@@ -181,19 +162,11 @@ struct VoiceSettingsView: View {
         )
         let engine =
             switch settings.preferences.dictationEngine {
-            case .automatic:
-                DictationEngineSelector.isSpeechAnalyzerAvailable
-                    ? L(
-                        "Speech is recognised on this Mac with Apple's newest speech model, downloaded once per language."
-                    )
-                    : L("Speech is recognised on this Mac.")
-            case .appleSpeech:
-                L(
-                    "Speech is recognised with Apple Speech, on this Mac whenever the language allows it."
-                )
+            case .onDevice:
+                L("Speech is recognised on this Mac with Momo's voice models.")
             case .openAI, .gemini:
                 L(
-                    "What you say is recorded until you pause, then sent to the service with your API key and listed in Privacy. If it fails, Momo recognises the recording on this Mac instead."
+                    "What you say is recorded until you pause, then sent to the service with your API key and listed in Privacy. If it fails, Momo recognises the recording on this Mac with its voice models instead."
                 )
             }
         return engine + " " + wakeWord

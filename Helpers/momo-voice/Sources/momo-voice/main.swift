@@ -12,13 +12,22 @@ import MomoVoiceEngine
 let usage = """
     Usage: momo-voice                      Speak the live voice protocol on stdin/stdout.
            momo-voice --say TEXT [--locale L] [--tts MODEL] [--voice V]
-                                           Synthesise TEXT and play it.
+                                           Synthesise TEXT and play it (microphone closed).
            momo-voice --listen [--locale L] [--levels]
                                            Print what the microphone hears until Ctrl-C.
-           momo-voice --list-models [L]     List the models, marking the ones L needs.
-           momo-voice --prepare [L]         Load and warm up the models L needs.
+           momo-voice --transcribe FILE [L] Transcribe a recording with timestamps.
+           momo-voice --list-models [L] [--tts MODEL]
+                                           List the models and voices, marking the ones a
+                                           conversation in L needs.
+           momo-voice --prepare [L] [--mode conversation|listen|speak]
+                                           Load and warm up the models L needs.
            momo-voice --download ID...      Download models (see --list-models).
-           momo-voice --delete ID...        Delete downloaded models.
+           momo-voice --delete ID...        Delete downloaded or added models.
+           momo-voice --import-model FOLDER Add a Kokoro or Supertonic Core ML model.
+           momo-voice --import-voice MODEL FILE
+                                           Add a voice file to a speech model.
+           momo-voice --delete-voice MODEL VOICE
+                                           Delete a voice that was added.
     Models are kept in ~/Library/Application Support/Momo/Models.
     """
 
@@ -103,7 +112,7 @@ func runListen(locale: String, showsLevels: Bool) {
     }
     Task {
         do {
-            try await engine.start(LiveSessionConfiguration(locale: locale))
+            try await engine.start(LiveSessionConfiguration(locale: locale, mode: .listen))
             // Keep the engine, and with it the audio session, alive until Ctrl-C.
             while !Task.isCancelled { try await Task.sleep(for: .seconds(3600)) }
             await engine.stop()
@@ -133,31 +142,101 @@ func runSay(_ text: String, arguments: [String]) {
     }
 }
 
-func runListModels(locale: String) {
+func runListModels(locale: String, textToSpeechModel: String?) {
     let engine = VoiceEngine { _ in }
     Task {
-        let models = await engine.models(locale: locale)
-        printLine("Models for \(locale) (* = required, ✓ = downloaded):")
+        let models = await engine.models(locale: locale, textToSpeechModel: textToSpeechModel)
+        printLine("Models for \(locale) (* = required, ✓ = downloaded, + = added by you):")
         for info in models {
             let license = ModelCatalog.model(id: info.id)?.license ?? ""
             let size = String(format: "%6.0f MB", Double(info.sizeBytes) / 1_000_000)
-            let marks = (info.isRequired ? "*" : " ") + (info.isDownloaded ? "✓" : " ")
+            let marks =
+                (info.isRequired ? "*" : " ") + (info.isDownloaded ? "✓" : " ")
+                + (info.isCustom ? "+" : " ")
             let name = info.id.padding(toLength: 32, withPad: " ", startingAt: 0)
             printLine("\(marks) \(name) \(size)  \(license)  \(info.name)")
+            if !info.voices.isEmpty {
+                let voices = info.voices.map { info.customVoices.contains($0) ? "\($0)+" : $0 }
+                printLine("     voices: \(voices.joined(separator: " "))")
+            }
         }
         if ModelSelection.plan(locale: locale) == nil {
-            printLine("No speech recognition model understands \(locale).")
+            printLine("Momo cannot hold a conversation in \(locale).")
         }
         exit(0)
     }
 }
 
-func runPrepare(locale: String) {
+func runPrepare(locale: String, mode: LiveSessionMode) {
     let engine = VoiceEngine { _ in }
     Task {
         do {
-            try await engine.prepare(LiveSessionConfiguration(locale: locale))
-            printLine("Prepared \(locale)")
+            let startedAt = Date()
+            try await engine.prepare(LiveSessionConfiguration(locale: locale, mode: mode))
+            printLine(
+                "Prepared \(locale) (\(mode.rawValue)) in \(Int(Date().timeIntervalSince(startedAt) * 1000)) ms"
+            )
+            exit(0)
+        } catch {
+            printLine("error: \(error)")
+            exit(1)
+        }
+    }
+}
+
+func runTranscribe(path: String, locale: String) {
+    let engine = VoiceEngine { _ in }
+    Task {
+        do {
+            let startedAt = Date()
+            let segments = try await engine.transcribe(path: path, locale: locale)
+            for segment in segments {
+                printLine(
+                    String(format: "[%7.2f – %7.2f] ", segment.start, segment.end) + segment.text)
+            }
+            printLine(
+                "\(segments.count) segments in \(Int(Date().timeIntervalSince(startedAt) * 1000)) ms"
+            )
+            exit(0)
+        } catch {
+            printLine("error: \(error)")
+            exit(1)
+        }
+    }
+}
+
+func runImportModel(path: String) {
+    let engine = VoiceEngine { _ in }
+    Task {
+        do {
+            printLine("Added as \(try await engine.importModel(path: path))")
+            exit(0)
+        } catch {
+            printLine("error: \(error)")
+            exit(1)
+        }
+    }
+}
+
+func runImportVoice(modelID: String, path: String) {
+    let engine = VoiceEngine { _ in }
+    Task {
+        do {
+            let voice = try await engine.importVoice(modelID: modelID, path: path)
+            printLine("Added voice \(voice) to \(modelID)")
+            exit(0)
+        } catch {
+            printLine("error: \(error)")
+            exit(1)
+        }
+    }
+}
+
+func runDeleteVoice(modelID: String, voice: String) {
+    let engine = VoiceEngine { _ in }
+    Task {
+        do {
+            try await engine.deleteVoice(modelID: modelID, voice: voice)
             exit(0)
         } catch {
             printLine("error: \(error)")
@@ -210,9 +289,42 @@ case "--listen":
         locale: value(after: "--locale", in: arguments) ?? "en-US",
         showsLevels: arguments.contains("--levels"))
 case "--list-models":
-    runListModels(locale: values(after: "--list-models", in: arguments).first ?? "en-US")
+    runListModels(
+        locale: values(after: "--list-models", in: arguments).first ?? "en-US",
+        textToSpeechModel: value(after: "--tts", in: arguments))
 case "--prepare":
-    runPrepare(locale: values(after: "--prepare", in: arguments).first ?? "en-US")
+    guard
+        let mode = LiveSessionMode(
+            rawValue: value(after: "--mode", in: arguments) ?? "conversation")
+    else {
+        printLine(usage)
+        exit(2)
+    }
+    runPrepare(locale: values(after: "--prepare", in: arguments).first ?? "en-US", mode: mode)
+case "--transcribe":
+    let operands = Array(arguments.dropFirst())
+    guard let path = operands.first else {
+        printLine(usage)
+        exit(2)
+    }
+    runTranscribe(path: path, locale: operands.dropFirst().first ?? "en-US")
+case "--import-model":
+    guard let path = arguments.dropFirst().first else {
+        printLine(usage)
+        exit(2)
+    }
+    runImportModel(path: path)
+case "--import-voice", "--delete-voice":
+    let operands = Array(arguments.dropFirst())
+    guard operands.count >= 2 else {
+        printLine(usage)
+        exit(2)
+    }
+    if arguments.first == "--import-voice" {
+        runImportVoice(modelID: operands[0], path: operands[1])
+    } else {
+        runDeleteVoice(modelID: operands[0], voice: operands[1])
+    }
 case "--download":
     runDownload(ids: values(after: "--download", in: arguments))
 case "--delete":
@@ -225,5 +337,5 @@ default:
     exit(arguments.first == "--help" ? 0 : 2)
 }
 
-// The engine runs on tasks and dispatch queues; the system voices need the main queue.
+// The engine runs on tasks and dispatch queues; the main thread only waits.
 dispatchMain()

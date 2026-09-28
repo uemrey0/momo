@@ -113,19 +113,4 @@ struct MeetingAudioTests {
         #expect(decoded.samples.count == 3)
         #expect(abs(decoded.samples[2] - 0.5) < 0.001)
     }
-
-    @Test("groups recognised words into sentences and pauses")
-    func sentences() {
-        let words = ["Hello", "there.", "How", "are", "you", "today?", "Fine"].enumerated().map {
-            TranscriptSegment(
-                text: $0.element, start: Double($0.offset), end: Double($0.offset) + 0.5)
-        }
-        var paused = words
-        paused[6].start = 9
-        paused[6].end = 9.5
-        let segments = OnDeviceTranscriptionService.sentences(from: paused)
-        #expect(segments.map(\.text) == ["Hello there. How are you today?", "Fine"])
-        #expect(segments.first?.start == 0)
-        #expect(segments.last?.start == 9)
-    }
 }

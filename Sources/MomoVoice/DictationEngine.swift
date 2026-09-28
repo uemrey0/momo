@@ -29,11 +29,8 @@ public protocol DictationEngine: AnyObject {
 
 /// The speech recognition engine the user picked in Settings.
 public enum DictationEngineChoice: String, Codable, CaseIterable, Sendable, Identifiable {
-    /// The best engine that runs on this Mac: `SpeechAnalyzer` on macOS 26 and later,
-    /// otherwise Apple Speech.
-    case automatic
-    /// Apple Speech (`SFSpeechRecognizer`), the engine that works everywhere.
-    case appleSpeech
+    /// Momo's voice models, on this Mac.
+    case onDevice
     /// OpenAI transcription with the user's own key.
     case openAI
     /// Gemini audio understanding with the user's own key.
@@ -43,12 +40,17 @@ public enum DictationEngineChoice: String, Codable, CaseIterable, Sendable, Iden
 
     /// Whether this choice sends audio off the Mac.
     public var isRemote: Bool { self == .openAI || self == .gemini }
+
+    /// Reads the choice; Apple's engines of earlier versions mean Momo's voice models now.
+    public init(from decoder: any Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        self = DictationEngineChoice(rawValue: value) ?? .onDevice
+    }
 }
 
 /// The engine that will actually run.
 public enum DictationEngineKind: Equatable, Sendable {
-    case appleSpeech
-    case speechAnalyzer
+    case onDevice
     case openAI
     case gemini
 
@@ -56,14 +58,14 @@ public enum DictationEngineKind: Equatable, Sendable {
     public var isRemote: Bool { self == .openAI || self == .gemini }
 }
 
-/// Decides which engine runs for a choice, given what the Mac and the user's keys allow.
+/// Decides which engine runs for a choice, given the user's keys.
 public enum DictationEngineSelector {
     /// The outcome of a selection.
     public struct Selection: Equatable, Sendable {
         /// The engine to run.
         public var kind: DictationEngineKind
-        /// Set when a cloud engine was chosen but its key is missing, so an on-device engine
-        /// runs instead and the user should be told.
+        /// Set when a cloud engine was chosen but its key is missing, so Momo's voice models
+        /// run instead and the user should be told.
         public var isMissingKey: Bool
 
         public init(kind: DictationEngineKind, isMissingKey: Bool = false) {
@@ -74,30 +76,17 @@ public enum DictationEngineSelector {
 
     /// Picks the engine for `choice`.
     public static func select(
-        _ choice: DictationEngineChoice, speechAnalyzerAvailable: Bool, hasOpenAIKey: Bool,
-        hasGeminiKey: Bool
+        _ choice: DictationEngineChoice, hasOpenAIKey: Bool, hasGeminiKey: Bool
     ) -> Selection {
-        let onDevice: DictationEngineKind = speechAnalyzerAvailable ? .speechAnalyzer : .appleSpeech
         switch choice {
-        case .automatic:
-            return Selection(kind: onDevice)
-        case .appleSpeech:
-            return Selection(kind: .appleSpeech)
+        case .onDevice:
+            return Selection(kind: .onDevice)
         case .openAI:
             return hasOpenAIKey
-                ? Selection(kind: .openAI) : Selection(kind: onDevice, isMissingKey: true)
+                ? Selection(kind: .openAI) : Selection(kind: .onDevice, isMissingKey: true)
         case .gemini:
             return hasGeminiKey
-                ? Selection(kind: .gemini) : Selection(kind: onDevice, isMissingKey: true)
+                ? Selection(kind: .gemini) : Selection(kind: .onDevice, isMissingKey: true)
         }
-    }
-
-    /// Whether Apple's `SpeechAnalyzer` can run on this Mac. Languages are checked when an
-    /// engine starts; an unsupported one makes it throw so the caller can fall back.
-    public static var isSpeechAnalyzerAvailable: Bool {
-        if #available(macOS 26, *) {
-            return AnalyzerDictationEngine.isAvailable
-        }
-        return false
     }
 }

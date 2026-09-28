@@ -2,8 +2,10 @@ import Foundation
 import MomoLiveProtocol
 import Observation
 
-/// The open source on-device live engine: the `momo-voice` helper process, which owns the
-/// microphone and the speaker during a session and speaks `MomoLiveProtocol`.
+/// Momo's voice models: the `momo-voice` helper process, which owns the microphone and the
+/// speaker during a session and speaks `MomoLiveProtocol`. A session listens and speaks (a
+/// live conversation), only listens (dictation, the wake word) or only speaks (replies read
+/// aloud), as its configuration's mode says.
 ///
 /// Commands and events map one to one. Two things are added on this side:
 /// ``endTurn()`` (push to talk), which the protocol lacks, is emulated by pausing the helper's
@@ -42,13 +44,11 @@ public final class HelperLiveSpeechIO: LiveSpeechIO {
     )
         -> LiveSessionConfiguration
     {
-        var appleVoice: String?
-        if case .apple(let identifier, _) = configuration.voice { appleVoice = identifier }
-        return LiveSessionConfiguration(
+        LiveSessionConfiguration(
             locale: configuration.locale.identifier(.bcp47),
             speechToTextModel: configuration.speechToTextModel,
             textToSpeechModel: configuration.textToSpeechModel, voice: configuration.modelVoice,
-            appleVoiceIdentifier: appleVoice, allowsBargeIn: configuration.allowsBargeIn,
+            mode: configuration.mode, allowsBargeIn: configuration.allowsBargeIn,
             maximumPause: configuration.maximumPause)
     }
 
@@ -166,7 +166,8 @@ public final class HelperLiveSpeechIO: LiveSpeechIO {
 
     private func handle(_ event: LiveVoiceEvent) {
         switch event {
-        case .ready, .models, .downloadProgress, .downloadFinished, .downloadFailed, .prepared:
+        case .ready, .models, .downloadProgress, .downloadFinished, .downloadFailed, .prepared,
+            .modelImported, .voiceImported, .importFailed, .transcribed, .transcriptionFailed:
             break
         case .listening:
             finishStart(.success(()))
@@ -266,8 +267,9 @@ public struct LiveVoicePreparedRecord {
     }
 }
 
-/// The helper's models, for Settings and for choosing the live engine: which exist, which
-/// are downloaded, download progress, and whether this helper build has loaded them before.
+/// Momo's voice models, for Settings and for every part of Momo that listens or speaks:
+/// which exist, which are downloaded, download progress, the models and voice files the user
+/// added, and whether this helper build has loaded them before.
 ///
 /// Nothing is downloaded until the user asks with ``download(_:)``.
 @MainActor
@@ -284,6 +286,13 @@ public final class LiveVoiceModels {
     public private(set) var languages: [String] = []
     /// The conversation language the required models are marked for, e.g. "tr-TR".
     public var locale: String
+    /// The speech synthesis model the user chose, or `nil` for the helper's choice for
+    /// ``locale``.
+    public var textToSpeechModel: String?
+    /// Whether a model folder or a voice file is being added.
+    public private(set) var isImporting = false
+    /// What the last import added, e.g. a voice's name, for Settings to confirm.
+    public private(set) var lastImport: String?
 
     @ObservationIgnored private let client: LiveVoiceHelperClient?
     @ObservationIgnored private let buildID: String?
@@ -292,6 +301,8 @@ public final class LiveVoiceModels {
     @ObservationIgnored private var listing: CheckedContinuation<Void, Never>?
     @ObservationIgnored private var refreshing: Task<Void, Never>?
     @ObservationIgnored private var preparing: CheckedContinuation<Bool, Never>?
+    @ObservationIgnored private var importing:
+        CheckedContinuation<Result<String, ImportError>, Never>?
     @ObservationIgnored private let listTimeout: Duration
     @ObservationIgnored private let prepareTimeout: Duration
     @ObservationIgnored private var holdsClient = false
@@ -342,7 +353,9 @@ public final class LiveVoiceModels {
         record.load() == preparedValue
     }
 
-    private var preparedValue: String { "\(buildID ?? "unknown")|\(locale)" }
+    private var preparedValue: String {
+        "\(buildID ?? "unknown")|\(locale)|\(textToSpeechModel ?? "auto")"
+    }
 
     /// Where the helper stands, from the last ``refresh()``.
     public var status: LiveHelperStatus {
@@ -359,6 +372,29 @@ public final class LiveVoiceModels {
     /// How much the missing required models weigh, in bytes.
     public var missingDownloadSize: Int64 {
         models.filter { $0.isRequired && !$0.isDownloaded }.reduce(0) { $0 + $1.sizeBytes }
+    }
+
+    /// The downloaded speech synthesis models that speak `language` (a code such as "tr").
+    public func speechModels(speaking language: String) -> [LiveModelInfo] {
+        models.filter {
+            $0.kind == .textToSpeech && $0.isDownloaded
+                && ($0.languages.isEmpty || $0.languages.contains(language))
+        }
+    }
+
+    /// The model the helper speaks with for ``locale``: the chosen one, or the required one.
+    public var speakingModel: LiveModelInfo? {
+        if let textToSpeechModel, let chosen = models.first(where: { $0.id == textToSpeechModel }) {
+            return chosen
+        }
+        return models.first { $0.kind == .textToSpeech && $0.isRequired }
+    }
+
+    /// Whether the models for listening (speech recognition, voice activity, turn detection)
+    /// are downloaded, which is all dictation, the wake word and transcription need.
+    public var canListen: Bool {
+        let listening = models.filter { $0.kind != .textToSpeech && $0.isRequired }
+        return !listening.isEmpty && listening.allSatisfy(\.isDownloaded)
     }
 
     /// Asks the helper for its models. While the helper prepares its models it can't answer,
@@ -392,7 +428,8 @@ public final class LiveVoiceModels {
             await withCheckedContinuation { continuation in
                 listing = continuation
                 do {
-                    try client.send(.listModels(locale: locale))
+                    try client.send(
+                        .listModels(locale: locale, textToSpeechModel: textToSpeechModel))
                 } catch {
                     errorMessage = error.localizedDescription
                     finishListing()
@@ -432,7 +469,10 @@ public final class LiveVoiceModels {
         let prepared = await withCheckedContinuation { continuation in
             preparing = continuation
             do {
-                try client.send(.prepare(LiveSessionConfiguration(locale: locale)))
+                try client.send(
+                    .prepare(
+                        LiveSessionConfiguration(
+                            locale: locale, textToSpeechModel: textToSpeechModel)))
             } catch {
                 finishPreparing(false)
             }
@@ -492,6 +532,78 @@ public final class LiveVoiceModels {
         }
     }
 
+    /// Why adding a model or a voice failed.
+    public struct ImportError: Error, Equatable {
+        public var message: String
+    }
+
+    /// Adds the speech synthesis model in `folder` (a Kokoro or Supertonic conversion). The
+    /// helper copies it. Returns the new model's identifier.
+    public func importModel(from folder: URL) async -> Result<String, ImportError> {
+        await runImport(.importModel(path: folder.path))
+    }
+
+    /// Adds the voice file at `file` to the speech synthesis model `modelID`. Returns the
+    /// voice's name.
+    public func importVoice(
+        from file: URL, into modelID: String
+    ) async -> Result<String, ImportError> {
+        await runImport(.importVoice(modelID: modelID, path: file.path))
+    }
+
+    /// Deletes a voice the user added.
+    public func deleteVoice(_ voice: String, of modelID: String) {
+        guard let client else { return }
+        errorMessage = nil
+        Task {
+            hold()
+            defer { letGoIfIdle() }
+            do {
+                try await client.connect()
+                try client.send(.deleteVoice(modelID: modelID, voice: voice))
+                await refresh()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func runImport(_ command: LiveVoiceCommand) async -> Result<String, ImportError> {
+        guard let client, !isImporting else {
+            return .failure(ImportError(message: "The voice helper isn't available."))
+        }
+        isImporting = true
+        errorMessage = nil
+        lastImport = nil
+        hold()
+        defer {
+            isImporting = false
+            letGoIfIdle()
+        }
+        do {
+            try await client.connect()
+        } catch {
+            return .failure(ImportError(message: error.localizedDescription))
+        }
+        let result = await withCheckedContinuation { continuation in
+            importing = continuation
+            do {
+                try client.send(command)
+            } catch {
+                finishImport(.failure(ImportError(message: error.localizedDescription)))
+            }
+        }
+        if case .success(let name) = result { lastImport = name }
+        await refresh()
+        return result
+    }
+
+    private func finishImport(_ result: Result<String, ImportError>) {
+        let continuation = importing
+        importing = nil
+        continuation?.resume(returning: result)
+    }
+
     private func hold() {
         guard let client else { return }
         if observer == nil {
@@ -505,7 +617,9 @@ public final class LiveVoiceModels {
 
     /// Releases the helper when nothing is loading, preparing or downloading any more.
     private func letGoIfIdle() {
-        guard let client, holdsClient, progress.isEmpty, listing == nil, !isPreparing else {
+        guard let client, holdsClient, progress.isEmpty, listing == nil, !isPreparing,
+            importing == nil
+        else {
             return
         }
         holdsClient = false
@@ -550,6 +664,12 @@ public final class LiveVoiceModels {
             self.languages = languages
         case .event(.prepared):
             finishPreparing(true)
+        case .event(.modelImported(let id)):
+            finishImport(.success(id))
+        case .event(.voiceImported(_, let voice)):
+            finishImport(.success(voice))
+        case .event(.importFailed(let message)):
+            finishImport(.failure(ImportError(message: message)))
         case .event(.error(let message, _)):
             if preparing != nil {
                 errorMessage = message
@@ -558,6 +678,7 @@ public final class LiveVoiceModels {
         case .disconnected(let crashed):
             finishListing()
             finishPreparing(false)
+            finishImport(.failure(ImportError(message: "The voice helper stopped.")))
             if !progress.isEmpty, crashed {
                 errorMessage = "The voice helper stopped during the download."
             }

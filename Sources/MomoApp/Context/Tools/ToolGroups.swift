@@ -145,7 +145,7 @@ enum ToolGroup: String, CaseIterable, Identifiable {
         case .system: [.automation("com.apple.systemevents"), .location]
         case .screen: [.screenRecording, .accessibility]
         case .power: [.automation(nil)]
-        case .meetings: [.microphone, .speechRecognition, .screenRecording]
+        case .meetings: [.microphone, .screenRecording]
         case .tasks, .files, .web, .images, .routines, .essentials: []
         }
     }

@@ -304,6 +304,8 @@ struct ProviderStatus: Identifiable, Equatable {
 
 /// What a reply reports while it streams, for speaking it in a live conversation.
 enum ReplyStreamEvent: Equatable {
+    /// The brain that answers was picked; `isRemote` when it runs off the Mac.
+    case brainSelected(name: String, isRemote: Bool)
     case text(String)
     /// A tool started; `label` is its activity label.
     case toolStarted(label: String)
@@ -365,6 +367,10 @@ final class AssistantController {
     @ObservationIgnored var onReplyEvent: ((ReplyStreamEvent) -> Void)?
     /// Why the latest request failed, or `nil` when it didn't.
     @ObservationIgnored private(set) var lastRequestError: String?
+    /// What went wrong with the last request, explained, for saying it aloud.
+    @ObservationIgnored private(set) var lastRequestIssue: ChatIssue?
+    /// The brain that answered the last request.
+    @ObservationIgnored private(set) var lastBrainName: String?
     /// Whether the current request is answered in a live voice conversation, which asks the
     /// brain for short spoken replies.
     @ObservationIgnored private var isSpokenRequest = false
@@ -405,6 +411,7 @@ final class AssistantController {
         guard !message.isEmpty || !attachments.isEmpty, !isBusy else { return }
         isSpokenRequest = spoken
         lastRequestError = nil
+        lastRequestIssue = nil
         draft = ""
         pendingAttachments = []
         attachmentNotice = nil
@@ -429,6 +436,7 @@ final class AssistantController {
         isInBackground = true
         isSpokenRequest = false
         lastRequestError = nil
+        lastRequestIssue = nil
         sendingImages = false
         character?.showWorking()
         let run = UUID()
@@ -474,6 +482,7 @@ final class AssistantController {
         messages.removeSubrange((index + 1)...)
         isSpokenRequest = false
         lastRequestError = nil
+        lastRequestIssue = nil
         attachmentNotice = nil
         sendingImages = request.attachments.contains(where: \.isImage)
         isBusy = true
@@ -600,6 +609,8 @@ final class AssistantController {
                     messages.append(answer)
                     replyID = answer.id
                     character?.showBrain(brain.kind)
+                    lastBrainName = brain.name
+                    onReplyEvent?(.brainSelected(name: brain.name, isRemote: brain.kind.isRemote))
                     if brain.kind.isRemote {
                         // Attached documents leave the Mac too, so they count.
                         let sent = ChatTurn(role: .user, text: message, attachments: attachments)
@@ -670,6 +681,7 @@ final class AssistantController {
                     role: .error, text: error.localizedDescription,
                     issue: ChatIssue(error: error)))
             lastRequestError = error.localizedDescription
+            lastRequestIssue = ChatIssue(error: error)
             character?.showTrouble()
             reply = ""
         }
@@ -713,7 +725,8 @@ final class AssistantController {
                 memories: memories, languageName: preferredLanguageName,
                 personality: preferences.personality.instruction, message: message,
                 canDraw: toolbox.tool(named: "generate_image") != nil,
-                isSpoken: isSpokenRequest))
+                isSpoken: isSpokenRequest),
+            prefersSpeed: isSpokenRequest)
     }
 
     /// The image tools, drawing with the backend the user prefers or the best available one.

@@ -1,6 +1,32 @@
 import MomoLiveProtocol
 
-/// A model the helper can download and run.
+/// The network design of a speech synthesis model, which decides how the helper loads it and
+/// what its voice files look like.
+public enum SpeechArchitecture: String, Codable, Sendable, Hashable, CaseIterable {
+    /// Kokoro 82M: an end-to-end Core ML model with voice embeddings in `voices/`.
+    case kokoro
+    /// Supertonic: four Core ML graphs with voice styles in `voice_styles/`.
+    case supertonic
+
+    /// The built-in model with this architecture, whose languages a model the user adds
+    /// shares.
+    public var builtInModel: VoiceModel {
+        switch self {
+        case .kokoro: ModelCatalog.kokoro
+        case .supertonic: ModelCatalog.supertonic
+        }
+    }
+
+    /// A readable name, e.g. "Kokoro".
+    public var displayName: String {
+        switch self {
+        case .kokoro: "Kokoro"
+        case .supertonic: "Supertonic"
+        }
+    }
+}
+
+/// A model the helper can download and run, or one the user added from a folder.
 public struct VoiceModel: Sendable, Hashable, Identifiable {
     /// The stable identifier used in the protocol, e.g. "nemotron-streaming-multilingual".
     public var id: String
@@ -17,10 +43,15 @@ public struct VoiceModel: Sendable, Hashable, Identifiable {
     public var repository: String
     /// The files to fetch from the repository, as glob patterns relative to its root.
     public var files: [String]
+    /// How a speech synthesis model is built; `nil` for the other kinds.
+    public var architecture: SpeechArchitecture?
+    /// Whether the user added the model from a folder. Such a model cannot be downloaded.
+    public var isCustom: Bool
 
     public init(
         id: String, kind: LiveModelKind, name: String, languages: [String], sizeBytes: Int64,
-        license: String, repository: String, files: [String]
+        license: String, repository: String, files: [String],
+        architecture: SpeechArchitecture? = nil, isCustom: Bool = false
     ) {
         self.id = id
         self.kind = kind
@@ -30,13 +61,22 @@ public struct VoiceModel: Sendable, Hashable, Identifiable {
         self.license = license
         self.repository = repository
         self.files = files
+        self.architecture = architecture
+        self.isCustom = isCustom
     }
 
     /// The protocol description of the model.
-    public func info(isDownloaded: Bool, isRequired: Bool) -> LiveModelInfo {
+    ///
+    /// - Parameters:
+    ///   - voices: The voices of a downloaded speech synthesis model.
+    ///   - customVoices: The ones among `voices` the user added.
+    public func info(
+        isDownloaded: Bool, isRequired: Bool, voices: [String] = [], customVoices: [String] = []
+    ) -> LiveModelInfo {
         LiveModelInfo(
             id: id, kind: kind, name: name, languages: languages, sizeBytes: sizeBytes,
-            isDownloaded: isDownloaded, isRequired: isRequired)
+            isDownloaded: isDownloaded, isRequired: isRequired, isCustom: isCustom,
+            voices: voices, customVoices: customVoices)
     }
 }
 
@@ -86,7 +126,8 @@ public enum ModelCatalog {
             "config.json", "kokoro_5s.mlmodelc/**", "G2PEncoder.mlmodelc/**",
             "G2PDecoder.mlmodelc/**", "vocab_index.json", "g2p_vocab.json", "us_gold.json",
             "us_silver.json", "voices/*.json",
-        ])
+        ],
+        architecture: .kokoro)
 
     /// Supertone Supertonic 3 (Core ML), multilingual speech synthesis without phonemizer.
     public static let supertonic = VoiceModel(
@@ -102,12 +143,13 @@ public enum ModelCatalog {
             "config.json", "tts.json", "unicode_indexer.json", "voice_styles/*.json",
             "DurationPredictor.mlpackage/**", "TextEncoder.mlpackage/**",
             "VectorEstimator.mlpackage/**", "Vocoder.mlpackage/**",
-        ])
+        ],
+        architecture: .supertonic)
 
     /// Every model, in the order they are listed.
     public static let all: [VoiceModel] = [nemotron, kokoro, supertonic, sileroVAD, smartTurn]
 
-    /// The model with `id`, if the catalog has one.
+    /// The built-in model with `id`, if the catalog has one.
     public static func model(id: String) -> VoiceModel? {
         all.first { $0.id == id }
     }

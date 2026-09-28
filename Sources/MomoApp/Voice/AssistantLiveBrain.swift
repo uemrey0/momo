@@ -77,15 +77,58 @@ final class AssistantLiveBrain: LiveBrain {
         guard let handler else { return }
         self.handler = nil
         assistant?.onReplyEvent = nil
-        if let error = assistant?.lastRequestError {
-            handler(.failed(error))
+        if let issue = assistant?.lastRequestIssue {
+            handler(.failed(Self.spoken(issue, brain: assistant?.lastBrainName)))
+        } else if let error = assistant?.lastRequestError {
+            handler(
+                .failed(Self.spoken(ChatIssue(message: error), brain: assistant?.lastBrainName)))
         } else {
             handler(.finished)
         }
     }
 
+    /// What went wrong, in words Momo can say: what happened and what to do about it, never
+    /// the raw error (which stays in the chat).
+    static func spoken(_ issue: ChatIssue, brain: String?) -> String {
+        let name = brain.map(spokenName)
+        switch issue.kind {
+        case .rateLimit:
+            return name.map {
+                String(
+                    format: L(
+                        "%@ has reached its usage limit. Try again later, or pick another brain in AI settings."
+                    ),
+                    $0)
+            } ?? issue.title + ". " + issue.message
+        case .signIn:
+            return name.map {
+                String(
+                    format: L("%@ needs you to sign in again. Open AI settings to reconnect it."),
+                    $0)
+            } ?? issue.title + ". " + issue.message
+        case .network, .noBrain, .setup, .permission:
+            return issue.title + ". " + issue.message
+        case .other:
+            return name.map {
+                String(format: L("%@ ran into a problem. The details are in the chat."), $0)
+            } ?? L("Something went wrong. The details are in the chat.")
+        }
+    }
+
+    /// A brain's name as said aloud: "ChatGPT (Codex)" becomes "ChatGPT".
+    static func spokenName(_ name: String) -> String {
+        let base = name.split(separator: "(").first.map(String.init) ?? name
+        let trimmed = base.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? name : trimmed
+    }
+
     private func replyEvent(_ event: ReplyStreamEvent) {
         switch event {
+        case .brainSelected(let name, let isRemote):
+            // A brain off the Mac takes a few seconds; say which one works on it.
+            if isRemote {
+                handler?(.status(String(format: L("Checking with %@."), Self.spokenName(name))))
+            }
         case .text(let text): handler?(.text(text))
         case .toolStarted(let label): handler?(.toolStarted(label: label))
         case .toolFinished: handler?(.toolFinished)

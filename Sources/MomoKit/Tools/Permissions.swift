@@ -3,7 +3,6 @@ import Foundation
 /// A macOS privacy permission Momo can use.
 public enum MacPermission: Hashable, Sendable {
     case microphone
-    case speechRecognition
     case calendars
     case reminders
     case contacts
@@ -20,7 +19,6 @@ public enum MacPermission: Hashable, Sendable {
     public var id: String {
         switch self {
         case .microphone: "microphone"
-        case .speechRecognition: "speechRecognition"
         case .calendars: "calendars"
         case .reminders: "reminders"
         case .contacts: "contacts"
@@ -36,7 +34,6 @@ public enum MacPermission: Hashable, Sendable {
     public init?(id: String) {
         switch id {
         case "microphone": self = .microphone
-        case "speechRecognition": self = .speechRecognition
         case "calendars": self = .calendars
         case "reminders": self = .reminders
         case "contacts": self = .contacts
