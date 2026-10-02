@@ -173,6 +173,11 @@ final class AppModel {
             if let conversations, let problem = await conversations.problem() {
                 StoreProblemAlert.show(problem, fileURL: conversations.fileURL)
             }
+            // Backups momo-mcp made, or that an earlier launch didn't get to report. One made
+            // just now while loading is reported with its details below.
+            let current = await store.problem()?.backup?.lastPathComponent
+            StoreProblemAlert.showUnreported(
+                store.backups().filter { $0.lastPathComponent != current })
             var reported: StoreProblem?
             for await _ in await store.changes() {
                 guard self != nil else { return }
