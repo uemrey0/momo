@@ -1,5 +1,6 @@
 import Foundation
 import MomoBrain
+import MomoFace
 import MomoVoice
 import Observation
 
@@ -40,6 +41,14 @@ struct Preferences: Codable, Equatable {
     var sleepDelayMinutes = 2.0
     var hasCompletedOnboarding = false
     var characterID = "classic"
+    /// Whether the character is on screen.
+    var showsCharacter = true
+    /// Whether Momo plays idle behaviours and falls asleep on its own.
+    var isLifeEnabled = true
+    /// The mood picked in the menu. Moods that come from events are not stored.
+    var mood = Mood.idle
+    /// The brain whose colour the eyes show when Momo is not thinking.
+    var brainSource = BrainSource.local
     var reactsToCalendar = true
     var reactsToMusic = true
     var reactsToBattery = true
@@ -111,6 +120,10 @@ struct Preferences: Codable, Equatable {
         sleepDelayMinutes = value(.sleepDelayMinutes, defaults.sleepDelayMinutes)
         hasCompletedOnboarding = value(.hasCompletedOnboarding, defaults.hasCompletedOnboarding)
         characterID = value(.characterID, defaults.characterID)
+        showsCharacter = value(.showsCharacter, defaults.showsCharacter)
+        isLifeEnabled = value(.isLifeEnabled, defaults.isLifeEnabled)
+        mood = value(.mood, defaults.mood)
+        brainSource = value(.brainSource, defaults.brainSource)
         reactsToCalendar = value(.reactsToCalendar, defaults.reactsToCalendar)
         reactsToMusic = value(.reactsToMusic, defaults.reactsToMusic)
         reactsToBattery = value(.reactsToBattery, defaults.reactsToBattery)

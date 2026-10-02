@@ -109,7 +109,9 @@ final class AppModel {
             case .stopMeeting: meetings.stop()
             case .setUpAI: openSettings(.ai)
             case .settings: openSettings()
-            case .hide: character.isVisible = false
+            case .hide:
+                character.isVisible = false
+                settings.preferences.showsCharacter = false
             }
         }
         character.needsAISetup = { [weak self] in self?.hasReadyBrain == false }
@@ -192,6 +194,10 @@ final class AppModel {
         CapturePrivacy.hidesWindows = settings.preferences.hidesFromScreenCapture
         character.appearance =
             availableCharacters.first { $0.id == settings.preferences.characterID } ?? .classic
+        character.isVisible = settings.preferences.showsCharacter
+        character.isLifeEnabled = settings.preferences.isLifeEnabled
+        character.mood = settings.preferences.mood
+        character.brain = settings.preferences.brainSource
         shortcuts.apply()
     }
 

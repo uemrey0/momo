@@ -1,4 +1,5 @@
 import Foundation
+import MomoFace
 import MomoKit
 import Testing
 
@@ -51,5 +52,32 @@ struct SettingsTests {
                 $0.anchor == MacPermission.contacts.anchor
             })
         #expect(SettingsSearch.results(for: "   ").isEmpty)
+    }
+
+    @Test("character choices missing from old preferences decode as the defaults")
+    func characterChoicesDecodeDefaults() throws {
+        let old = try JSONDecoder().decode(
+            Preferences.self, from: Data(#"{"characterID":"classic","speaksReplies":true}"#.utf8))
+        #expect(old.showsCharacter)
+        #expect(old.isLifeEnabled)
+        #expect(old.mood == .idle)
+        #expect(old.brainSource == .local)
+        #expect(old.speaksReplies)
+    }
+
+    @Test("character choices survive a round trip")
+    func characterChoicesRoundTrip() throws {
+        var preferences = Preferences()
+        preferences.showsCharacter = false
+        preferences.isLifeEnabled = false
+        preferences.mood = .happy
+        preferences.brainSource = .apiKey
+        let data = try JSONEncoder().encode(preferences)
+        let decoded = try JSONDecoder().decode(Preferences.self, from: data)
+        #expect(decoded == preferences)
+        #expect(!decoded.showsCharacter)
+        #expect(!decoded.isLifeEnabled)
+        #expect(decoded.mood == .happy)
+        #expect(decoded.brainSource == .apiKey)
     }
 }
