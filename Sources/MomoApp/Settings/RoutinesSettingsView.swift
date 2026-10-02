@@ -6,6 +6,8 @@ import SwiftUI
 @Observable
 final class RoutinesModel {
     private(set) var routines: [Routine] = []
+    /// Why the last change couldn't be saved.
+    private(set) var saveError: String?
     let store: MomoStore
 
     init(store: MomoStore) {
@@ -20,7 +22,7 @@ final class RoutinesModel {
     }
 
     func save(_ routine: Routine) {
-        Task { try? await store.saveRoutine(routine) }
+        write { try await $0.saveRoutine(routine) }
     }
 
     func setEnabled(_ routine: Routine, _ enabled: Bool) {
@@ -30,7 +32,19 @@ final class RoutinesModel {
     }
 
     func delete(_ routine: Routine) {
-        Task { try? await store.deleteRoutine(routine.id) }
+        write { try await $0.deleteRoutine(routine.id) }
+    }
+
+    /// Saves a change in the background and shows why when it fails.
+    private func write(_ change: @escaping @Sendable (MomoStore) async throws -> Void) {
+        Task {
+            do {
+                try await change(store)
+                saveError = nil
+            } catch {
+                saveError = saveFailureMessage(error)
+            }
+        }
     }
 }
 
@@ -70,6 +84,9 @@ struct RoutinesSettingsView: View {
                             hour: 9, minute: 0, weekdays: RoutineSchedule.workweek))
                 }
                 .settingsAnchor("routines.add")
+                if let error = routines.saveError {
+                    Text(verbatim: error).foregroundStyle(.red).font(.caption)
+                }
             } footer: {
                 Text(
                     verbatim: L(

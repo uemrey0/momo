@@ -329,6 +329,8 @@ final class AssistantController {
     var loadingAttachments: [LoadingAttachment] = []
     /// A short note about attachments, such as a file that couldn't be read.
     var attachmentNotice: String?
+    /// Why the conversation couldn't be saved, until the user dismisses it.
+    var saveError: String?
     /// Whether the user is choosing files, so the panel stays open meanwhile.
     @ObservationIgnored var isChoosingFiles = false
     /// Whether the message being answered has images.
@@ -572,7 +574,11 @@ final class AssistantController {
         let previous = persistence
         persistence = Task {
             await previous?.value
-            try? await change(conversationStore)
+            do {
+                try await change(conversationStore)
+            } catch {
+                saveError = saveFailureMessage(error)
+            }
             conversationsVersion += 1
         }
     }

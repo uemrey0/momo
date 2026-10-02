@@ -10,6 +10,8 @@ final class TodayModel {
     private(set) var habits: [Habit] = []
     var newTaskTitle = ""
     var newHabitName = ""
+    /// Why a change couldn't be saved, until the user dismisses it.
+    var saveError: String?
 
     let store: MomoStore
     @ObservationIgnored private var observation: Task<Void, Never>?
@@ -44,32 +46,43 @@ final class TodayModel {
         let title = newTaskTitle.trimmingCharacters(in: .whitespaces)
         guard !title.isEmpty else { return }
         newTaskTitle = ""
-        Task { try? await store.addTask(title: title) }
+        write { try await $0.addTask(title: title) }
     }
 
     func toggle(_ task: TaskItem) {
         if !task.isDone { onTaskCompleted?() }
-        Task { try? await store.setTaskDone(id: task.id, !task.isDone) }
+        write { try await $0.setTaskDone(id: task.id, !task.isDone) }
     }
 
     func delete(_ task: TaskItem) {
-        Task { try? await store.deleteTask(task.id) }
+        write { try await $0.deleteTask(task.id) }
     }
 
     func addHabit() {
         let name = newHabitName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         newHabitName = ""
-        Task { try? await store.addHabit(name: name) }
+        write { try await $0.addHabit(name: name) }
     }
 
     func toggle(_ habit: Habit) {
         if !habit.isDone() { onTaskCompleted?() }
-        Task { try? await store.logHabit(habit.id, done: !habit.isDone()) }
+        write { try await $0.logHabit(habit.id, done: !habit.isDone()) }
     }
 
     func delete(_ habit: Habit) {
-        Task { try? await store.deleteHabit(habit.id) }
+        write { try await $0.deleteHabit(habit.id) }
+    }
+
+    /// Saves a change in the background and tells the user when it fails.
+    private func write(_ change: @escaping @Sendable (MomoStore) async throws -> Void) {
+        Task {
+            do {
+                try await change(store)
+            } catch {
+                saveError = saveFailureMessage(error)
+            }
+        }
     }
 }
 
@@ -85,6 +98,12 @@ struct TodayView: View {
         PanelScroll {
             VStack(alignment: .leading, spacing: 18) {
                 TodayHeader(done: model.completedToday.count, total: total)
+                if let error = model.saveError {
+                    PanelNotice(text: error, systemImage: "exclamationmark.triangle") {
+                        model.saveError = nil
+                    }
+                    .transition(.opacity)
+                }
                 section(title: L("Tasks"), systemImage: "checklist", count: model.tasks.count) {
                     AddField(
                         text: $model.newTaskTitle, placeholder: L("Add a task"),
@@ -147,6 +166,7 @@ struct TodayView: View {
             .animation(Theme.spring, value: model.tasks)
             .animation(Theme.spring, value: model.completedToday)
             .animation(Theme.spring, value: model.habits)
+            .animation(Theme.spring, value: model.saveError)
             .measureHeight($contentHeight)
         }
         .preference(key: PanelHeightKey.self, value: contentHeight)

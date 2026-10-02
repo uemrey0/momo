@@ -55,8 +55,16 @@ struct ChatView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 if let notice = assistant.attachmentNotice {
-                    AttachmentNotice(text: notice) { assistant.attachmentNotice = nil }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    PanelNotice(text: notice, systemImage: "paperclip") {
+                        assistant.attachmentNotice = nil
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                if let error = assistant.saveError {
+                    PanelNotice(text: error, systemImage: "exclamationmark.triangle") {
+                        assistant.saveError = nil
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 composer
             }
@@ -72,6 +80,7 @@ struct ChatView: View {
         .animation(Theme.spring, value: assistant.confirmationPrompt)
         .animation(Theme.spring, value: assistant.messages.isEmpty)
         .animation(Theme.spring, value: assistant.attachmentNotice)
+        .animation(Theme.spring, value: assistant.saveError)
         .onChange(of: state.focusRequest, initial: true) { isComposerFocused = true }
         .modifier(
             AttachmentDropTarget(isTargeted: $isDropTargeted, isEnabled: !snapshotMode) {
