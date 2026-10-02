@@ -672,6 +672,9 @@ enum CLIPrompt {
         {
             return "\(tool) needs you to sign in again in Settings → AI."
         }
+        if let signal = failure.signalDescription {
+            return "\(tool) stopped unexpectedly (\(signal))."
+        }
         return detail.isEmpty
             ? "\(tool) stopped unexpectedly (exit code \(failure.status))."
             : "\(tool): \(detail)"
