@@ -413,6 +413,14 @@ private struct MeetingDetailView: View {
                         ConsentCard(prompt: prompt) { controller.answerSummaryConsent($0) }
                     }
                     statusLine
+                    if meeting.untranscribedChunks > 0 {
+                        MeetingNotice(
+                            text: String(
+                                format: L(
+                                    "Gaps in the transcript: %ld. These notes may miss part of the meeting."
+                                ), meeting.untranscribedChunks),
+                            systemImage: "waveform.badge.exclamationmark", color: Theme.apiKey)
+                    }
                     if !meeting.summary.isEmpty {
                         Text(verbatim: meeting.summary)
                             .font(.system(size: 13))
