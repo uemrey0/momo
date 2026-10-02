@@ -1,5 +1,6 @@
 import Foundation
 import MomoKit
+import os
 
 /// Runs routines when they are due: each prompt goes through the assistant as a background
 /// message in the chat conversation, and the start of the reply arrives as a notification.
@@ -8,8 +9,15 @@ import MomoKit
 /// Routines that come due while Momo is busy wait in a queue.
 @MainActor
 final class RoutineScheduler {
+    /// Sends a prompt as a background chat message and calls back with the reply. Returns
+    /// `false` when Momo is busy and the prompt wasn't sent.
+    typealias Send = (String, @escaping (String?) -> Void) -> Bool
+
+    private static let logger = Logger(subsystem: "io.github.uemrey0.Momo", category: "Routines")
+
     private let store: MomoStore
-    private let assistant: AssistantController
+    private let assistant: AssistantController?
+    private let send: Send
     private let clock: () -> Date
     private let calendar: Calendar
     /// Posts a notification: identifier, title, body.
@@ -17,21 +25,34 @@ final class RoutineScheduler {
 
     private var queue: [Routine] = []
     private var running: Routine?
+    /// When each routine last ran in this session, by ID. Counts even when saving the run
+    /// failed, so a store that can't be written never makes a routine run again and again.
+    private var ranAt: [String: Date] = [:]
     private var tick: Task<Void, Never>?
     private var retry: Task<Void, Never>?
 
-    init(
+    convenience init(
         store: MomoStore, assistant: AssistantController, clock: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
     ) {
+        self.init(
+            store: store, assistant: assistant, send: assistant.sendInBackground(_:completion:),
+            clock: clock, calendar: calendar)
+    }
+
+    init(
+        store: MomoStore, assistant: AssistantController?, send: @escaping Send,
+        clock: @escaping () -> Date = Date.init, calendar: Calendar = .current
+    ) {
         self.store = store
         self.assistant = assistant
+        self.send = send
         self.clock = clock
         self.calendar = calendar
     }
 
     func start() {
-        assistant.onAttentionNeeded = { [weak self] in self?.needsAttention() }
+        assistant?.onAttentionNeeded = { [weak self] in self?.needsAttention() }
         tick = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.check()
@@ -43,10 +64,11 @@ final class RoutineScheduler {
     /// Queues every routine that is due and starts the first one.
     func check() async {
         let now = clock()
-        for routine in await store.routines() where routine.isDue(at: now, calendar: calendar) {
+        for routine in await store.routines() where isDue(routine, at: now) {
             guard !isPending(routine) else { continue }
             // Recorded before it runs, so a busy Momo or a restart never runs it twice.
-            try? await store.markRoutineRun(id: routine.id, at: now)
+            ranAt[routine.id] = now
+            await saveRun(of: routine, at: now)
             queue.append(routine)
         }
         runNext()
@@ -55,9 +77,30 @@ final class RoutineScheduler {
     /// Runs a routine right away (or as soon as Momo is free), whatever its schedule.
     func runNow(_ routine: Routine) {
         guard !isPending(routine) else { return }
-        Task { try? await store.markRoutineRun(id: routine.id, at: clock()) }
+        let now = clock()
+        ranAt[routine.id] = now
+        Task { await saveRun(of: routine, at: now) }
         queue.append(routine)
         runNext()
+    }
+
+    /// Whether a routine is due, counting a run in this session that couldn't be saved.
+    private func isDue(_ routine: Routine, at now: Date) -> Bool {
+        var routine = routine
+        if let ran = ranAt[routine.id] {
+            routine.lastRun = max(routine.lastRun ?? ran, ran)
+        }
+        return routine.isDue(at: now, calendar: calendar)
+    }
+
+    private func saveRun(of routine: Routine, at date: Date) async {
+        do {
+            try await store.markRoutineRun(id: routine.id, at: date)
+        } catch {
+            Self.logger.error(
+                "Couldn't save that routine \(routine.id, privacy: .public) ran: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     private func isPending(_ routine: Routine) -> Bool {
@@ -66,7 +109,7 @@ final class RoutineScheduler {
 
     private func runNext() {
         guard running == nil, let routine = queue.first else { return }
-        let started = assistant.sendInBackground(routine.prompt) { [weak self] reply in
+        let started = send(routine.prompt) { [weak self] reply in
             self?.finished(routine, reply: reply)
         }
         guard started else {

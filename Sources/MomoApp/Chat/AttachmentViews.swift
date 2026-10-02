@@ -198,33 +198,6 @@ struct SentAttachments: View {
     }
 }
 
-/// A short note about attachments, dismissed with a tap.
-struct AttachmentNotice: View {
-    var text: String
-    var dismiss: () -> Void
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "paperclip").foregroundStyle(Theme.apiKey)
-            Text(verbatim: text)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-            Button(action: dismiss) {
-                Image(systemName: "xmark")
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Theme.tertiaryText)
-            .help(L("Dismiss"))
-            .accessibilityLabel(L("Dismiss"))
-        }
-        .font(.system(size: 11.5, weight: .medium))
-        .foregroundStyle(Theme.secondaryText)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-}
-
 /// Shown over the chat while files are dragged onto it.
 struct DropHighlight: View {
     var body: some View {

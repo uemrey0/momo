@@ -8,6 +8,8 @@ final class NotesModel {
     private(set) var notes: [Note] = []
     var query = ""
     var editing: Note?
+    /// Why a change couldn't be saved, until the user dismisses it.
+    var saveError: String?
 
     let store: MomoStore
     @ObservationIgnored private var observation: Task<Void, Never>?
@@ -42,12 +44,23 @@ final class NotesModel {
         if note.title.isEmpty {
             note.title = String(note.body.prefix(40))
         }
-        Task { try? await store.saveNote(note) }
+        write { [note] in try await $0.saveNote(note) }
     }
 
     func delete(_ note: Note) {
         if editing?.id == note.id { editing = nil }
-        Task { try? await store.deleteNote(note.id) }
+        write { try await $0.deleteNote(note.id) }
+    }
+
+    /// Saves a change in the background and tells the user when it fails.
+    private func write(_ change: @escaping @Sendable (MomoStore) async throws -> Void) {
+        Task {
+            do {
+                try await change(store)
+            } catch {
+                saveError = saveFailureMessage(error)
+            }
+        }
     }
 }
 
@@ -56,6 +69,11 @@ struct NotesView: View {
     @Bindable var model: NotesModel
     @State private var searchHeight: CGFloat = 0
     @State private var contentHeight: CGFloat = 0
+    @State private var noticeHeight: CGFloat = 0
+
+    private var headerHeight: CGFloat {
+        searchHeight + (model.saveError == nil ? 0 : noticeHeight)
+    }
 
     var body: some View {
         ZStack {
@@ -67,10 +85,11 @@ struct NotesView: View {
                 list
                     .transition(.move(edge: .leading).combined(with: .opacity))
                     .preference(
-                        key: PanelHeightKey.self, value: max(240, searchHeight + contentHeight))
+                        key: PanelHeightKey.self, value: max(240, headerHeight + contentHeight))
             }
         }
         .animation(Theme.spring, value: model.editing?.id)
+        .animation(Theme.spring, value: model.saveError)
     }
 
     private func save(_ note: Note) {
@@ -108,6 +127,15 @@ struct NotesView: View {
             .padding(12)
             .fixedSize(horizontal: false, vertical: true)
             .measureHeight($searchHeight)
+            if let error = model.saveError {
+                PanelNotice(text: error, systemImage: "exclamationmark.triangle") {
+                    model.saveError = nil
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+                .fixedSize(horizontal: false, vertical: true)
+                .measureHeight($noticeHeight)
+            }
             if model.filtered.isEmpty {
                 EmptyHint(
                     systemImage: model.notes.isEmpty ? "note.text" : "magnifyingglass",
