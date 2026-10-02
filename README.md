@@ -23,7 +23,8 @@ Momo server, no account and no subscription.
   dozes off when you step away, dances when music plays and yawns when it gets late. Every
   motion is procedural, so it never loops the same way twice.
 - **Local first.** Apple Intelligence, Ollama or LM Studio answer everyday requests on your
-  Mac. Tasks, notes, memories and voice all work offline.
+  Mac. Tasks, notes, memories and voice all work offline (voice needs macOS 15 and Apple
+  silicon).
 - **Your own subscription.** Bigger jobs can go to ChatGPT through the official Codex CLI or to
   Gemini through the Gemini CLI, signed in with *your* account, or to Claude, OpenAI, Gemini or
   OpenRouter with your API key. Momo always asks first.
@@ -56,8 +57,15 @@ Momo server, no account and no subscription.
 
 Download the latest `Momo-x.y.z.dmg` from
 [Releases](https://github.com/uemrey0/momo/releases), open it and drag Momo into
-Applications. If macOS says the app is from an unidentified developer, right-click Momo and
-choose **Open** once.
+Applications. The app isn't notarized yet, so macOS blocks the first launch. To open it:
+
+- On macOS 15 or later, open Momo once, then go to **System Settings → Privacy & Security**
+  and choose **Open Anyway** next to the message about Momo.
+- Or run `xattr -dr com.apple.quarantine /Applications/Momo.app` in Terminal.
+- On macOS 14, right-click Momo and choose **Open** once.
+
+Momo runs on macOS 14 or later. Voice features need macOS 15 or later on a Mac with Apple
+silicon.
 
 Or build it yourself (Xcode 16 or later):
 

@@ -45,8 +45,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the notch shows what you said and Momo's answer while it is read aloud, and Momo's
   questions can be answered with "yes" or "no". Hold the shortcut to talk if you turn on
   push to talk.
-- Better speech: Apple's SpeechAnalyzer on macOS 26, or OpenAI and Gemini transcription with
-  your own key, and optional OpenAI voices.
+- Cloud speech: OpenAI and Gemini transcription with your own key, and optional OpenAI
+  voices.
 - Meeting notes: Momo offers to take notes when a meeting starts, listens to you and the
   call as separate tracks, and writes a summary with decisions, action items, open questions
   and participants. Action items become tasks in one click; a Meetings tab keeps the

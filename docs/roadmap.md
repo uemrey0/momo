@@ -21,14 +21,17 @@
 - **Shipping:** English and Turkish, onboarding, settings, launch at login, update checks,
   DMG packaging and a release workflow.
 
-## In progress for the next release
+## Done in the 0.2.0 betas
 
-- Voice mode without the panel, SpeechAnalyzer and cloud transcription, OpenAI voices
-- Meeting notes with summaries, action items and participants
-- Every tool for every brain, web search, saved conversations and attachments
-- Files, Apple apps, system controls and screen context as tools
-- Relevance-ranked memory, repeating tasks and routines
-- Hiding from screen recordings and sharing
+- **Voice:** Momo's own on-device voice models (Nemotron, Kokoro, Supertonic) for dictation,
+  "Hey Momo", replies and meeting notes; voice mode without the panel; cloud transcription
+  and OpenAI voices with your own key.
+- **Meeting notes:** summaries with decisions, action items and participants.
+- **Tools everywhere:** every tool for every brain, web search, saved conversations and
+  attachments; files, Apple apps, system controls and screen context as tools.
+- **Memory and routines:** relevance-ranked memory, repeating tasks and routines.
+- **Privacy:** hiding from screen recordings and sharing; asking before acting on untrusted
+  web and file content.
 
 ## Next
 
