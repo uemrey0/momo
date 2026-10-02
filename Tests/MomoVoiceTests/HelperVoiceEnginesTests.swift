@@ -117,6 +117,36 @@ struct HelperVoiceEnginesTests {
         #expect(!FileManager.default.fileExists(atPath: path))
     }
 
+    @Test("stops observing the helper once the transcription finished")
+    func transcriptionObserver() async throws {
+        let (client, _) = makeClient()
+        let clip = AudioClip.wav(samples: [Float](repeating: 0, count: 1_600), sampleRate: 16_000)
+        for _ in 0..<3 {
+            let service = HelperTranscriptionService(
+                client: client, locale: Locale(identifier: "en_US"))
+            _ = try await service.transcribe(clip, options: TranscriptionOptions())
+            #expect(client.observerCount == 0)
+        }
+    }
+
+    @Test("stops observing the helper when a transcription is cancelled")
+    func failedTranscriptionObserver() async throws {
+        let client = LiveVoiceHelperClient(handshakeTimeout: .milliseconds(300)) {
+            let transport = FakeHelperTransport()
+            transport.answersTranscribe = false
+            return transport
+        }
+        let transcriber = HelperTranscriber(client: client, locale: Locale(identifier: "en_US"))
+        let url = URL(fileURLWithPath: "/tmp/momo-missing.wav")
+        let attempt = Task {
+            try await transcriber.transcribe(fileAt: url, language: nil, duration: 1)
+        }
+        #expect(await eventually { client.observerCount == 1 })
+        attempt.cancel()
+        await #expect(throws: CancellationError.self) { try await attempt.value }
+        #expect(client.observerCount == 0)
+    }
+
     @Test("adds a model folder and a voice file, and reports what went wrong")
     func imports() async throws {
         let (client, launches) = makeClient()
