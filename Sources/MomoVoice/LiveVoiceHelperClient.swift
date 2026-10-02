@@ -178,6 +178,9 @@ public final class LiveVoiceHelperClient {
         observers[token] = nil
     }
 
+    /// How many observers are registered.
+    var observerCount: Int { observers.count }
+
     /// Marks the helper as in use, so it keeps running.
     public func acquire() {
         users += 1

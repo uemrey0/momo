@@ -370,6 +370,8 @@ final class HelperTranscriber {
         if observer == nil {
             observer = client.addObserver { [weak self] message in self?.handle(message) }
         }
+        // The client outlives this transcriber; only listen while a recording is in flight.
+        defer { stopObservingIfIdle() }
         let id = UUID().uuidString
         let tag =
             language.map { Locale(identifier: $0).identifier(.bcp47) }
@@ -395,6 +397,12 @@ final class HelperTranscriber {
             Task { @MainActor [weak self] in self?.finish(id, .failure(CancellationError())) }
         }
         return transcript
+    }
+
+    private func stopObservingIfIdle() {
+        guard pending.isEmpty, let observer else { return }
+        client.removeObserver(observer)
+        self.observer = nil
     }
 
     private func finish(_ id: String, _ result: Result<Transcript, any Error>) {

@@ -14,6 +14,8 @@ final class FakeHelperTransport: LiveVoiceTransport {
     var answersStart = true
     /// How the helper answers `prepare`: `nil` never, `true` prepared, `false` an error.
     var preparesSuccessfully: Bool? = true
+    /// Whether the helper answers `transcribe` (a long recording takes a while).
+    var answersTranscribe = true
     var models: [LiveModelInfo] = []
     private(set) var commands: [LiveVoiceCommand] = []
     private(set) var isRunning = false
@@ -68,7 +70,7 @@ final class FakeHelperTransport: LiveVoiceTransport {
             }
         case .importVoice(let modelID, _):
             emit(.voiceImported(modelID: modelID, voice: "my_voice"))
-        case .transcribe(let id, _, _):
+        case .transcribe(let id, _, _) where answersTranscribe:
             emit(
                 .transcribed(
                     id: id,
