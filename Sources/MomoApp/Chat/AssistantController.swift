@@ -85,6 +85,59 @@ extension ChatMessage {
     var duration: TimeInterval? {
         finishedAt.map { $0.timeIntervalSince(date) }
     }
+
+    /// Marks the latest running step named `name` as finished. Earlier steps of the same tool
+    /// that already finished keep their state.
+    mutating func finishStep(
+        named name: String, succeeded: Bool, missingPermission: MacPermission?, at date: Date
+    ) {
+        guard
+            let step = activities.lastIndex(where: { $0.toolName == name && $0.state == .running })
+        else { return }
+        activities[step].state = succeeded ? .succeeded : .failed
+        activities[step].missingPermission = missingPermission
+        activities[step].finishedAt = date
+    }
+
+    /// Ends an answer the user stopped: it no longer streams, and steps still running count as
+    /// failed.
+    mutating func markStopped(at date: Date) {
+        guard isStreaming else { return }
+        isStreaming = false
+        finishedAt = date
+        for step in activities.indices where activities[step].state == .running {
+            activities[step].state = .failed
+        }
+    }
+
+    /// The error message shown when a request fails.
+    static func failure(_ error: any Error) -> ChatMessage {
+        ChatMessage(role: .error, text: error.localizedDescription, issue: ChatIssue(error: error))
+    }
+}
+
+/// Where asking the last message again starts from.
+struct RetryPlan: Equatable {
+    /// The user message asked again.
+    var request: ChatMessage
+    /// The chat up to and including the request; the answer it replaces is gone.
+    var messages: [ChatMessage]
+    /// What the brain sees before the request: the chat before it, without errors.
+    var history: [ChatTurn]
+
+    /// The plan for asking the last user message of `messages` again, or `nil` when there is
+    /// none.
+    init?(messages: [ChatMessage]) {
+        guard let index = messages.lastIndex(where: { $0.role == .user }) else { return nil }
+        request = messages[index]
+        self.messages = Array(messages[...index])
+        history = messages[..<index].compactMap(\.turn)
+    }
+
+    /// Whether the last message of `messages` can be asked again: it was answered or failed.
+    static func isPossible(in messages: [ChatMessage]) -> Bool {
+        messages.last.map { $0.role != .user } == true && messages.contains { $0.role == .user }
+    }
 }
 
 extension ChatMessage {
@@ -274,7 +327,7 @@ struct OutboundRecord: Codable, Identifiable, Equatable {
 }
 
 /// Remembers the user's consent for one background job, so it is asked at most once.
-private actor ConsentMemory {
+actor ConsentMemory {
     private let ask: RemoteConsentHandler
     private var remembered: RemoteConsent?
 
@@ -466,13 +519,9 @@ final class AssistantController {
         isBusy = false
         isInBackground = false
         onRequestFinished?()
+        let now = Date()
         for index in messages.indices where messages[index].isStreaming {
-            messages[index].isStreaming = false
-            messages[index].finishedAt = Date()
-            for step in messages[index].activities.indices
-            where messages[index].activities[step].state == .running {
-                messages[index].activities[step].state = .failed
-            }
+            messages[index].markStopped(at: now)
         }
         character?.showIdle()
         saveConversation()
@@ -481,12 +530,12 @@ final class AssistantController {
     /// Asks the last message again, for example after fixing what made it fail. The failed
     /// answer is replaced.
     func retry() {
-        guard !isBusy, let index = messages.lastIndex(where: { $0.role == .user }) else { return }
-        let request = messages[index]
-        messages.removeSubrange((index + 1)...)
+        guard !isBusy, let plan = RetryPlan(messages: messages) else { return }
+        let request = plan.request
+        messages = plan.messages
         // The brain must not see the replaced answer either, only what the chat shows before
         // the message, after any history change still on its way.
-        let turns = messages[..<index].compactMap(\.turn)
+        let turns = plan.history
         let assistant = assistant
         let previous = historyUpdate
         historyUpdate = Task {
@@ -509,8 +558,7 @@ final class AssistantController {
 
     /// Whether the last message can be asked again.
     var canRetry: Bool {
-        !isBusy && messages.last.map { $0.role != .user } == true
-            && messages.contains { $0.role == .user }
+        !isBusy && RetryPlan.isPossible(in: messages)
     }
 
     func newConversation() {
@@ -656,15 +704,10 @@ final class AssistantController {
                         if !answer.artifacts.contains(kept) { answer.artifacts.append(kept) }
                     }
                 case .toolFinished(let name, let succeeded, let permission):
-                    update { answer in
-                        guard
-                            let activity = answer.activities.lastIndex(where: {
-                                $0.toolName == name && $0.state == .running
-                            })
-                        else { return }
-                        answer.activities[activity].state = succeeded ? .succeeded : .failed
-                        answer.activities[activity].missingPermission = permission
-                        answer.activities[activity].finishedAt = Date()
+                    update {
+                        $0.finishStep(
+                            named: name, succeeded: succeeded, missingPermission: permission,
+                            at: Date())
                     }
                     onReplyEvent?(.toolFinished)
                     if succeeded, ["add_task", "complete_task", "log_habit"].contains(name) {
@@ -693,10 +736,7 @@ final class AssistantController {
                 $0.isStreaming = false
                 $0.finishedAt = Date()
             }
-            messages.append(
-                ChatMessage(
-                    role: .error, text: error.localizedDescription,
-                    issue: ChatIssue(error: error)))
+            messages.append(.failure(error))
             lastRequestError = error.localizedDescription
             lastRequestIssue = ChatIssue(error: error)
             character?.showTrouble()
@@ -788,7 +828,13 @@ final class AssistantController {
     /// How much transcript fits one background request: enough for the smallest ready
     /// on-device brain, so long jobs are split instead of leaving the Mac just for length.
     var backgroundRequestBudget: Int {
-        let ready = providerStatuses.filter(\.availability.isReady).map(\.info)
+        Self.backgroundRequestBudget(for: providerStatuses)
+    }
+
+    /// The background request budget for brains with `statuses`: 60% of the smallest ready
+    /// on-device brain (or of the smallest ready brain), kept between 4,000 and 40,000.
+    nonisolated static func backgroundRequestBudget(for statuses: [ProviderStatus]) -> Int {
+        let ready = statuses.filter(\.availability.isReady).map(\.info)
         let local = ready.filter { $0.kind == .local }.map(\.comfortableLength)
         let smallest = local.min() ?? ready.map(\.comfortableLength).min() ?? 24_000
         return min(40_000, max(4_000, smallest * 6 / 10))

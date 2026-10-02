@@ -112,12 +112,57 @@ final class MeetingController {
     @ObservationIgnored private var observation: Task<Void, Never>?
     @ObservationIgnored private var consentContinuation: CheckedContinuation<RemoteConsent, Never>?
 
-    private struct PendingStart {
+    /// A start waiting for the user's answers.
+    struct PendingStart {
         var title: String
         var event: CalendarMeeting?
         var microphoneOnly = false
         var onDevice = false
         var approvedCloud = false
+
+        /// What starting needs next: system audio needs the Screen Recording permission,
+        /// on-device transcription needs Momo's voice models, and a cloud engine needs the
+        /// user's yes.
+        func nextStep(hasSystemAudioPermission: Bool, engineIsRemote: Bool) -> StartStep {
+            if !microphoneOnly, !hasSystemAudioPermission { return .askSystemAudioPermission }
+            if !engineIsRemote { return .checkVoiceModels }
+            return approvedCloud ? .begin : .askCloudTranscription
+        }
+    }
+
+    /// The next step of a start.
+    enum StartStep: Equatable {
+        case askSystemAudioPermission
+        /// Begins once Momo's voice models are ready.
+        case checkVoiceModels
+        case askCloudTranscription
+        case begin
+    }
+
+    /// The title of a new meeting: the one asked for, else the calendar event's, else the
+    /// call app's, else "Meeting".
+    static func title(requested: String?, eventTitle: String?, offerAppName: String?) -> String {
+        requested.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+            ?? eventTitle ?? offerAppName.map { String(format: L("%@ call"), $0) }
+            ?? L("Meeting")
+    }
+
+    /// `meeting` marked as failed when Momo quit while recording or summarising it, ending
+    /// where its transcript ends; `nil` when it wasn't interrupted.
+    static func interrupted(_ meeting: Meeting, reason: String) -> Meeting? {
+        guard meeting.status == .recording || meeting.status == .summarizing else { return nil }
+        var meeting = meeting
+        meeting.status = .failed
+        meeting.endedAt =
+            meeting.endedAt
+            ?? meeting.segments.last.map { meeting.startedAt.addingTimeInterval($0.end) }
+        meeting.failureReason = reason
+        return meeting
+    }
+
+    /// The invited people who weren't heard, for the summary to place.
+    static func unheardAttendees(of meeting: Meeting) -> [String] {
+        meeting.participants.filter { !$0.isUser && !$0.spoke }.map(\.name)
     }
 
     /// The speech engine for one meeting.
@@ -151,15 +196,9 @@ final class MeetingController {
             }
         }
         Task {
-            for var meeting in await store.meetings()
-            where meeting.status == .recording || meeting.status == .summarizing {
-                meeting.status = .failed
-                meeting.endedAt =
-                    meeting.endedAt
-                    ?? meeting.segments.last.map {
-                        meeting.startedAt.addingTimeInterval($0.end)
-                    }
-                meeting.failureReason = L("Momo quit before the summary was written.")
+            let reason = L("Momo quit before the summary was written.")
+            for meeting in await store.meetings() {
+                guard var meeting = Self.interrupted(meeting, reason: reason) else { continue }
                 if meeting.audioFiles.isEmpty {
                     let directory = AppSettings.meetingsDirectory
                     let id = meeting.id
@@ -183,10 +222,8 @@ final class MeetingController {
     ) async -> StartResult {
         guard phase == .idle else { return .alreadyRunning }
         let event = event ?? currentEvent()
-        let title =
-            title.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
-            ?? event?.title ?? offer.map { String(format: L("%@ call"), $0.app.name) }
-            ?? L("Meeting")
+        let title = Self.title(
+            requested: title, eventTitle: event?.title, offerAppName: offer?.app.name)
         offer = nil
         pending = PendingStart(title: title, event: event, approvedCloud: approvedCloud)
         return await continueStart()
@@ -194,13 +231,16 @@ final class MeetingController {
 
     private func continueStart() async -> StartResult {
         guard let request = pending else { return .failed(L("Nothing to start.")) }
-        if !request.microphoneOnly, !MeetingAudioCapture.hasSystemAudioPermission {
+        let engine = request.onDevice ? onDeviceEngine() : transcriptionEngine()
+        let step = request.nextStep(
+            hasSystemAudioPermission: MeetingAudioCapture.hasSystemAudioPermission,
+            engineIsRemote: engine.isRemote)
+        switch step {
+        case .askSystemAudioPermission:
             startPrompt = .systemAudioPermission
             showMeetings?()
             return .waitingForAnswer
-        }
-        let engine = request.onDevice ? onDeviceEngine() : transcriptionEngine()
-        if !engine.isRemote {
+        case .checkVoiceModels:
             let status = await voiceModelsCanListen()
             guard status == .ready else {
                 startPrompt = nil
@@ -209,11 +249,12 @@ final class MeetingController {
                 errorMessage = message
                 return .failed(message)
             }
-        }
-        if engine.isRemote, !request.approvedCloud {
+        case .askCloudTranscription:
             startPrompt = .cloudTranscription(service: engine.service.displayName)
             showMeetings?()
             return .waitingForAnswer
+        case .begin:
+            break
         }
         startPrompt = nil
         pending = nil
@@ -527,7 +568,7 @@ final class MeetingController {
             return
         }
         character?.showWorking()
-        let attendees = meeting.participants.filter { !$0.isUser && !$0.spoke }.map(\.name)
+        let attendees = Self.unheardAttendees(of: meeting)
         let context = MeetingContext(
             title: meeting.title, startedAt: meeting.startedAt, attendees: attendees,
             language: meeting.language)

@@ -68,22 +68,25 @@ final class ContextMonitor: NSObject {
         guard calendar.isAuthorized else { return }
         for event in calendar.events(from: now, to: now.addingTimeInterval(6 * 60))
         where !event.isAllDay {
-            let key =
-                "\(event.eventIdentifier ?? event.title ?? "")-\(event.startDate.timeIntervalSince1970)"
-            let minutes = event.startDate.timeIntervalSince(now) / 60
-            guard minutes > 0, minutes <= 5, !announcedEvents.contains(key) else { continue }
+            let key = ContextRules.meetingKey(
+                identifier: event.eventIdentifier, title: event.title, startDate: event.startDate)
+            guard
+                let minutes = ContextRules.minutesUntilMeeting(
+                    startingAt: event.startDate, now: now),
+                !announcedEvents.contains(key)
+            else { continue }
             announcedEvents.insert(key)
             character?.simulate(.meetingSoon)
             notify(
                 id: "meeting-\(key)", title: event.title ?? L("Meeting"),
-                body: String(format: L("Starts in %lld minutes."), max(1, Int(minutes.rounded()))))
+                body: String(format: L("Starts in %lld minutes."), minutes))
         }
     }
 
     private func checkReminders(now: Date) async {
         let tasks = await store.tasks()
         for task in tasks {
-            guard let remind = task.remindAt, remind <= now, now.timeIntervalSince(remind) < 120,
+            guard ContextRules.reminderJustCameDue(task.remindAt, now: now),
                 !firedReminders.contains(task.id)
             else { continue }
             firedReminders.insert(task.id)
@@ -104,37 +107,30 @@ final class ContextMonitor: NSObject {
                 let capacity = description[kIOPSCurrentCapacityKey] as? Int,
                 let state = description[kIOPSPowerSourceStateKey] as? String
             else { continue }
-            let onBattery = state == kIOPSBatteryPowerValue
-            if onBattery, capacity <= 10, !lowBatteryAnnounced {
-                lowBatteryAnnounced = true
-                character?.simulate(.lowBattery)
-            } else if !onBattery || capacity > 20 {
-                lowBatteryAnnounced = false
-            }
+            let alert = ContextRules.lowBattery(
+                onBattery: state == kIOPSBatteryPowerValue, capacity: capacity,
+                announced: lowBatteryAnnounced)
+            lowBatteryAnnounced = alert.announced
+            if alert.announce { character?.simulate(.lowBattery) }
         }
     }
 
     private func checkLateNight(now: Date, idle: Double) {
-        let hour = Calendar.current.component(.hour, from: now)
-        let day = DayKey.string(for: now)
-        guard (1..<5).contains(hour), idle < 60, lateNightDay != day else { return }
-        lateNightDay = day
+        guard ContextRules.isLateNight(now: now, idle: idle, lastDay: lateNightDay) else { return }
+        lateNightDay = DayKey.string(for: now)
         character?.simulate(.lateNight)
     }
 
     /// Greets the user the first time they are active on a morning, with a summary of the day.
     private func checkMorning(now: Date, idle: Double) async {
-        let hour = Calendar.current.component(.hour, from: now)
+        guard ContextRules.shouldGreet(now: now, idle: idle, lastGreetingDay: greetingDay)
+        else { return }
         let day = DayKey.string(for: now)
-        guard (5..<12).contains(hour), idle < 30, greetingDay != day else { return }
         greetingDay = day
         UserDefaults.standard.set(day, forKey: "lastGreetingDay")
 
         let calendarDay = Calendar.current
-        let tasks = await store.tasks().filter { task in
-            guard let due = task.dueDate ?? task.remindAt else { return false }
-            return calendarDay.isDateInToday(due) || due < now
-        }
+        let tasks = ContextRules.tasksForToday(await store.tasks(), now: now)
         let end =
             calendarDay.date(byAdding: .day, value: 1, to: calendarDay.startOfDay(for: now)) ?? now
         let events = calendar.events(from: now, to: end).filter { !$0.isAllDay }
@@ -281,19 +277,17 @@ final class ContextMonitor: NSObject {
         guard canNotify else { return }
         let center = UNUserNotificationCenter.current()
         let now = Date()
-        let wanted = tasks.filter { ($0.remindAt ?? .distantPast) > now }
-        let wantedIDs = Set(
-            wanted.map { "task-\($0.id)-\($0.remindAt?.timeIntervalSince1970 ?? 0)" })
         Task {
             // Checked every time, so reminders skipped while notifications were off are
             // scheduled once the user allows them.
             guard await Self.notificationsAllowed() else { return }
             let pending = await Self.pendingTaskNotificationIDs()
-            let stale = pending.filter { !wantedIDs.contains($0) }
-            center.removePendingNotificationRequests(withIdentifiers: stale)
-            for task in wanted {
-                let id = "task-\(task.id)-\(task.remindAt?.timeIntervalSince1970 ?? 0)"
-                guard !pending.contains(id), let remind = task.remindAt else { continue }
+            let plan = ContextRules.ReminderNotificationPlan(
+                tasks: tasks, pending: pending, now: now)
+            center.removePendingNotificationRequests(withIdentifiers: plan.stale)
+            for task in plan.toSchedule {
+                let id = ContextRules.reminderNotificationID(for: task)
+                guard let remind = task.remindAt else { continue }
                 let content = UNMutableNotificationContent()
                 content.title = L("Reminder")
                 content.body = task.title
