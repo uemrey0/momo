@@ -5,7 +5,8 @@
 # Environment variables:
 #   CONFIGURATION   Debug or Release (default: Release)
 #   SIGN_IDENTITY   Code signing identity (default: "-" for an ad-hoc signature)
-#   VERSION         Marketing version (default: the value in Scripts/Info.plist)
+#   VERSION         Marketing version (default: the latest git tag without its "v", or the
+#                   value in Scripts/Info.plist when there is no tag)
 #   VOICE_HELPER    auto, 1 or 0: bundle the momo-voice live voice helper (default: auto, which
 #                   bundles it when it builds and warns otherwise; 1 makes a failure fatal)
 
@@ -76,7 +77,11 @@ for language in "${LOCALIZATIONS[@]}"; do
     cp "$ROOT/Scripts/InfoPlist/$language.strings" "$APP/Contents/Resources/$language.lproj/InfoPlist.strings"
 done
 
-if [[ -n "${VERSION:-}" ]]; then
+if [[ -z "${VERSION:-}" ]]; then
+    VERSION="$(git -C "$ROOT" describe --tags --abbrev=0 2>/dev/null || true)"
+    VERSION="${VERSION#v}"
+fi
+if [[ -n "$VERSION" ]]; then
     plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 fi
 BUILD_NUMBER="$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 1)"
