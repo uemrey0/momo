@@ -222,23 +222,3 @@ public struct MeetingActionItem: Codable, Sendable, Hashable, Identifiable {
         taskID = container.lenient(String.self, .taskID)
     }
 }
-
-extension KeyedDecodingContainer {
-    /// Decodes an array, skipping elements that cannot be read, so one damaged entry never
-    /// hides the rest. A missing or unreadable array is empty.
-    func lossy<T: Decodable>(_ type: T.Type, _ key: Key) -> [T] {
-        guard var list = try? nestedUnkeyedContainer(forKey: key) else { return [] }
-        var result: [T] = []
-        while !list.isAtEnd {
-            if let value = try? list.decode(T.self) {
-                result.append(value)
-            } else if (try? list.decode(Skipped.self)) == nil {
-                break
-            }
-        }
-        return result
-    }
-}
-
-/// Consumes one element of any shape.
-private struct Skipped: Decodable {}

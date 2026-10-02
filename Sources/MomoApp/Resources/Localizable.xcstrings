@@ -3819,6 +3819,16 @@
         }
       }
     },
+    "Momo couldn't read its saved data" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo kayıtlı verilerini okuyamadı"
+          }
+        }
+      }
+    },
     "Momo couldn't start listening. Try again in a moment." : {
       "localizations" : {
         "tr" : {
@@ -3865,6 +3875,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo hâlâ yanıt veriyor. Birazdan tekrar dene."
+          }
+        }
+      }
+    },
+    "Momo left out %d damaged items. A copy of the original file is at %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo bozuk %d öğeyi dışarıda bıraktı. Orijinal dosyanın bir kopyası %@ konumunda."
           }
         }
       }
@@ -4035,6 +4055,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo günlük istekler için Mac'indeki ilk hazır beyni kullanır, büyük işleri uzak bir beyne göndermeden önce sorar. Sırayı oklarla değiştirebilirsin."
+          }
+        }
+      }
+    },
+    "Momo won't save changes until the file at %@ is fixed or moved." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ konumundaki dosya düzeltilene ya da taşınana kadar Momo değişiklikleri kaydetmeyecek."
           }
         }
       }
@@ -4518,6 +4548,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bildirimler"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamam"
           }
         }
       }
@@ -6349,6 +6389,16 @@
         }
       }
     },
+    "Some saved items couldn't be read" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kayıtlı bazı öğeler okunamadı"
+          }
+        }
+      }
+    },
     "Something Failed" : {
       "comment" : "Simulated event",
       "localizations" : {
@@ -6953,6 +7003,16 @@
         }
       }
     },
+    "The file was damaged, so Momo moved it to %@ and started fresh. Nothing in it was deleted." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dosya bozuk olduğu için Momo onu %@ konumuna taşıdı ve sıfırdan başladı. İçindeki hiçbir şey silinmedi."
+          }
+        }
+      }
+    },
     "The meeting's audio is sent in short pieces to this service with your API key while Momo takes notes, and each piece is listed in Privacy. Or Momo can transcribe everything on this Mac." : {
       "localizations" : {
         "tr" : {
@@ -7231,6 +7291,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geç saatlere mi kaldın?"
+          }
+        }
+      }
+    },
+    "Update Momo to make changes. Until then, Momo only reads your data." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Değişiklik yapmak için Momo'yu güncelle. O zamana kadar Momo verilerini yalnızca okur."
           }
         }
       }
@@ -7781,6 +7851,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sohbetlerin burada görünecek."
+          }
+        }
+      }
+    },
+    "Your data is from a newer Momo" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verilerin Momo'nun daha yeni bir sürümünden"
           }
         }
       }

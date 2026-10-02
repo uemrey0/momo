@@ -166,7 +166,8 @@ public struct Memory: Codable, Sendable, Hashable, Identifiable {
 /// Everything Momo stores, persisted as one JSON document.
 ///
 /// Older files load too: fields added later decode with their defaults, and the file is
-/// written back in the current format on the next change.
+/// written back in the current format on the next change. A file from a newer Momo keeps its
+/// `version`, and the store refuses to write it.
 public struct MomoData: Codable, Sendable, Equatable {
     /// The format written today. Version 2 added memory categories, repeating tasks with
     /// priority and tags, and routines; version 3 added meetings.
@@ -195,16 +196,16 @@ public struct MomoData: Codable, Sendable, Equatable {
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        // Decoding migrates older formats, so the value in memory is always current.
-        version = Self.currentVersion
-        tasks = try container.decodeIfPresent([TaskItem].self, forKey: .tasks) ?? []
-        notes = try container.decodeIfPresent([Note].self, forKey: .notes) ?? []
-        habits = try container.decodeIfPresent([Habit].self, forKey: .habits) ?? []
-        memories = try container.decodeIfPresent([Memory].self, forKey: .memories) ?? []
-        routines = try container.decodeIfPresent([Routine].self, forKey: .routines) ?? []
-        // Meetings hold long transcripts, so a damaged one is skipped rather than failing the
-        // whole file.
-        meetings = container.lossy(Meeting.self, .meetings)
+        // Decoding migrates older formats, so the value in memory is current. A newer format
+        // keeps its version, so the store knows not to write it back with fields dropped.
+        version = max(container.lenient(Int.self, .version) ?? 0, Self.currentVersion)
+        // A damaged item is skipped rather than failing the whole file.
+        tasks = try container.lossyList(TaskItem.self, .tasks)
+        notes = try container.lossyList(Note.self, .notes)
+        habits = try container.lossyList(Habit.self, .habits)
+        memories = try container.lossyList(Memory.self, .memories)
+        routines = try container.lossyList(Routine.self, .routines)
+        meetings = try container.lossyList(Meeting.self, .meetings)
     }
 }
 

@@ -159,4 +159,77 @@ struct MomoStoreTests {
         let next = await iterator.next()
         #expect(next?.tasks.count == 1)
     }
+
+    @Test("moves an unreadable file aside instead of writing over it")
+    func corruptFile() async throws {
+        let url = temporaryStore().fileURL
+        let folder = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let garbage = Data(#"{"tasks": [{"id": "a1", "title": "Keep me""#.utf8)
+        try garbage.write(to: url)
+
+        let store = MomoStore(fileURL: url)
+        #expect(await store.tasks().isEmpty)
+        let backup = try #require(await store.problem()?.backup)
+        #expect(backup.deletingLastPathComponent().path == folder.path)
+        #expect(backup.lastPathComponent.hasPrefix("data.corrupt-"))
+        #expect(backup.pathExtension == "json")
+        #expect(try Data(contentsOf: backup) == garbage)
+
+        try await store.addTask(title: "Fresh start")
+        #expect(try Data(contentsOf: backup) == garbage)
+        #expect(await MomoStore(fileURL: url).tasks().map(\.title) == ["Fresh start"])
+        #expect(await store.problem() == .unreadable(backup: backup))
+    }
+
+    @Test("skips a damaged item, keeps the rest and backs up the original")
+    func damagedItem() async throws {
+        let first = temporaryStore()
+        try await first.addTask(title: "Buy milk")
+        try await first.addNote(title: "Ideas", body: "Momo wears a hat")
+        try await first.remember("The user's name is Emre")
+        var json = try #require(
+            try JSONSerialization.jsonObject(with: Data(contentsOf: first.fileURL))
+                as? [String: Any])
+        json["tasks"] = (json["tasks"] as? [Any] ?? []) + [["title": 42]]
+        json["notes"] = (json["notes"] as? [Any] ?? []) + ["not a note"]
+        let damaged = try JSONSerialization.data(withJSONObject: json)
+        try damaged.write(to: first.fileURL)
+
+        let store = MomoStore(fileURL: first.fileURL)
+        #expect(await store.tasks().map(\.title) == ["Buy milk"])
+        #expect(await store.notes().map(\.title) == ["Ideas"])
+        #expect(await store.memories().count == 1)
+        let problem = try #require(await store.problem())
+        guard case .skippedItems(let count, let backup?) = problem else {
+            Issue.record("Unexpected problem: \(problem)")
+            return
+        }
+        #expect(count == 2)
+        #expect(backup.lastPathComponent.hasPrefix("data.backup-"))
+        #expect(try Data(contentsOf: backup) == damaged)
+
+        try await store.addTask(title: "Call Ayşe")
+        #expect(await MomoStore(fileURL: first.fileURL).tasks().count == 2)
+    }
+
+    @Test("reads a file from a newer Momo but refuses to write it")
+    func newerVersion() async throws {
+        let first = temporaryStore()
+        try await first.addTask(title: "Buy milk")
+        var json = try #require(
+            try JSONSerialization.jsonObject(with: Data(contentsOf: first.fileURL))
+                as? [String: Any])
+        json["version"] = MomoData.currentVersion + 1
+        json["somethingNew"] = ["kept": true]
+        let newer = try JSONSerialization.data(withJSONObject: json)
+        try newer.write(to: first.fileURL)
+
+        let store = MomoStore(fileURL: first.fileURL)
+        #expect(await store.tasks().map(\.title) == ["Buy milk"])
+        #expect(await store.problem() == .newerVersion(MomoData.currentVersion + 1))
+        await #expect(throws: ToolError.self) { try await store.addTask(title: "Call Ayşe") }
+        await #expect(throws: ToolError.self) { try await store.eraseAll() }
+        #expect(try Data(contentsOf: first.fileURL) == newer)
+    }
 }

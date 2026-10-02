@@ -161,6 +161,27 @@ final class AppModel {
         if !settings.preferences.hasCompletedOnboarding {
             showOnboarding()
         }
+        watchStoreProblems()
+    }
+
+    /// Tells the user once about each problem reading the data files, now or when the data
+    /// file changes later.
+    private func watchStoreProblems() {
+        let store = store
+        let conversations = assistant.conversationStore
+        Task { [weak self] in
+            if let conversations, let problem = await conversations.problem() {
+                StoreProblemAlert.show(problem, fileURL: conversations.fileURL)
+            }
+            var reported: StoreProblem?
+            for await _ in await store.changes() {
+                guard self != nil else { return }
+                let problem = await store.problem()
+                guard let problem, problem != reported else { continue }
+                reported = problem
+                StoreProblemAlert.show(problem, fileURL: store.fileURL)
+            }
+        }
     }
 
     /// Pushes settings that live outside the settings object into the running app.

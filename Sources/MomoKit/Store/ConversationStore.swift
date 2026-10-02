@@ -143,7 +143,8 @@ public struct ConversationMessage: Codable, Sendable, Hashable {
 /// Saves conversations in a JSON file of their own, newest first, so they can be listed,
 /// searched, reopened and continued.
 ///
-/// Writes are atomic, and the file is reloaded when it changed on disk. The oldest
+/// Writes are atomic, and the file is reloaded when it changed on disk. A file that can't be
+/// read is moved aside before anything is written over it. The oldest
 /// conversations are dropped beyond `maximumConversations`, and the oldest messages of a
 /// conversation beyond `maximumMessages`.
 public actor ConversationStore {
@@ -152,6 +153,7 @@ public actor ConversationStore {
     public nonisolated let maximumMessages: Int
     private var conversations: [Conversation] = []
     private var loadedModificationDate: Date?
+    private var loadProblem: StoreProblem?
 
     public init(fileURL: URL, maximumConversations: Int = 200, maximumMessages: Int = 400) {
         self.fileURL = fileURL
@@ -169,6 +171,12 @@ public actor ConversationStore {
     public func all() -> [Conversation] {
         reloadIfNeeded()
         return conversations
+    }
+
+    /// What went wrong reading the file, for the app to tell the user. `nil` when nothing did.
+    public func problem() -> StoreProblem? {
+        reloadIfNeeded()
+        return loadProblem
     }
 
     /// Conversations whose title or messages contain every word of `query`, most recent
@@ -205,12 +213,14 @@ public actor ConversationStore {
 
     /// Deletes every conversation.
     public func deleteAll() throws {
+        reloadIfNeeded()
         try write([])
     }
 
     // MARK: - Persistence
 
     private func write(_ value: [Conversation]) throws {
+        if let error = loadProblem?.writeError(for: fileURL) { throw error }
         let directory = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
@@ -225,15 +235,32 @@ public actor ConversationStore {
         let modified = modificationDate()
         guard modified != loadedModificationDate else { return }
         loadedModificationDate = modified
-        guard modified != nil, let contents = try? Data(contentsOf: fileURL) else {
+        guard modified != nil else {
             conversations = []
             return
         }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        if let decoded = try? decoder.decode([Conversation].self, from: contents) {
-            conversations = decoded.sorted { $0.updatedAt > $1.updatedAt }
+        let skipped = SkippedElements()
+        let decoded: [Conversation]
+        do {
+            let contents = try Data(contentsOf: fileURL)
+            decoded = try StoreFile.decoder(counting: skipped)
+                .decode([Lossy<Conversation>].self, from: contents).compactMap(\.value)
+        } catch {
+            // Writing would replace every conversation, so the file is moved aside first.
+            let backup = try? StoreFile.backUp(fileURL, label: "corrupt", keepingOriginal: false)
+            if backup != nil { loadedModificationDate = nil }
+            loadProblem = .unreadable(backup: backup)
+            conversations = []
+            return
         }
+        if skipped.count > 0 {
+            // The next write drops the skipped conversations, so the file is kept as it is.
+            let backup = try? StoreFile.backUp(fileURL, label: "backup", keepingOriginal: true)
+            loadProblem = .skippedItems(count: skipped.count, backup: backup)
+        } else if loadProblem?.writeError(for: fileURL) != nil {
+            loadProblem = nil
+        }
+        conversations = decoded.sorted { $0.updatedAt > $1.updatedAt }
     }
 
     private func modificationDate() -> Date? {
