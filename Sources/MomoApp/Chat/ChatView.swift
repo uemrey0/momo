@@ -38,7 +38,10 @@ struct ChatView: View {
                 SetUpAICard(setUp: setUpAI, height: $welcomeHeight)
                     .transition(.opacity)
             } else if assistant.messages.isEmpty {
-                EmptyChatView(height: $welcomeHeight) { suggestion in
+                EmptyChatView(
+                    height: $welcomeHeight,
+                    shortcut: assistant.settings.preferences.shortcuts.openPanel
+                ) { suggestion in
                     withAnimation(Theme.spring) { assistant.send(suggestion) }
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
@@ -245,7 +248,8 @@ struct ChatView: View {
             .padding(.leading, snapshotMode ? 14 : 0)
 
             if let voice, !assistant.isBusy {
-                MicrophoneButton(voice: voice)
+                MicrophoneButton(
+                    voice: voice, shortcut: assistant.settings.preferences.shortcuts.talk)
             }
             if assistant.isBusy {
                 Button {
@@ -296,6 +300,8 @@ struct ChatView: View {
 /// Starts and stops dictation, pulsing with the input level while listening.
 struct MicrophoneButton: View {
     var voice: VoiceController
+    /// The talk shortcut, shown in the tooltip.
+    var shortcut: HotKeyShortcut?
 
     var body: some View {
         Button {
@@ -316,9 +322,14 @@ struct MicrophoneButton: View {
             .frame(width: 32, height: 32)
         }
         .buttonStyle(.plain)
-        .help(voice.isListening ? L("Stop listening") : L("Speak (⌥⇧Space)"))
+        .help(voice.isListening ? L("Stop listening") : speakHelp)
         .accessibilityLabel(voice.isListening ? L("Stop listening") : L("Speak"))
         .padding(.vertical, 2)
+    }
+
+    private var speakHelp: String {
+        guard let shortcut else { return L("Speak") }
+        return String(format: L("Speak (%@)"), shortcut.displayString)
     }
 }
 
@@ -369,6 +380,8 @@ struct SetUpAICard: View {
 struct EmptyChatView: View {
     /// Receives the view's natural height, so the panel can fit it.
     @Binding var height: CGFloat
+    /// The shortcut that opens the panel, for the hint at the bottom.
+    var shortcut: HotKeyShortcut?
     var send: (String) -> Void
     @State private var engine = FaceEngine()
 
@@ -408,10 +421,15 @@ struct EmptyChatView: View {
                 }
             }
             .padding(.top, 4)
-            Text(verbatim: L("Press ⌥Space anywhere to open me."))
+            if let shortcut {
+                Text(
+                    verbatim: String(
+                        format: L("Press %@ anywhere to open me."), shortcut.displayString)
+                )
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.tertiaryText)
                 .padding(.top, 4)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)

@@ -1,5 +1,4 @@
 import AppKit
-import Carbon.HIToolbox
 import MomoFace
 import MomoKit
 import Observation
@@ -21,12 +20,13 @@ final class AppModel {
     let connections: MCPConnections
     let updates: UpdateChecker
     let meetings: MeetingController
+    /// The global shortcuts for opening Momo and talking to it.
+    let shortcuts: ShortcutCenter
     @ObservationIgnored let routines: RoutineScheduler
     @ObservationIgnored private var context: ContextMonitor?
     @ObservationIgnored private var meetingDetection: MeetingDetectionMonitor?
     @ObservationIgnored private(set) var chatPanel: ChatPanelController?
     @ObservationIgnored private(set) var voice: VoiceController?
-    @ObservationIgnored private var hotKeys: [GlobalHotKey] = []
     @ObservationIgnored private var onboarding: OnboardingWindowController?
     @ObservationIgnored private lazy var settingsWindow = SettingsWindowController(model: self)
     /// Which Settings pane is showing.
@@ -45,6 +45,7 @@ final class AppModel {
         connections = MCPConnections(settings: settings)
         updates = UpdateChecker(settings: settings)
         routines = RoutineScheduler(store: store, assistant: assistant)
+        shortcuts = ShortcutCenter(settings: settings)
         meetings = MeetingController(
             store: store, settings: settings, calendar: calendar, assistant: assistant,
             character: character)
@@ -113,15 +114,11 @@ final class AppModel {
         }
         character.needsAISetup = { [weak self] in self?.hasReadyBrain == false }
         Task { await assistant.refreshProviders() }
-        hotKeys = [
-            GlobalHotKey(keyCode: kVK_Space, modifiers: optionKey) { [weak panel] in
-                panel?.toggle()
-            },
-            GlobalHotKey(
-                keyCode: kVK_Space, modifiers: optionKey | shiftKey,
-                action: { [weak voice] in voice?.shortcutPressed() },
-                released: { [weak voice] in voice?.shortcutReleased() }),
-        ].compactMap { $0 }
+        shortcuts.setHandler(for: .openPanel) { [weak panel] in panel?.toggle() }
+        shortcuts.setHandler(
+            for: .talk, pressed: { [weak voice] in voice?.shortcutPressed() },
+            released: { [weak voice] in voice?.shortcutReleased() })
+        shortcuts.apply()
         voice.startWakeWordIfEnabled()
 
         let context = ContextMonitor(
@@ -195,6 +192,7 @@ final class AppModel {
         CapturePrivacy.hidesWindows = settings.preferences.hidesFromScreenCapture
         character.appearance =
             availableCharacters.first { $0.id == settings.preferences.characterID } ?? .classic
+        shortcuts.apply()
     }
 
     /// `~/Library/Application Support/Momo/Characters`, for custom character packs.

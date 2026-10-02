@@ -102,6 +102,9 @@ connect Momo to Claude instead (below).
 | Click Momo | Open the panel (and tickle it) |
 | "Hey Momo" | Optional wake word (Settings → Voice) |
 
+⌥Space and ⌥⇧Space are the defaults. Change or turn them off in Settings → General (Open Momo)
+and Settings → Voice (Talk to Momo).
+
 Try "Remind me to call Ayşe tomorrow at 3", "What's on my calendar today?", "Start a 25-minute
 focus session", "Note that the Wi-Fi password is on the fridge" or "What's on my screen?".
 

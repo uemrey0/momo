@@ -77,6 +77,8 @@ enum SettingsSearch {
                 pane: .voice, title: L("Voices"),
                 keywords: L("Momo's voice models, OpenAI voices, sound")),
             SearchableSetting(
+                pane: .voice, title: L("Talk to Momo"), keywords: L("shortcut, hotkey")),
+            SearchableSetting(
                 pane: .voice, title: L("Hold the shortcut to talk"),
                 keywords: L("push to talk, shortcut, talk to Momo")),
             SearchableSetting(pane: .voice, title: L("Open the chat for spoken requests")),

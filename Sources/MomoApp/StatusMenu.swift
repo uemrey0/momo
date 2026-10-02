@@ -7,7 +7,7 @@ struct StatusMenu: View {
 
     var body: some View {
         Button(L("Talk to Momo")) { model.openChat(tab: .chat) }
-            .keyboardShortcut(" ", modifiers: .option)
+            .keyboardShortcut(model.settings.preferences.shortcuts.openPanel?.keyboardShortcut)
         Button(L("Today")) { model.openChat(tab: .today) }
         Button(L("Notes")) { model.openChat(tab: .notes) }
         Button(L("Meetings")) { model.openChat(tab: .meetings) }

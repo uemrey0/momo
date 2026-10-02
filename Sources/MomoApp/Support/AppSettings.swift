@@ -94,6 +94,8 @@ struct Preferences: Codable, Equatable {
     var abilities = AbilitySettings()
     /// Which service draws pictures for the image tools.
     var images = ImageSettings()
+    /// The global shortcuts for opening Momo and talking to it.
+    var shortcuts = ShortcutSettings()
 
     init() {}
 
@@ -143,6 +145,7 @@ struct Preferences: Codable, Equatable {
         meetingLanguage = value(.meetingLanguage, defaults.meetingLanguage)
         abilities = value(.abilities, defaults.abilities)
         images = value(.images, defaults.images)
+        shortcuts = value(.shortcuts, defaults.shortcuts)
     }
 }
 

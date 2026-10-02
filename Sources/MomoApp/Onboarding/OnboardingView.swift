@@ -129,7 +129,12 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 14) {
             Text(verbatim: L("How to reach me"))
                 .font(.system(size: 24, weight: .bold, design: .rounded))
-            tip("keyboard", L("Press ⌥Space anywhere to talk to me."))
+            if let shortcut = model.settings.preferences.shortcuts.openPanel {
+                tip(
+                    "keyboard",
+                    String(
+                        format: L("Press %@ anywhere to talk to me."), shortcut.displayString))
+            }
             tip("cursorarrow.click", L("Click me in the notch to open my panel."))
             tip(
                 "checklist",

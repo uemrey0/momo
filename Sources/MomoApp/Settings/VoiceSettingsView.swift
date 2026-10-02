@@ -102,9 +102,7 @@ struct VoiceSettingsView: View {
 
     private var voiceModeSection: some View {
         Section {
-            LabeledContent(L("Talk to Momo")) {
-                Text(verbatim: "⌥ ⇧ Space").font(.system(.body, design: .monospaced))
-            }
+            ShortcutRecorderRow(action: .talk, center: model.shortcuts)
             Toggle(L("Hold the shortcut to talk"), isOn: $settings.preferences.pushToTalk)
             Toggle(
                 L("Open the chat for spoken requests"),
@@ -112,14 +110,31 @@ struct VoiceSettingsView: View {
         } header: {
             Text(verbatim: L("Voice mode"))
         } footer: {
-            Text(
-                verbatim: settings.preferences.pushToTalk
-                    ? L(
-                        "Hold ⌥⇧Space while you speak and let go to send. Momo answers in a small caption under the notch; click it to open the chat, or press Esc to cancel."
-                    )
-                    : L(
-                        "Press ⌥⇧Space or say “Hey Momo”, then speak; Momo sends when you pause. It answers in a small caption under the notch; click it to open the chat, or press Esc or the shortcut again to cancel."
-                    ))
+            Text(verbatim: voiceModeFootnote)
+        }
+    }
+
+    private var voiceModeFootnote: String {
+        let shortcut = settings.preferences.shortcuts.talk?.displayString
+        switch (settings.preferences.pushToTalk, shortcut) {
+        case (true, let shortcut?):
+            return String(
+                format: L(
+                    "Hold %@ while you speak and let go to send. Momo answers in a small caption under the notch; click it to open the chat, or press Esc to cancel."
+                ), shortcut)
+        case (true, nil):
+            return L(
+                "Record a shortcut above, then hold it while you speak and let go to send. Momo answers in a small caption under the notch; click it to open the chat, or press Esc to cancel."
+            )
+        case (false, let shortcut?):
+            return String(
+                format: L(
+                    "Press %@ or say “Hey Momo”, then speak; Momo sends when you pause. It answers in a small caption under the notch; click it to open the chat, or press Esc or the shortcut again to cancel."
+                ), shortcut)
+        case (false, nil):
+            return L(
+                "Say “Hey Momo”, then speak; Momo sends when you pause. It answers in a small caption under the notch; click it to open the chat, or press Esc to cancel."
+            )
         }
     }
 

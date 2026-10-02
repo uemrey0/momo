@@ -101,6 +101,16 @@
         }
       }
     },
+    "%@ shortcut" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kısayolu"
+          }
+        }
+      }
+    },
     "%@ · %@ GB download" : {
       "localizations" : {
         "tr" : {
@@ -701,6 +711,16 @@
         }
       }
     },
+    "Add ⌃, ⌥ or ⌘ to the shortcut, or use an F-key." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kısayola ⌃, ⌥ ya da ⌘ ekle veya bir F tuşu kullan."
+          }
+        }
+      }
+    },
     "Added %@." : {
       "localizations" : {
         "tr" : {
@@ -937,6 +957,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yeni bir sürüm var."
+          }
+        }
+      }
+    },
+    "Another app is using this shortcut, so it doesn't work. Choose a different one." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu kısayolu başka bir uygulama kullanıyor, bu yüzden çalışmıyor. Başka bir kısayol seç."
           }
         }
       }
@@ -1698,6 +1728,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kaydı temizle"
+          }
+        }
+      }
+    },
+    "Clear shortcut" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kısayolu temizle"
           }
         }
       }
@@ -3206,22 +3246,22 @@
         }
       }
     },
+    "Hold %@ while you speak and let go to send. Momo answers in a small caption under the notch; click it to open the chat, or press Esc to cancel." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuşurken %@ kısayolunu basılı tut, göndermek için bırak. Momo çentiğin altındaki küçük bir baloncukta yanıt verir; sohbeti açmak için ona tıkla ya da iptal etmek için Esc'ye bas."
+          }
+        }
+      }
+    },
     "Hold the shortcut to talk" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Konuşmak için kısayolu basılı tut"
-          }
-        }
-      }
-    },
-    "Hold ⌥⇧Space while you speak and let go to send. Momo answers in a small caption under the notch; click it to open the chat, or press Esc to cancel." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konuşurken ⌥⇧Boşluk'u basılı tut, göndermek için bırak. Momo çentiğin altındaki küçük bir baloncukta yanıt verir; sohbeti açmak için ona tıkla ya da iptal etmek için Esc'ye bas."
           }
         }
       }
@@ -3455,6 +3495,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toplantı sesini sakla"
+          }
+        }
+      }
+    },
+    "Key %lld" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tuş %lld"
           }
         }
       }
@@ -4768,6 +4818,16 @@
         }
       }
     },
+    "No shortcut" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kısayol yok"
+          }
+        }
+      }
+    },
     "No summary" : {
       "localizations" : {
         "tr" : {
@@ -5549,32 +5609,42 @@
         }
       }
     },
-    "Press ⌥Space anywhere to open me." : {
+    "Press %@ anywhere to open me." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beni açmak için her yerde ⌥Boşluk'a bas."
+            "value" : "Beni açmak için her yerde %@ kısayoluna bas."
           }
         }
       }
     },
-    "Press ⌥Space anywhere to talk to me." : {
+    "Press %@ anywhere to talk to me." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benimle konuşmak için her yerde ⌥Boşluk'a bas."
+            "value" : "Benimle konuşmak için her yerde %@ kısayoluna bas."
           }
         }
       }
     },
-    "Press ⌥⇧Space or say “Hey Momo”, then speak; Momo sends when you pause. It answers in a small caption under the notch; click it to open the chat, or press Esc or the shortcut again to cancel." : {
+    "Press %@ or say “Hey Momo”, then speak; Momo sends when you pause. It answers in a small caption under the notch; click it to open the chat, or press Esc or the shortcut again to cancel." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "⌥⇧Boşluk'a bas ya da “Hey Momo” de, sonra konuş; duraklayınca Momo gönderir. Çentiğin altındaki küçük bir baloncukta yanıt verir; sohbeti açmak için ona tıkla, iptal etmek için Esc'ye ya da kısayola yeniden bas."
+            "value" : "%@ kısayoluna bas ya da “Hey Momo” de, sonra konuş; duraklayınca Momo gönderir. Çentiğin altındaki küçük bir baloncukta yanıt verir; sohbeti açmak için ona tıkla, iptal etmek için Esc'ye ya da kısayola yeniden bas."
+          }
+        }
+      }
+    },
+    "Press the new shortcut. Esc cancels, Delete clears it." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeni kısayola bas. Esc iptal eder, Delete kısayolu temizler."
           }
         }
       }
@@ -5816,6 +5886,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Önerilen"
+          }
+        }
+      }
+    },
+    "Record Shortcut" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kısayol kaydet"
+          }
+        }
+      }
+    },
+    "Record a shortcut above, then hold it while you speak and let go to send. Momo answers in a small caption under the notch; click it to open the chat, or press Esc to cancel." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yukarıda bir kısayol kaydet, sonra konuşurken basılı tut ve göndermek için bırak. Momo çentiğin altındaki küçük bir baloncukta yanıt verir; sohbeti açmak için ona tıkla ya da iptal etmek için Esc'ye bas."
           }
         }
       }
@@ -6102,6 +6192,16 @@
         }
       }
     },
+    "Reset to default" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Varsayılana döndür"
+          }
+        }
+      }
+    },
     "Restart Claude Desktop to see Momo's tools." : {
       "localizations" : {
         "tr" : {
@@ -6299,6 +6399,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Evet ya da hayır de"
+          }
+        }
+      }
+    },
+    "Say “Hey Momo”, then speak; Momo sends when you pause. It answers in a small caption under the notch; click it to open the chat, or press Esc to cancel." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Hey Momo” de, sonra konuş; duraklayınca Momo gönderir. Çentiğin altındaki küçük bir baloncukta yanıt verir; sohbeti açmak için ona tıkla ya da iptal etmek için Esc'ye bas."
           }
         }
       }
@@ -6615,6 +6725,16 @@
         }
       }
     },
+    "Shortcut taken" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kısayol dolu"
+          }
+        }
+      }
+    },
     "Should I do this?" : {
       "localizations" : {
         "tr" : {
@@ -6898,6 +7018,16 @@
         }
       }
     },
+    "Space" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boşluk"
+          }
+        }
+      }
+    },
     "Spanish" : {
       "localizations" : {
         "tr" : {
@@ -6918,12 +7048,12 @@
         }
       }
     },
-    "Speak (⌥⇧Space)" : {
+    "Speak (%@)" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Konuş (⌥⇧Boşluk)"
+            "value" : "Konuş (%@)"
           }
         }
       }
@@ -7747,6 +7877,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ekranı kapatıyorum"
+          }
+        }
+      }
+    },
+    "Type shortcut…" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kısayola bas…"
           }
         }
       }
@@ -8855,6 +8995,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "web araması, DuckDuckGo"
+          }
+        }
+      }
+    },
+    "“%@” already uses this shortcut." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu kısayolu zaten “%@” kullanıyor."
           }
         }
       }
