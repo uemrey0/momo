@@ -42,6 +42,8 @@ NOT_COUNTS = {
     "Download for Me (%lld MB)",
     "Downloading… %lld%%",
     "Female %d",
+    "Gaps in the transcript: %ld. These notes may miss part of the meeting.",
+    "GitHub answered with error %d.",
     "Male %d",
     "Participants (%ld)",
 }
