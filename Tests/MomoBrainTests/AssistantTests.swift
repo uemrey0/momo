@@ -11,6 +11,8 @@ struct FakeProvider: ChatProvider {
     var reply: [ChatEvent]
     let seen = LockedBox<[ChatRequest]>([])
     var callsTool: ToolCall?
+    /// Ends the reply with this error after its events, like a connection lost midway.
+    var failure: ProviderError?
 
     func availability() async -> ProviderAvailability {
         ready ? .ready : .unavailable("off")
@@ -24,6 +26,7 @@ struct FakeProvider: ChatProvider {
         seen.append(request)
         let reply = reply
         let callsTool = callsTool
+        let failure = failure
         return AsyncThrowingStream { continuation in
             Task {
                 if let callsTool {
@@ -31,7 +34,7 @@ struct FakeProvider: ChatProvider {
                     continuation.yield(.toolFinished(await runTool(callsTool)))
                 }
                 for event in reply { continuation.yield(event) }
-                continuation.finish()
+                continuation.finish(throwing: failure)
             }
         }
     }
@@ -137,6 +140,24 @@ struct AssistantTests {
         let events = try await run(assistant, "hi", configuration([remote]), consent: .cancel)
         #expect(events.isEmpty)
         #expect(await assistant.history.isEmpty)
+    }
+
+    @Test("keeps consent for the conversation when going back to ask again")
+    func rollBackKeepsConsent() async throws {
+        let remote = FakeProvider(
+            info: ProviderInfo(id: "remote", name: "Remote", kind: .apiKey),
+            reply: [.text("remote")])
+        let assistant = Assistant()
+        await assistant.setForcedProvider("remote")
+        _ = try await run(
+            assistant, "hi", configuration([local, remote]), consent: .allowForConversation)
+        await assistant.rollBack(to: [])
+
+        let events = try await run(
+            assistant, "hi", configuration([local, remote]), consent: .cancel)
+        #expect(events.contains(.text("remote")))
+        #expect(await assistant.forcedProviderID == "remote")
+        #expect(remote.seen.value.count == 2)
     }
 
     @Test("explains why no brain is available")

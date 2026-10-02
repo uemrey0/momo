@@ -49,6 +49,41 @@ struct HistoryTests {
         #expect(await assistant.history.isEmpty)
     }
 
+    @Test("asks again without the answer it replaces")
+    func retryAfterAnswer() async throws {
+        let assistant = Assistant()
+        try await run(assistant, "First", configuration([local]))
+        try await run(assistant, "Second", configuration([local]))
+        let earlier = Array(await assistant.history.prefix(2))
+
+        await assistant.rollBack(to: earlier)
+        try await run(assistant, "Second", configuration([local]))
+
+        let sent = try #require(local.seen.value.last)
+        #expect(sent.turns.map(\.text) == ["First", "ok", "Second"])
+        #expect(await assistant.history.map(\.text) == ["First", "ok", "Second", "ok"])
+    }
+
+    @Test("asks again without the part of an answer that failed midway")
+    func retryAfterFailure() async throws {
+        var failing = local
+        failing.reply = [.text("Half an ans")]
+        failing.failure = ProviderError("Connection lost")
+        let assistant = Assistant()
+        await #expect(throws: ProviderError.self) {
+            try await run(assistant, "Question", configuration([failing]))
+        }
+        // The partial answer stays in the history until the message is asked again.
+        #expect(await assistant.history.map(\.text) == ["Question", "Half an ans"])
+
+        await assistant.rollBack(to: [])
+        try await run(assistant, "Question", configuration([local]))
+
+        let sent = try #require(local.seen.value.last)
+        #expect(sent.turns.map(\.text) == ["Question"])
+        #expect(await assistant.history.map(\.text) == ["Question", "ok"])
+    }
+
     @Test("keeps a compact record of the tools a reply used, masked when sent remotely")
     func toolRecords() async throws {
         let tool = ClosureTool(ToolDefinition(name: "find_contact", description: "Find")) { _ in
