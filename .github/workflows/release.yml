@@ -3,8 +3,13 @@ name: Release
 # Pushing a tag such as v0.1.0 builds Momo, packs a DMG and publishes a GitHub release with
 # the matching CHANGELOG section as release notes.
 #
-# Optional secrets for a signed and notarized build (without them the app is ad-hoc signed
-# and users need to right-click → Open the first time):
+# Before tagging, check that the tag matches a CHANGELOG heading: tag v0.2.0-beta.2 needs
+# "## [0.2.0-beta.2]". Bump CFBundleShortVersionString in Scripts/Info.plist in the same
+# release commit, so local builds without a tag report the right version.
+#
+# Optional secrets for a signed and notarized build (without them the app is ad-hoc signed,
+# and users need System Settings → Privacy & Security → Open Anyway the first time, or
+# right-click → Open on macOS 14):
 #   MACOS_CERTIFICATE           base64 of a Developer ID Application .p12
 #   MACOS_CERTIFICATE_PASSWORD  its password
 #   MACOS_SIGN_IDENTITY         e.g. "Developer ID Application: Name (TEAMID)"
