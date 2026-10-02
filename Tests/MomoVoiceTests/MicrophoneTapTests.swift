@@ -16,18 +16,21 @@ private final class FakeTapEngine: MicrophoneTapEngine, @unchecked Sendable {
     private(set) var isRunning = false
     private(set) var starts = 0
 
-    init(sampleRate: Double) {
-        _format = Self.format(sampleRate)
+    init(sampleRate: Double) throws {
+        _format = try Self.format(sampleRate)
     }
 
-    static func format(_ sampleRate: Double) -> AVAudioFormat {
-        AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+    static func format(_ sampleRate: Double) throws -> AVAudioFormat {
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)
+        else { throw Failure() }
+        return format
     }
 
     /// A different microphone: its format, and whether the engine will start with it.
-    func switchDevice(sampleRate: Double, failsToStart: Bool = false) {
+    func switchDevice(sampleRate: Double, failsToStart: Bool = false) throws {
+        let format = try Self.format(sampleRate)
         lock.withLock {
-            _format = Self.format(sampleRate)
+            _format = format
             _failsToStart = failsToStart
             // The engine stops itself when the configuration changes.
             isRunning = false
@@ -92,13 +95,13 @@ struct MicrophoneTapTests {
 
     @Test("taps the new format and starts again when the device changes")
     func restartsAfterDeviceChange() throws {
-        let engine = FakeTapEngine(sampleRate: 48_000)
+        let engine = try FakeTapEngine(sampleRate: 48_000)
         let failures = Failures()
         let tap = makeTap(engine, failures: failures)
         try tap.start()
         #expect(engine.isRunning)
 
-        engine.switchDevice(sampleRate: 24_000)
+        try engine.switchDevice(sampleRate: 24_000)
         changeConfiguration(of: engine, tap: tap)
         #expect(engine.tappedRates == [48_000, 24_000])
         #expect(engine.isTapped)
@@ -109,19 +112,19 @@ struct MicrophoneTapTests {
 
     @Test("reports a restart that fails and leaves the microphone off")
     func reportsFailedRestart() throws {
-        let engine = FakeTapEngine(sampleRate: 48_000)
+        let engine = try FakeTapEngine(sampleRate: 48_000)
         let failures = Failures()
         let tap = makeTap(engine, failures: failures)
         try tap.start()
 
-        engine.switchDevice(sampleRate: 16_000, failsToStart: true)
+        try engine.switchDevice(sampleRate: 16_000, failsToStart: true)
         changeConfiguration(of: engine, tap: tap)
         #expect(failures.count == 1)
         #expect(!engine.isTapped)
         #expect(!engine.isRunning)
 
         // Later changes are ignored; the owner decides what happens next.
-        engine.switchDevice(sampleRate: 48_000)
+        try engine.switchDevice(sampleRate: 48_000)
         changeConfiguration(of: engine, tap: tap)
         #expect(failures.count == 1)
         #expect(!engine.isTapped)
@@ -130,12 +133,12 @@ struct MicrophoneTapTests {
 
     @Test("reports a device without a usable format")
     func reportsMissingMicrophone() throws {
-        let engine = FakeTapEngine(sampleRate: 48_000)
+        let engine = try FakeTapEngine(sampleRate: 48_000)
         let failures = Failures()
         let tap = makeTap(engine, failures: failures)
         try tap.start()
 
-        engine.switchDevice(sampleRate: 0)
+        try engine.switchDevice(sampleRate: 0)
         changeConfiguration(of: engine, tap: tap)
         #expect(failures.count == 1)
         #expect(!engine.isTapped)
@@ -143,11 +146,11 @@ struct MicrophoneTapTests {
 
     @Test("removes the tap on stop even when the engine already stopped itself")
     func stopRemovesTap() throws {
-        let engine = FakeTapEngine(sampleRate: 48_000)
+        let engine = try FakeTapEngine(sampleRate: 48_000)
         let failures = Failures()
         let tap = makeTap(engine, failures: failures)
         try tap.start()
-        engine.switchDevice(sampleRate: 48_000)
+        try engine.switchDevice(sampleRate: 48_000)
         #expect(!engine.isRunning)
 
         tap.stop()
@@ -161,8 +164,8 @@ struct MicrophoneTapTests {
 
     @Test("ignores other engines' changes")
     func ignoresOtherEngines() throws {
-        let engine = FakeTapEngine(sampleRate: 48_000)
-        let other = FakeTapEngine(sampleRate: 48_000)
+        let engine = try FakeTapEngine(sampleRate: 48_000)
+        let other = try FakeTapEngine(sampleRate: 48_000)
         let tap = makeTap(engine, failures: Failures())
         try tap.start()
         changeConfiguration(of: other, tap: tap)
@@ -171,15 +174,15 @@ struct MicrophoneTapTests {
     }
 
     @Test("doesn't start without a microphone, and removes the tap when the engine fails")
-    func startFailures() {
-        let silent = FakeTapEngine(sampleRate: 0)
+    func startFailures() throws {
+        let silent = try FakeTapEngine(sampleRate: 0)
         #expect(throws: DictationError.unavailable) {
             try makeTap(silent, failures: Failures()).start()
         }
         #expect(silent.tappedRates.isEmpty)
 
-        let broken = FakeTapEngine(sampleRate: 48_000)
-        broken.switchDevice(sampleRate: 48_000, failsToStart: true)
+        let broken = try FakeTapEngine(sampleRate: 48_000)
+        try broken.switchDevice(sampleRate: 48_000, failsToStart: true)
         #expect(throws: FakeTapEngine.Failure.self) {
             try makeTap(broken, failures: Failures()).start()
         }
@@ -199,9 +202,8 @@ struct MicrophoneTapTests {
 
     private func buffer(seconds: Double, sampleRate: Double) throws -> AVAudioPCMBuffer {
         let frames = AVAudioFrameCount(seconds * sampleRate)
-        let buffer = try #require(
-            AVAudioPCMBuffer(
-                pcmFormat: FakeTapEngine.format(sampleRate), frameCapacity: frames))
+        let format = try FakeTapEngine.format(sampleRate)
+        let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames))
         buffer.frameLength = frames
         let samples = try #require(buffer.floatChannelData?[0])
         for index in 0..<Int(frames) {
