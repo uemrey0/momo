@@ -113,4 +113,63 @@ struct MeetingAudioTests {
         #expect(decoded.samples.count == 3)
         #expect(abs(decoded.samples[2] - 0.5) < 0.001)
     }
+
+    private func temporaryWAV() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("momo-tests-\(UUID().uuidString)")
+            .appendingPathComponent("system.wav")
+    }
+
+    @Test("keeps the header's sizes up to date while recording, before it is closed")
+    func fileWriterUpdatesHeader() throws {
+        let url = temporaryWAV()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let writer = try WAVFileWriter(url: url, sampleRate: 100, headerUpdateInterval: 1)
+        writer.append([Float](repeating: 0.25, count: 60))
+        // Less than a second of audio: the header still says the file is empty.
+        #expect(try #require(WAVEncoder.decode(try Data(contentsOf: url))).samples.isEmpty)
+        writer.append([Float](repeating: 0.25, count: 60))
+        let decoded = try #require(WAVEncoder.decode(try Data(contentsOf: url)))
+        #expect(decoded.samples.count == 120)
+        // Samples keep going to the end of the file after the header was rewritten.
+        writer.append([0.5])
+        writer.close()
+        let closed = try #require(WAVEncoder.decode(try Data(contentsOf: url)))
+        #expect(closed.samples.count == 121)
+        #expect(abs((closed.samples.last ?? 0) - 0.5) < 0.001)
+    }
+
+    @Test("repairs the header of a file whose recording was cut short")
+    func repairsHeader() throws {
+        let url = temporaryWAV()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        // A crash leaves the empty header in front of the samples, plus half a sample.
+        var data = WAVEncoder.encode(samples: [], sampleRate: 16_000)
+        data.append(
+            WAVEncoder.encode(samples: [0.25, -0.25, 0.5], sampleRate: 16_000).dropFirst(44))
+        data.append(0x7f)
+        try data.write(to: url)
+        #expect(try #require(WAVEncoder.decode(try Data(contentsOf: url))).samples.isEmpty)
+
+        #expect(WAVFileWriter.repairHeader(at: url))
+        let decoded = try #require(WAVEncoder.decode(try Data(contentsOf: url)))
+        #expect(decoded.sampleRate == 16_000)
+        #expect(decoded.samples.count == 3)
+        #expect(abs(decoded.samples[2] - 0.5) < 0.001)
+    }
+
+    @Test("leaves files that aren't WAV recordings alone")
+    func repairIgnoresOtherFiles() throws {
+        let url = temporaryWAV()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let text = Data(String(repeating: "not audio ", count: 10).utf8)
+        try text.write(to: url)
+        #expect(!WAVFileWriter.repairHeader(at: url))
+        #expect(try Data(contentsOf: url) == text)
+        #expect(!WAVFileWriter.repairHeader(at: url.appendingPathExtension("missing")))
+    }
 }

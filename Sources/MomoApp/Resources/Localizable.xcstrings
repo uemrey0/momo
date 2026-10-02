@@ -2576,6 +2576,16 @@
         }
       }
     },
+    "Gaps in the transcript: %ld. These notes may miss part of the meeting." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dökümdeki boşluklar: %ld. Bu notlarda toplantının bir kısmı eksik olabilir."
+          }
+        }
+      }
+    },
     "Gemini" : {
       "localizations" : {
         "tr" : {
@@ -3849,6 +3859,16 @@
         }
       }
     },
+    "Momo couldn't save the meeting. %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo toplantıyı kaydedemedi. %@"
+          }
+        }
+      }
+    },
     "Momo couldn't start listening. Try again in a moment." : {
       "localizations" : {
         "tr" : {
@@ -4135,6 +4155,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo'nun ses modelleri ilk kullanım için hazırlanıyor. Bu yalnızca bir kez, bir iki dakika sürer; birazdan tekrar dene."
+          }
+        }
+      }
+    },
+    "Momo's voice models aren't available." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun ses modelleri kullanılamıyor."
           }
         }
       }
@@ -5019,6 +5049,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Diğerleri"
+          }
+        }
+      }
+    },
+    "Part of the meeting couldn't be transcribed. %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantının bir kısmı yazıya dökülemedi. %@"
           }
         }
       }
@@ -7240,6 +7280,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Döküm"
+          }
+        }
+      }
+    },
+    "Transcription fell behind, so part of the meeting was skipped." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yazıya dökme geride kaldı, bu yüzden toplantının bir kısmı atlandı."
           }
         }
       }

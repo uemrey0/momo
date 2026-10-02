@@ -229,6 +229,22 @@ struct OpenAITranscriptionTests {
         #expect(field("timestamp_granularities[]", in: body) == "segment")
     }
 
+    @Test("waits a little longer than the clip, not five minutes")
+    func requestTimeout() throws {
+        let service = OpenAITranscriptionService(apiKey: "k", model: .gpt4oTranscribe)
+        let meetingChunk = AudioClip(
+            data: Data(), mimeType: "audio/wav", fileName: "a.wav", duration: 30)
+        #expect(service.makeRequest(meetingChunk, options: .init()).timeoutInterval == 50)
+        let gemini = GeminiTranscriptionService(apiKey: "g", model: "gemini-2.5-flash")
+        #expect(try gemini.makeRequest(meetingChunk, options: .init()).timeoutInterval == 50)
+        #expect(
+            AudioClip(data: Data(), mimeType: "", fileName: "", duration: 1).requestTimeout == 30)
+        #expect(
+            AudioClip(data: Data(), mimeType: "", fileName: "", duration: 900).requestTimeout == 300
+        )
+        #expect(AudioClip(data: Data(), mimeType: "", fileName: "").requestTimeout == 300)
+    }
+
     @Test("reads a plain transcript as one segment")
     func parsePlain() throws {
         let transcript = try OpenAITranscriptionService.parse(

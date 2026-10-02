@@ -101,6 +101,14 @@ final class MeetingController {
     @ObservationIgnored private var engine: TranscriptionEngine?
     @ObservationIgnored private var router: Task<Void, Never>?
     @ObservationIgnored private var persistence: Task<Void, Never>?
+    /// A save of the meeting being recorded that waits for ``saveSchedule``.
+    @ObservationIgnored private var scheduledSave: Task<Void, Never>?
+    @ObservationIgnored private var saveSchedule = MeetingSaveSchedule()
+    /// Whether ``errorMessage`` shows that the last save failed.
+    @ObservationIgnored private var showsSaveFailure = false
+    @ObservationIgnored private var cloudBreaker = MeetingCloudBreaker()
+    /// Chunks of each track waiting for their turn.
+    @ObservationIgnored private var backlog: [MeetingTrack: Int] = [:]
     @ObservationIgnored private var observation: Task<Void, Never>?
     @ObservationIgnored private var consentContinuation: CheckedContinuation<RemoteConsent, Never>?
 
@@ -152,6 +160,13 @@ final class MeetingController {
                         meeting.startedAt.addingTimeInterval($0.end)
                     }
                 meeting.failureReason = L("Momo quit before the summary was written.")
+                if meeting.audioFiles.isEmpty {
+                    let directory = AppSettings.meetingsDirectory
+                    let id = meeting.id
+                    meeting.audioFiles = await Task.detached {
+                        MeetingAudioRecovery.recover(meetingID: id, in: directory)
+                    }.value
+                }
                 _ = try? await store.saveMeeting(meeting)
             }
         }
@@ -299,6 +314,8 @@ final class MeetingController {
         current = meeting
         self.capture = capture
         self.engine = engine
+        cloudBreaker = MeetingCloudBreaker()
+        backlog = [:]
         capturesSystemAudio = capture.capturesSystemAudio
         if request.microphoneOnly {
             notice = L("Only your microphone is recorded, so others are heard through it.")
@@ -318,7 +335,9 @@ final class MeetingController {
         var workers: [MeetingTrack: AsyncStream<MeetingAudioChunk>.Continuation] = [:]
         await withTaskGroup(of: Void.self) { group in
             for track in MeetingTrack.allCases {
-                let (stream, continuation) = AsyncStream<MeetingAudioChunk>.makeStream()
+                // A bounded queue: when a track falls far behind, its oldest chunk is dropped.
+                let (stream, continuation) = AsyncStream<MeetingAudioChunk>.makeStream(
+                    bufferingPolicy: .bufferingNewest(MeetingCloudBreaker.maximumBacklog))
                 workers[track] = continuation
                 group.addTask { [weak self] in
                     for await chunk in stream {
@@ -332,31 +351,39 @@ final class MeetingController {
                         chunk.chunk.samples, sampleRate: chunk.chunk.sampleRate)
                 else { continue }
                 pendingChunks += 1
-                workers[chunk.track]?.yield(chunk)
+                switch workers[chunk.track]?.yield(chunk) {
+                case .enqueued: backlog[chunk.track, default: 0] += 1
+                case .dropped:
+                    pendingChunks = max(0, pendingChunks - 1)
+                    notice = L("Transcription fell behind, so part of the meeting was skipped.")
+                    recordGap(meetingID: meetingID)
+                default: pendingChunks = max(0, pendingChunks - 1)
+                }
             }
             for continuation in workers.values { continuation.finish() }
         }
     }
 
     private func transcribe(_ chunk: MeetingAudioChunk, meetingID: String) async {
+        backlog[chunk.track] = max(0, (backlog[chunk.track] ?? 0) - 1)
         defer { pendingChunks = max(0, pendingChunks - 1) }
         guard let engine else { return }
         let clip = AudioClip.wav(samples: chunk.chunk.samples, sampleRate: chunk.chunk.sampleRate)
         let options = TranscriptionOptions(
             language: meetingLanguageCode, wantsSegments: true,
             identifiesSpeakers: engine.identifiesSpeakers)
-        if engine.isRemote {
+        let route = cloudBreaker.route(for: engine, backlog: backlog[chunk.track] ?? 0)
+        let sendsToCloud = engine.isRemote && route == .engine
+        if sendsToCloud {
             assistant?.recordOutbound(
                 service: engine.service.displayName, audioSeconds: clip.duration)
         }
-        let (transcript, failure) = await Self.transcribe(clip, engine: engine, options: options)
-        if let failure {
-            notice = String(
-                format: L(
-                    "Cloud transcription failed for part of the meeting, so Momo transcribed it on this Mac. %@"
-                ), failure.localizedDescription)
-        }
-        guard let transcript, var meeting = current, meeting.id == meetingID else { return }
+        let result = await Self.transcribe(clip, engine: engine, options: options, route: route)
+        if sendsToCloud { cloudBreaker.record(result) }
+        if let notice = result.notice { self.notice = notice }
+        if case .lost = result { recordGap(meetingID: meetingID) }
+        guard let transcript = result.transcript, var meeting = current, meeting.id == meetingID
+        else { return }
         let segments = transcript.chunkSegments(index: chunk.chunk.index, start: chunk.chunk.start)
             .map { segment in
                 MeetingSegment(
@@ -374,24 +401,24 @@ final class MeetingController {
             meeting.language = language
         }
         current = meeting
-        persist(meeting)
+        persistSoon(meeting)
     }
 
-    /// Sends a clip to the engine's service, off the main actor, falling back to the Mac when
-    /// a cloud request fails. Returns the transcript and the cloud error, if there was one.
+    /// Counts a chunk that couldn't be transcribed, so the notes can mention the gap.
+    private func recordGap(meetingID: String) {
+        guard var meeting = current, meeting.id == meetingID else { return }
+        meeting.untranscribedChunks += 1
+        current = meeting
+        persistSoon(meeting)
+    }
+
+    /// Sends a clip off the main actor, along `route`, falling back to the Mac when a cloud
+    /// request fails.
     private nonisolated static func transcribe(
-        _ clip: AudioClip, engine: TranscriptionEngine, options: TranscriptionOptions
-    ) async -> (Transcript?, (any Error)?) {
-        do {
-            return (try await engine.service.transcribe(clip, options: options), nil)
-        } catch is CancellationError {
-            return (nil, nil)
-        } catch {
-            guard let fallback = engine.fallback else { return (nil, error) }
-            let local = try? await fallback.transcribe(
-                clip, options: TranscriptionOptions(wantsSegments: true))
-            return (local, error)
-        }
+        _ clip: AudioClip, engine: TranscriptionEngine, options: TranscriptionOptions,
+        route: ChunkTranscription.Route
+    ) async -> ChunkTranscription {
+        await ChunkTranscription.transcribe(clip, engine: engine, options: options, route: route)
     }
 
     private func transcriptionEngine() -> TranscriptionEngine {
@@ -461,6 +488,9 @@ final class MeetingController {
             router = nil
             self.capture = nil
             engine = nil
+            // The summary saves the finished meeting right away.
+            scheduledSave?.cancel()
+            scheduledSave = nil
             guard var meeting = current else {
                 phase = .idle
                 return
@@ -550,7 +580,9 @@ final class MeetingController {
             headings: MeetingNoteHeadings(
                 decisions: L("Decisions"), actionItems: L("Action items"),
                 openQuestions: L("Open questions"),
-                participantsFormat: L("Participants (%ld)")))
+                participantsFormat: L("Participants (%ld)"),
+                gapsFormat: L(
+                    "Gaps in the transcript: %ld. These notes may miss part of the meeting.")))
         var note = Note(title: meeting.noteTitle, body: body, createdAt: meeting.startedAt)
         if let id = meeting.noteID, await store.notes().contains(where: { $0.id == id }) {
             note.id = id
@@ -600,14 +632,50 @@ final class MeetingController {
         }
     }
 
-    /// Saves meetings one after another, in order.
+    /// Saves meetings one after another, in order, and says so when a save fails.
     private func persist(_ meeting: Meeting) {
+        if meeting.id == current?.id {
+            scheduledSave?.cancel()
+            scheduledSave = nil
+            saveSchedule.saved()
+        }
         let previous = persistence
         let store = store
-        persistence = Task {
+        persistence = Task { [weak self] in
             await previous?.value
-            _ = try? await store.saveMeeting(meeting)
+            do {
+                _ = try await store.saveMeeting(meeting)
+                self?.clearSaveFailure()
+            } catch {
+                self?.showSaveFailure(error)
+            }
         }
+    }
+
+    /// Saves the meeting being recorded once ``saveSchedule`` allows: right away, or later
+    /// with whatever ``current`` holds by then.
+    private func persistSoon(_ meeting: Meeting) {
+        let delay = saveSchedule.delay()
+        guard delay > 0 else { return persist(meeting) }
+        guard scheduledSave == nil else { return }
+        scheduledSave = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled, let self else { return }
+            scheduledSave = nil
+            if let current, current.id == meeting.id { persist(current) }
+        }
+    }
+
+    private func showSaveFailure(_ error: any Error) {
+        showsSaveFailure = true
+        errorMessage = String(
+            format: L("Momo couldn't save the meeting. %@"), error.localizedDescription)
+    }
+
+    private func clearSaveFailure() {
+        guard showsSaveFailure else { return }
+        showsSaveFailure = false
+        errorMessage = nil
     }
 
     // MARK: - Offers
@@ -639,7 +707,6 @@ private struct UnavailableTranscription: AudioTranscriptionService {
     var displayName: String { "Momo voice models" }
 
     func transcribe(_ audio: AudioClip, options: TranscriptionOptions) async throws -> Transcript {
-        throw CloudVoiceError(
-            "Momo's voice models aren't available, so this part of the meeting wasn't transcribed.")
+        throw CloudVoiceError(L("Momo's voice models aren't available."))
     }
 }

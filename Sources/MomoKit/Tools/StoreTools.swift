@@ -614,6 +614,11 @@ public enum StoreTools {
             })
         section("Open questions", meeting.openQuestions)
         if let reason = meeting.failureReason { lines.append("No summary: \(reason)") }
+        if meeting.untranscribedChunks > 0 {
+            lines.append(
+                "Gaps: \(meeting.untranscribedChunks) part(s) of the audio couldn't be transcribed."
+            )
+        }
         if includeTranscript {
             let transcript = MeetingTranscript.lines(meeting.segments).joined(separator: "\n")
             if transcript.isEmpty {

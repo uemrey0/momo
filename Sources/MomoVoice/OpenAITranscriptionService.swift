@@ -86,7 +86,7 @@ public struct OpenAITranscriptionService: AudioTranscriptionService {
 
         var request = URLRequest(url: baseURL.appendingPathComponent("audio/transcriptions"))
         request.httpMethod = "POST"
-        request.timeoutInterval = 300
+        request.timeoutInterval = audio.requestTimeout
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue(form.contentType, forHTTPHeaderField: "Content-Type")
         request.httpBody = form.finished
