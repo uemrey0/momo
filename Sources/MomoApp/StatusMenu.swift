@@ -17,7 +17,7 @@ struct StatusMenu: View {
 
         Divider()
 
-        CharacterMenu(controller: model.character)
+        CharacterMenu(controller: model.character, settings: model.settings)
 
         Divider()
 
@@ -40,16 +40,17 @@ struct StatusMenu: View {
     }
 }
 
-/// Controls for the character itself.
+/// Controls for the character itself. The choices are saved so they survive a relaunch.
 private struct CharacterMenu: View {
-    @Bindable var controller: CharacterController
+    var controller: CharacterController
+    var settings: AppSettings
 
     var body: some View {
         Menu(L("Character")) {
-            Toggle(L("Show Momo"), isOn: $controller.isVisible)
-            Toggle(L("Live on Its Own"), isOn: $controller.isLifeEnabled)
+            Toggle(L("Show Momo"), isOn: saved(\.isVisible, as: \.showsCharacter))
+            Toggle(L("Live on Its Own"), isOn: saved(\.isLifeEnabled, as: \.isLifeEnabled))
             Divider()
-            Picker(L("Mood"), selection: $controller.mood) {
+            Picker(L("Mood"), selection: saved(\.mood, as: \.mood)) {
                 ForEach(Mood.allCases) { mood in
                     Text(verbatim: mood.displayName).tag(mood)
                 }
@@ -59,12 +60,25 @@ private struct CharacterMenu: View {
                     Button(event.displayName) { controller.simulate(event) }
                 }
             }
-            Picker(L("Brain"), selection: $controller.brain) {
+            Picker(L("Brain"), selection: saved(\.brain, as: \.brainSource)) {
                 ForEach(BrainSource.allCases) { brain in
                     Text(verbatim: brain.displayName).tag(brain)
                 }
             }
         }
+    }
+
+    /// Changes the character and stores the choice in the preferences.
+    private func saved<Value>(
+        _ property: ReferenceWritableKeyPath<CharacterController, Value>,
+        as preference: WritableKeyPath<Preferences, Value>
+    ) -> Binding<Value> {
+        Binding(
+            get: { controller[keyPath: property] },
+            set: { value in
+                controller[keyPath: property] = value
+                settings.preferences[keyPath: preference] = value
+            })
     }
 }
 
