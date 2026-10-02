@@ -169,6 +169,17 @@ public struct OpenAICompatibleProvider: ChatProvider {
                 tools = []
                 round = try await stream(messages: messages, tools: [], continuation: continuation)
             }
+            switch round.finishReason {
+            case "length":
+                continuation.yield(.text(answerTooLongNotice))
+                return
+            case "content_filter":
+                continuation.yield(
+                    .text("\n\n(The answer was stopped by the provider's content filter.)"))
+                return
+            default:
+                break
+            }
             guard !round.toolCalls.isEmpty else { return }
 
             messages.append([
@@ -248,6 +259,7 @@ public struct OpenAICompatibleProvider: ChatProvider {
     private struct Round {
         var text = ""
         var toolCalls: [ToolCall] = []
+        var finishReason: String?
     }
 
     private func stream(
@@ -279,14 +291,20 @@ public struct OpenAICompatibleProvider: ChatProvider {
         var parser = ServerSentEventParser()
         var round = Round()
         var partialCalls: [Int: (id: String, name: String, arguments: String)] = [:]
+        var sawDone = false
         for try await line in lines {
             guard let event = parser.consume(line) else { continue }
-            if event.data == "[DONE]" { break }
+            if event.data == "[DONE]" {
+                sawDone = true
+                break
+            }
             guard let chunk = try? JSONValue.parse(event.data) else { continue }
             if let message = chunk["error"]?["message"]?.stringValue {
                 throw ProviderError(message)
             }
-            guard let delta = chunk["choices"]?.arrayValue?.first?["delta"] else { continue }
+            guard let choice = chunk["choices"]?.arrayValue?.first else { continue }
+            if let reason = choice["finish_reason"]?.stringValue { round.finishReason = reason }
+            guard let delta = choice["delta"] else { continue }
             if let text = delta["content"]?.stringValue, !text.isEmpty {
                 round.text += text
                 continuation.yield(.text(text))
@@ -301,6 +319,10 @@ public struct OpenAICompatibleProvider: ChatProvider {
                 }
                 partialCalls[index] = partial
             }
+        }
+        // A finish reason also marks the end: not every local server sends `[DONE]`.
+        guard sawDone || round.finishReason != nil else {
+            throw ProviderError(streamEndedEarlyMessage)
         }
         round.toolCalls = partialCalls.keys.sorted().compactMap { index in
             guard let call = partialCalls[index], !call.name.isEmpty else { return nil }

@@ -78,7 +78,7 @@ public struct AnthropicProvider: ChatProvider {
                 continuation.yield(.text("\n\n(Claude declined to answer this request.)"))
                 return
             case "max_tokens":
-                continuation.yield(.text("\n\n(The answer was cut off because it got too long.)"))
+                continuation.yield(.text(answerTooLongNotice))
                 return
             case "tool_use":
                 break
@@ -167,7 +167,8 @@ public struct AnthropicProvider: ChatProvider {
             }
             if accumulator.isFinished { break }
         }
-        if !accumulator.isFinished { accumulator.finish() }
+        // Without `message_stop` the connection dropped mid-answer; don't pass it off as done.
+        guard accumulator.isFinished else { throw ProviderError(streamEndedEarlyMessage) }
         return accumulator.turn
     }
 
