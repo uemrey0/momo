@@ -67,11 +67,12 @@ public struct AnthropicProvider: ChatProvider {
                 "content": Self.content(of: turn, includingImages: withImages.contains(index)),
             ]
         }
+        var maxTokens = Self.maxTokens(for: model)
         for _ in 0..<maximumToolRounds {
             try Task.checkCancellation()
             let turn = try await stream(
                 system: request.systemPrompt, messages: messages, tools: request.tools,
-                continuation: continuation)
+                maxTokens: &maxTokens, continuation: continuation)
 
             switch turn.stopReason {
             case "refusal":
@@ -130,12 +131,14 @@ public struct AnthropicProvider: ChatProvider {
         var toolUses: [ToolUse] = []
     }
 
+    /// Streams one turn. When the API says `maxTokens` is above the model's output limit, the
+    /// request is sent once more with that limit, which later turns then keep using.
     private func stream(
-        system: String, messages: [JSONValue], tools: [ToolDefinition],
+        system: String, messages: [JSONValue], tools: [ToolDefinition], maxTokens: inout Int,
         continuation: AsyncThrowingStream<ChatEvent, any Error>.Continuation
     ) async throws -> Turn {
         var body: [String: JSONValue] = [
-            "model": .string(model), "max_tokens": 64_000, "stream": true,
+            "model": .string(model), "max_tokens": .number(Double(maxTokens)), "stream": true,
             "system": .string(system), "messages": .array(messages),
         ]
         if !tools.isEmpty {
@@ -154,8 +157,19 @@ public struct AnthropicProvider: ChatProvider {
             headers["anthropic-beta"] = "server-side-fallback-2026-07-01"
         }
 
-        let lines = try await HTTP.streamLines(
-            session: session, url: endpoint, headers: headers, body: .object(body))
+        let lines: AsyncThrowingStream<String, any Error>
+        do {
+            lines = try await HTTP.streamLines(
+                session: session, url: endpoint, headers: headers, body: .object(body))
+        } catch let error as ProviderError {
+            guard let limit = Self.outputLimit(in: error.message), limit < maxTokens else {
+                throw error
+            }
+            maxTokens = limit
+            body["max_tokens"] = .number(Double(limit))
+            lines = try await HTTP.streamLines(
+                session: session, url: endpoint, headers: headers, body: .object(body))
+        }
         var accumulator = TurnAccumulator()
         var parser = ServerSentEventParser()
         for try await line in lines {
@@ -195,6 +209,43 @@ public struct AnthropicProvider: ChatProvider {
 
     static func supportsServerSideFallback(_ model: String) -> Bool {
         model == "claude-opus-5" || model == "claude-fable-5-1"
+    }
+
+    // MARK: - Output limit
+
+    /// The most output tokens Momo asks for, even from models that allow more.
+    static let maximumOutputTokens = 64_000
+    /// The output limit assumed for models missing from `outputTokenLimits`.
+    static let defaultOutputTokens = 16_384
+
+    /// Output limits by model ID prefix. The longest matching prefix wins, so dated IDs such
+    /// as `claude-sonnet-4-5-20250929` match their own family.
+    static let outputTokenLimits: [String: Int] = [
+        "claude-3-haiku": 4_096, "claude-3-opus": 4_096, "claude-3-sonnet": 4_096,
+        "claude-3-5-": 8_192, "claude-3-7-sonnet": 64_000,
+        "claude-opus-4-0": 32_000, "claude-opus-4-1": 32_000, "claude-opus-4-2025": 32_000,
+        "claude-opus-4-5": 64_000, "claude-opus-4": 128_000,
+        "claude-sonnet-4-0": 64_000, "claude-sonnet-4-2025": 64_000,
+        "claude-sonnet-4-5": 64_000, "claude-sonnet-4": 128_000,
+        "claude-haiku-4": 64_000,
+        "claude-opus-5": 128_000, "claude-sonnet-5": 128_000, "claude-fable-5": 128_000,
+        "claude-mythos-5": 128_000,
+    ]
+
+    /// The `max_tokens` to send for `model`: its output limit, at most `maximumOutputTokens`.
+    static func maxTokens(for model: String) -> Int {
+        let match = outputTokenLimits.filter { model.hasPrefix($0.key) }
+            .max { $0.key.count < $1.key.count }
+        return min(match?.value ?? defaultOutputTokens, maximumOutputTokens)
+    }
+
+    /// The output limit an error states, as in "max_tokens: 64000 > 32000, which is the
+    /// maximum allowed number of output tokens for …".
+    static func outputLimit(in message: String) -> Int? {
+        guard let match = message.firstMatch(of: /max_tokens: *\d+ *> *(\d+)/),
+            let limit = Int(match.1), limit > 0
+        else { return nil }
+        return limit
     }
 }
 
