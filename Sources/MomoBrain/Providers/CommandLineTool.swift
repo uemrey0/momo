@@ -86,10 +86,24 @@ enum CommandRunner {
     struct Failure: Error {
         var status: Int32
         var standardError: String
+        /// The signal that ended the command, when something other than Momo stopped it.
+        var signal: Int32? = nil
+
+        /// The signal's name and number, such as "Segmentation fault, signal 11".
+        var signalDescription: String? {
+            signal.map { "\(String(cString: strsignal($0))), signal \($0)" }
+        }
     }
 
+    /// Writes input to commands off the Swift concurrency pool, since a write blocks until
+    /// the command reads it.
+    private static let inputQueue = DispatchQueue(
+        label: "momo.command-runner.input", qos: .userInitiated, attributes: .concurrent)
+
     /// Streams standard output lines. Finishes with `Failure` when the command exits with a
-    /// non-zero status. Cancelling the stream terminates the process.
+    /// non-zero status or is killed by a signal, and with `ProviderError` when it exits
+    /// before taking all of its input. Cancelling the stream terminates the process and
+    /// finishes the stream cleanly.
     static func lines(
         executable: URL, arguments: [String], input: String?, workingDirectory: URL? = nil,
         environment extraEnvironment: [String: String] = [:], closesInput: Bool = true
@@ -115,9 +129,15 @@ enum CommandRunner {
             process.standardOutput = stdout
             process.standardError = stderr
             process.standardInput = stdin
+            // Writing to a command that already exited must fail with an error, not end Momo
+            // with SIGPIPE.
+            _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
 
             let buffer = LockedValue(Data())
             let errors = LockedValue(Data())
+            let cancelled = LockedValue(false)
+            let inputError = LockedValue<(any Error)?>(nil)
+            let writing = DispatchGroup()
             stdout.fileHandleForReading.readabilityHandler = { handle in
                 let chunk = handle.availableData
                 guard !chunk.isEmpty else { return }
@@ -148,27 +168,53 @@ enum CommandRunner {
                     return String(decoding: data, as: UTF8.self)
                 }
                 for line in rest.split(separator: "\n") { continuation.yield(String(line)) }
-                if process.terminationStatus == 0 || process.terminationReason == .uncaughtSignal {
-                    continuation.finish()
-                } else {
-                    let message = errors.withLock { String(decoding: $0, as: UTF8.self) }
-                    continuation.finish(
-                        throwing: Failure(
-                            status: process.terminationStatus, standardError: message))
+                let status = process.terminationStatus
+                let killed = process.terminationReason == .uncaughtSignal
+                // The input writer fails soon after the command exits; wait for it so a failed
+                // write is reported only when the command itself didn't fail.
+                writing.notify(queue: inputQueue) {
+                    if cancelled.withLock({ $0 }) {
+                        continuation.finish()
+                    } else if status != 0 || killed {
+                        let message = errors.withLock { String(decoding: $0, as: UTF8.self) }
+                        continuation.finish(
+                            throwing: Failure(
+                                status: status, standardError: message,
+                                signal: killed ? status : nil))
+                    } else if let error = inputError.withLock({ $0 }) {
+                        continuation.finish(
+                            throwing: ProviderError(
+                                "\(executable.lastPathComponent) stopped before reading the whole "
+                                    + "request (\(error.localizedDescription))."))
+                    } else {
+                        continuation.finish()
+                    }
                 }
-            }
-
-            do {
-                try process.run()
-                if let input {
-                    stdin.fileHandleForWriting.write(Data(input.utf8))
-                }
-                if closesInput { try? stdin.fileHandleForWriting.close() }
-            } catch {
-                continuation.finish(throwing: error)
             }
             continuation.onTermination = { _ in
-                if process.isRunning { process.terminate() }
+                guard process.isRunning else { return }
+                cancelled.withLock { $0 = true }
+                process.terminate()
+            }
+
+            writing.enter()
+            do {
+                try process.run()
+            } catch {
+                writing.leave()
+                continuation.finish(throwing: error)
+                return
+            }
+            inputQueue.async {
+                defer { writing.leave() }
+                do {
+                    if let input {
+                        try stdin.fileHandleForWriting.write(contentsOf: Data(input.utf8))
+                    }
+                } catch {
+                    inputError.withLock { $0 = error }
+                }
+                if closesInput { try? stdin.fileHandleForWriting.close() }
             }
         }
     }
