@@ -482,6 +482,15 @@ final class AssistantController {
         guard !isBusy, let index = messages.lastIndex(where: { $0.role == .user }) else { return }
         let request = messages[index]
         messages.removeSubrange((index + 1)...)
+        // The brain must not see the replaced answer either, only what the chat shows before
+        // the message, after any history change still on its way.
+        let turns = messages[..<index].compactMap(\.turn)
+        let assistant = assistant
+        let previous = historyUpdate
+        historyUpdate = Task {
+            await previous?.value
+            await assistant.rollBack(to: turns)
+        }
         isSpokenRequest = false
         lastRequestError = nil
         lastRequestIssue = nil

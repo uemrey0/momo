@@ -119,6 +119,14 @@ public actor Assistant {
         generation += 1
     }
 
+    /// Goes back to an earlier point of this conversation, so a message can be asked again:
+    /// `turns` become the history, and a reply still running no longer writes into it. Unlike
+    /// ``restore(history:)``, consent and the brain choice are kept.
+    public func rollBack(to turns: [ChatTurn]) {
+        history = turns
+        generation += 1
+    }
+
     /// Answers `message` with its `attachments`, streaming events. The reply is added to the
     /// history when done.
     public func reply(
