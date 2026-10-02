@@ -118,14 +118,18 @@ public enum StoreTools {
                     "Change a task's title, notes, deadline, reminder, repetition, priority or tags.",
                 parameters: JSONSchema.object(
                     [
-                        "task": JSONSchema.string("Task ID or title"),
+                        "task": JSONSchema.string(
+                            "Task ID or title; the exact title when changing the title or notes"),
                         "title": JSONSchema.string("New title"),
                         "notes": JSONSchema.string("New notes"),
                         "due": JSONSchema.string("New deadline, ISO 8601, or 'none' to clear"),
                         "remind_at": JSONSchema.string(
                             "New reminder time, ISO 8601, or 'none' to clear"),
                     ].merging(taskDetailProperties(clearable: true)) { first, _ in first },
-                    required: ["task"]))
+                    required: ["task"])),
+            summary: updateTaskSummary,
+            // Replacing a title or notes can't be undone; dates, tags and the like can.
+            confirmsWhen: { $0["title"]?.stringValue != nil || $0["notes"]?.stringValue != nil }
         ) { arguments in
             let task = try await store.updateTask(
                 try required(arguments, "task"), title: arguments["title"]?.stringValue,
@@ -137,13 +141,25 @@ public enum StoreTools {
         }
     }
 
+    /// What an update_task call will overwrite, for the confirmation.
+    @Sendable static func updateTaskSummary(_ arguments: JSONValue) -> String {
+        var lines = ["Change the task “\(arguments["task"]?.stringValue ?? "")”"]
+        if let title = arguments["title"]?.stringValue {
+            lines.append("New title: “\(title)”")
+        }
+        if let notes = arguments["notes"]?.stringValue {
+            lines.append(notes.isEmpty ? "Remove its notes" : "Replace its notes with: “\(notes)”")
+        }
+        return lines.joined(separator: "\n")
+    }
+
     static func deleteTask(_ store: MomoStore) -> any MomoTool {
         ClosureTool(
             ToolDefinition(
                 name: "delete_task",
                 description: "Permanently delete a task. Prefer complete_task for finished work.",
                 parameters: JSONSchema.object(
-                    ["task": JSONSchema.string("Task ID or title")], required: ["task"]),
+                    ["task": JSONSchema.string("Task ID or exact title")], required: ["task"]),
                 requiresConfirmation: true),
             summary: { "Delete the task “\($0["task"]?.stringValue ?? "")”" }
         ) { arguments in
@@ -223,7 +239,7 @@ public enum StoreTools {
                 name: "delete_note",
                 description: "Permanently delete a note.",
                 parameters: JSONSchema.object(
-                    ["note": JSONSchema.string("Note ID or title")], required: ["note"]),
+                    ["note": JSONSchema.string("Note ID or exact title")], required: ["note"]),
                 requiresConfirmation: true),
             summary: { "Delete the note “\($0["note"]?.stringValue ?? "")”" }
         ) { arguments in
@@ -318,9 +334,13 @@ public enum StoreTools {
         ClosureTool(
             ToolDefinition(
                 name: "forget",
-                description: "Forget a remembered fact when the user asks.",
+                description:
+                    "Permanently forget a remembered fact when the user asks. Pass its exact text from list_memories so the user can see what will be forgotten.",
                 parameters: JSONSchema.object(
-                    ["memory": JSONSchema.string("Memory ID or text")], required: ["memory"]))
+                    ["memory": JSONSchema.string("The memory's exact text, or its ID")],
+                    required: ["memory"]),
+                requiresConfirmation: true),
+            summary: { "Forget the memory “\($0["memory"]?.stringValue ?? "")”" }
         ) { arguments in
             let memory = try await store.forget(try required(arguments, "memory"))
             return "Forgot: \(memory.text)"
@@ -407,7 +427,8 @@ public enum StoreTools {
                 description:
                     "Permanently delete a routine. Prefer update_routine with enabled false to pause it.",
                 parameters: JSONSchema.object(
-                    ["routine": JSONSchema.string("Routine ID or title")], required: ["routine"]),
+                    ["routine": JSONSchema.string("Routine ID or exact title")],
+                    required: ["routine"]),
                 requiresConfirmation: true),
             summary: { "Delete the routine “\($0["routine"]?.stringValue ?? "")”" }
         ) { arguments in

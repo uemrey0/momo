@@ -205,4 +205,92 @@ struct StoreToolTests {
         #expect(result.isError)
         #expect(await store.tasks().count == 1)
     }
+
+    @Test("forget needs confirmation and an exact reference")
+    func forgetNeedsConfirmation() async throws {
+        let store = temporaryStore()
+        let memory = try await store.remember("Has a dentist appointment on Friday")
+        try await store.remember("Likes the dentist's coffee")
+        let box = Toolbox(StoreTools.all(store: store))
+        let request = ToolCall(id: "1", name: "forget", arguments: #"{"memory":"dentist"}"#)
+        #expect(await box.execute(request).isError)
+        #expect(await store.memories().count == 2)
+
+        // A partial match is refused even when approved, and the candidates are listed.
+        let partial = await box.execute(request, confirm: { _ in true })
+        #expect(partial.isError)
+        #expect(partial.output.contains(memory.id))
+        #expect(await store.memories().count == 2)
+
+        let asked = LockedBox<ToolConfirmationRequest?>(nil)
+        let forgot = await box.execute(
+            ToolCall(id: "2", name: "forget", arguments: #"{"memory":"\#(memory.id)"}"#)
+        ) { request in
+            asked.value = request
+            return true
+        }
+        #expect(!forgot.isError)
+        #expect(asked.value?.summary == "Forget the memory “\(memory.id)”")
+        #expect(forgot.output == "Forgot: Has a dentist appointment on Friday")
+        #expect(await store.memories().map(\.text) == ["Likes the dentist's coffee"])
+    }
+
+    @Test("update_task asks before replacing a title or notes")
+    func updateTextNeedsConfirmation() async throws {
+        let store = temporaryStore()
+        try await store.addTask(title: "Call the dentist", notes: "Ask about Friday")
+        let box = Toolbox(StoreTools.all(store: store))
+        let rename = ToolCall(
+            id: "1", name: "update_task",
+            arguments: #"{"task":"Call the dentist","title":"Call the vet","notes":""}"#)
+        #expect(await box.execute(rename).isError)
+        #expect(await store.tasks().first?.title == "Call the dentist")
+
+        let asked = LockedBox<ToolConfirmationRequest?>(nil)
+        let renamed = await box.execute(rename) { request in
+            asked.value = request
+            return true
+        }
+        #expect(!renamed.isError)
+        #expect(
+            asked.value?.summary
+                == "Change the task “Call the dentist”\nNew title: “Call the vet”\nRemove its notes"
+        )
+        let task = try #require(await store.tasks().first)
+        #expect(task.title == "Call the vet")
+        #expect(task.notes?.isEmpty != false)
+
+        // Overwriting text needs the exact title; other changes still accept a partial one.
+        let partial = await box.execute(
+            ToolCall(id: "2", name: "update_task", arguments: #"{"task":"vet","notes":"X"}"#),
+            confirm: { _ in true })
+        #expect(partial.isError)
+        let tagged = await box.execute(
+            ToolCall(id: "3", name: "update_task", arguments: #"{"task":"vet","tags":"pets"}"#))
+        #expect(!tagged.isError)
+        #expect(await store.tasks().first?.tags == ["pets"])
+    }
+
+    @Test("delete tools refuse partial matches")
+    func deleteNeedsExactReference() async throws {
+        let store = temporaryStore()
+        try await store.addTask(title: "Renew passport")
+        try await store.addNote(title: "Passport numbers", body: "")
+        let box = Toolbox(StoreTools.all(store: store))
+        for (name, arguments) in [
+            ("delete_task", #"{"task":"passport"}"#), ("delete_note", #"{"note":"passport"}"#),
+        ] {
+            let result = await box.execute(
+                ToolCall(id: "1", name: name, arguments: arguments), confirm: { _ in true })
+            #expect(result.isError)
+            #expect(result.output.contains("Use the ID"))
+        }
+        #expect(await store.tasks().count == 1)
+        #expect(await store.notes().count == 1)
+        let deleted = await box.execute(
+            ToolCall(id: "2", name: "delete_task", arguments: #"{"task":"renew passport"}"#),
+            confirm: { _ in true })
+        #expect(!deleted.isError)
+        #expect(await store.tasks().isEmpty)
+    }
 }

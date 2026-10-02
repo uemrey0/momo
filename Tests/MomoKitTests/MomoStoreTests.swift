@@ -74,7 +74,7 @@ struct MomoStoreTests {
         try await store.remember("The user's name is Emre")
         try await store.remember("the user's name is emre")
         #expect(await store.memories().count == 1)
-        try await store.forget("name")
+        try await store.forget("The user's name is Emre")
         #expect(await store.memories().isEmpty)
     }
 
