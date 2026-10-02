@@ -11,7 +11,9 @@ extension AssistantController {
     /// Each file shows as a placeholder at once and is read in the background.
     func attach(fileURLs urls: [URL]) {
         for url in urls {
-            guard let placeholder = startLoading(name: url.lastPathComponent, isImage: DocumentText.isImage(url))
+            guard
+                let placeholder = startLoading(
+                    name: url.lastPathComponent, isImage: DocumentText.isImage(url))
             else { return }
             Task {
                 let loaded = await Task.detached { Result { try Self.attachment(from: url) } }.value

@@ -232,11 +232,10 @@ final class ContextMonitor: NSObject {
 
     /// Identifiers of scheduled task reminders. Only the identifiers leave the callback,
     /// because notification requests are not Sendable on every SDK.
-    private nonisolated static func pendingTaskNotificationIDs(
-        _ center: UNUserNotificationCenter
-    ) async -> [String] {
+    /// The center is looked up here rather than passed in, so it never crosses actors.
+    private nonisolated static func pendingTaskNotificationIDs() async -> [String] {
         await withCheckedContinuation { continuation in
-            center.getPendingNotificationRequests { requests in
+            UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
                 continuation.resume(
                     returning: requests.map(\.identifier).filter { $0.hasPrefix("task-") })
             }
@@ -252,7 +251,7 @@ final class ContextMonitor: NSObject {
         let wantedIDs = Set(
             wanted.map { "task-\($0.id)-\($0.remindAt?.timeIntervalSince1970 ?? 0)" })
         Task {
-            let pending = await Self.pendingTaskNotificationIDs(center)
+            let pending = await Self.pendingTaskNotificationIDs()
             let stale = pending.filter { !wantedIDs.contains($0) }
             center.removePendingNotificationRequests(withIdentifiers: stale)
             for task in wanted {
