@@ -383,7 +383,11 @@ struct GeneralSettingsView: View {
                     isOn: $settings.preferences.checksForUpdates
                 )
                 .settingsAnchor("general.updates")
-                Button(L("Check now")) { Task { await model.updates.check() } }
+                HStack {
+                    Button(L("Check now")) { Task { await model.updates.check() } }
+                        .disabled(model.updates.status == .checking)
+                    UpdateStatusLabel(status: model.updates.status)
+                }
                 if let update = model.updates.availableUpdate {
                     Button(String(format: L("Update to Momo %@…"), update.version)) {
                         model.updates.openReleasePage()
@@ -401,6 +405,34 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// What the last update check found, next to the “Check now” button.
+private struct UpdateStatusLabel: View {
+    var status: UpdateChecker.Status
+
+    var body: some View {
+        switch status {
+        case .idle:
+            EmptyView()
+        case .checking:
+            ProgressView().controlSize(.small)
+            Text(verbatim: L("Checking…")).foregroundStyle(.secondary)
+        case .upToDate:
+            Label(L("You're up to date."), systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.secondary)
+        case .updateAvailable:
+            Label(L("An update is available."), systemImage: "arrow.down.circle.fill")
+                .foregroundStyle(.secondary)
+        case .failed(let reason):
+            Label(
+                String(format: L("Couldn't check: %@"), reason),
+                systemImage: "exclamationmark.triangle.fill"
+            )
+            .foregroundStyle(.secondary)
+            .help(reason)
+        }
     }
 }
 

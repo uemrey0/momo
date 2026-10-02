@@ -157,7 +157,7 @@ final class AppModel {
         routines.start()
         focus.onFinish = { [weak self] _ in self?.character.simulate(.taskCompleted) }
 
-        updates.checkIfDue()
+        updates.start()
         if !settings.preferences.hasCompletedOnboarding {
             showOnboarding()
         }
