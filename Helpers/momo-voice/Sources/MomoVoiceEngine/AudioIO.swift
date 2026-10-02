@@ -13,8 +13,13 @@ import MomoVoiceCore
 /// only speaks opens just the speaker, and never touches the input node, so the microphone
 /// stays closed and macOS asks for no permission.
 ///
+/// When the audio devices change (AirPods switching to their call profile, a new default
+/// microphone), the engine stops itself; it is started again with the new input format, and
+/// ``onFailure`` is called when that fails.
+///
 /// Thread safety: `start`, `stop` and `stopPlayback` are called from one queue at a time;
-/// `schedule` may be called from any thread. Audio callbacks never touch actor state.
+/// `schedule` may be called from any thread. Audio callbacks never touch actor state. Device
+/// changes are handled on their own queue, under `deviceLock`.
 final class AudioIO: @unchecked Sendable {
     /// The sample rate captured audio is delivered at.
     static let captureSampleRate = 16_000.0
@@ -25,6 +30,17 @@ final class AudioIO: @unchecked Sendable {
     private let player = AVAudioPlayerNode()
     private let playbackFormat: AVAudioFormat
     private let lock = NSLock()
+    /// Guards the devices: start, stop and restarts after a device change.
+    private let deviceLock = NSLock()
+    private let restarts: OperationQueue = {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        queue.name = "momo-voice.audio.restarts"
+        return queue
+    }()
+    private var configurationObserver: (any NSObjectProtocol)?
+    /// Where captured audio goes, kept to tap the microphone again after a device change.
+    private var capture: (@Sendable ([Float]) -> Void)?
     private var generation = 0
     private var isRunning = false
     /// Whether the input node is in use, so `stop` knows what to release.
@@ -38,6 +54,9 @@ final class AudioIO: @unchecked Sendable {
 
     /// Whether echo cancellation is active.
     private(set) var isEchoCancelling = false
+    /// Called when the devices can't be opened again after they changed. The audio has
+    /// stopped then. Set before starting.
+    var onFailure: (@Sendable (any Error) -> Void)?
 
     init() {
         guard let format = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1) else {
@@ -53,6 +72,15 @@ final class AudioIO: @unchecked Sendable {
     ///     cancellation. Without it only the microphone opens.
     ///   - capture: Receives 16 kHz mono samples on the audio thread.
     func start(playsOutput: Bool = true, capture: @escaping @Sendable ([Float]) -> Void) throws {
+        try deviceLock.withLock {
+            try startLocked(playsOutput: playsOutput, capture: capture)
+        }
+        observeConfigurationChanges()
+    }
+
+    private func startLocked(
+        playsOutput: Bool, capture: @escaping @Sendable ([Float]) -> Void
+    ) throws {
         let input: AVAudioInputNode
         if playsOutput {
             // The output side must exist before voice processing is enabled, or the output
@@ -66,14 +94,13 @@ final class AudioIO: @unchecked Sendable {
             input = engine.inputNode
         }
 
-        let inputFormat = input.outputFormat(forBus: 0)
-        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
-            throw VoiceEngineError.noMicrophone
+        let inputFormat: AVAudioFormat
+        do {
+            inputFormat = try tapMicrophone(capture)
+        } catch {
+            detachPlayer()
+            throw error
         }
-        let converter = try CaptureConverter(inputFormat: inputFormat, deliver: capture)
-        input.installTap(
-            onBus: 0, bufferSize: 1_024, format: inputFormat, block: converter.makeTapBlock())
-        capturesInput = true
         engine.prepare()
         do {
             try engine.start()
@@ -84,27 +111,49 @@ final class AudioIO: @unchecked Sendable {
             throw error
         }
         if playsOutput { player.play() }
+        self.capture = capture
         isRunning = true
         Log.info(
             "Audio running: input \(Int(inputFormat.sampleRate)) Hz × \(inputFormat.channelCount), output \(playsOutput ? "on" : "off"), echo cancellation \(isEchoCancelling ? "on" : "off")"
         )
     }
 
+    /// Installs the microphone tap in the input's current format, which follows the device.
+    private func tapMicrophone(
+        _ capture: @escaping @Sendable ([Float]) -> Void
+    ) throws
+        -> AVAudioFormat
+    {
+        let input = engine.inputNode
+        let inputFormat = input.outputFormat(forBus: 0)
+        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
+            throw VoiceEngineError.noMicrophone
+        }
+        let converter = try CaptureConverter(inputFormat: inputFormat, deliver: capture)
+        input.installTap(
+            onBus: 0, bufferSize: 1_024, format: inputFormat, block: converter.makeTapBlock())
+        capturesInput = true
+        return inputFormat
+    }
+
     /// Opens only the speaker, for a session that speaks without listening. The input node
     /// is never created, so the microphone stays closed.
     func startOutputOnly() throws {
-        _ = engine.mainMixerNode
-        _ = engine.outputNode
-        attachPlayer()
-        engine.prepare()
-        do {
-            try engine.start()
-        } catch {
-            detachPlayer()
-            throw error
+        try deviceLock.withLock {
+            _ = engine.mainMixerNode
+            _ = engine.outputNode
+            attachPlayer()
+            engine.prepare()
+            do {
+                try engine.start()
+            } catch {
+                detachPlayer()
+                throw error
+            }
+            player.play()
+            isRunning = true
         }
-        player.play()
-        isRunning = true
+        observeConfigurationChanges()
         Log.info("Audio running: output only")
     }
 
@@ -139,15 +188,78 @@ final class AudioIO: @unchecked Sendable {
 
     /// Stops playback and releases the devices.
     func stop() {
-        guard isRunning else { return }
-        isRunning = false
-        if playsOutput { stopPlayback() }
+        stopObservingConfigurationChanges()
+        deviceLock.withLock {
+            guard isRunning else { return }
+            isRunning = false
+            if playsOutput { stopPlayback() }
+            release()
+        }
+    }
+
+    /// Removes the tap and stops the engine, whether or not it is still running.
+    private func release() {
         if capturesInput {
             engine.inputNode.removeTap(onBus: 0)
             capturesInput = false
         }
         engine.stop()
         detachPlayer()
+        capture = nil
+    }
+
+    // MARK: Device changes
+
+    private func observeConfigurationChanges() {
+        let observer = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: restarts
+        ) { [weak self] _ in self?.configurationChanged() }
+        deviceLock.withLock { configurationObserver = observer }
+    }
+
+    private func stopObservingConfigurationChanges() {
+        let observer = deviceLock.withLock {
+            defer { configurationObserver = nil }
+            return configurationObserver
+        }
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+    }
+
+    /// The audio devices changed and the engine stopped: tap the microphone in its new format
+    /// and start again. What was playing is cut short.
+    private func configurationChanged() {
+        let failure: (any Error)? = deviceLock.withLock {
+            guard isRunning else { return nil }
+            Log.info("The audio devices changed; restarting the audio")
+            // Stopping the player flushes what it had scheduled, so its completions still run
+            // and the speaker doesn't wait for audio that will never play.
+            if playsOutput { player.stop() }
+            if capturesInput {
+                engine.inputNode.removeTap(onBus: 0)
+                capturesInput = false
+            }
+            engine.stop()
+            do {
+                var inputDescription = "none"
+                if let capture {
+                    let format = try tapMicrophone(capture)
+                    inputDescription = "\(Int(format.sampleRate)) Hz × \(format.channelCount)"
+                }
+                engine.prepare()
+                try engine.start()
+                if playsOutput { player.play() }
+                Log.info("Audio running again: input \(inputDescription)")
+                return nil
+            } catch {
+                isRunning = false
+                release()
+                return error
+            }
+        }
+        guard let failure else { return }
+        stopObservingConfigurationChanges()
+        Log.error("The audio could not restart after the devices changed: \(failure)")
+        onFailure?(failure)
     }
 
     /// Stops playback at once and drops scheduled audio. Completion handlers of dropped

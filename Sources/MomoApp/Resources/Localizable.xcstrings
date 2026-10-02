@@ -3789,6 +3789,16 @@
         }
       }
     },
+    "Momo can't hear your microphone any more after the audio device changed. %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses aygıtı değiştiği için Momo artık mikrofonunu duyamıyor. %@"
+          }
+        }
+      }
+    },
     "Momo can't reach the internet" : {
       "localizations" : {
         "tr" : {
@@ -7029,6 +7039,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Momo not alırken toplantının sesi kısa parçalar halinde API anahtarınla bu hizmete gönderilir ve her parça Gizlilik bölümünde listelenir. Ya da Momo her şeyi bu Mac'te yazıya dökebilir."
+          }
+        }
+      }
+    },
+    "The microphone stopped after the audio device changed, so Momo stopped listening. %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses aygıtı değişince mikrofon durdu, bu yüzden Momo dinlemeyi bıraktı. %@"
           }
         }
       }
