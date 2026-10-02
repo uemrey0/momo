@@ -6,6 +6,9 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
     struct Response {
         var status: Int = 200
         var body: String
+        var headers: [String: String] = [:]
+        /// Drops the connection after sending the body, like a network failure mid-stream.
+        var failsAfterBody = false
     }
 
     private static let lock = NSLock()
@@ -54,14 +57,20 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
         Self.lock.unlock()
 
         let reply = response ?? Response(status: 500, body: "no more mock responses")
+        var headers = reply.headers
+        headers["Content-Type"] = "text/event-stream"
         guard let url = request.url,
             let http = HTTPURLResponse(
                 url: url, statusCode: reply.status, httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "text/event-stream"])
+                headerFields: headers)
         else { return }
         client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data(reply.body.utf8))
-        client?.urlProtocolDidFinishLoading(self)
+        if reply.failsAfterBody {
+            client?.urlProtocol(self, didFailWithError: URLError(.networkConnectionLost))
+        } else {
+            client?.urlProtocolDidFinishLoading(self)
+        }
     }
 
     override func stopLoading() {}
