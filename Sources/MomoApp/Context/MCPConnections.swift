@@ -62,17 +62,21 @@ final class MCPConnections {
         for configuration in configurations
         where configuration.isEnabled && clients[configuration.id] == nil {
             statuses[configuration.id] = .connecting
+            var client: MCPClient?
             do {
                 let command = Self.resolve(configuration.command)
                 let transport = try ProcessTransport(
                     command: command, arguments: configuration.arguments,
                     environment: ["PATH": CommandLocator.searchPath])
-                let client = MCPClient(transport: transport)
-                try await client.connect()
-                let tools = try await client.listTools()
-                clients[configuration.id] = (configuration, client, tools)
+                let connecting = MCPClient(transport: transport)
+                client = connecting
+                try await connecting.connect()
+                let tools = try await connecting.listTools()
+                clients[configuration.id] = (configuration, connecting, tools)
                 statuses[configuration.id] = .connected(toolCount: tools.count)
             } catch {
+                // Stop the server process, or the next refresh would start another one.
+                await client?.close()
                 statuses[configuration.id] = .failed(error.localizedDescription)
             }
         }

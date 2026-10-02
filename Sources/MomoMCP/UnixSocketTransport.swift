@@ -15,19 +15,28 @@ public final class UnixSocketTransport: MCPTransport, @unchecked Sendable {
         let reader = Thread {
             let buffer = LineBuffer()
             var chunk = [UInt8](repeating: 0, count: 64 * 1024)
+            var failure: (any Error)?
             while true {
                 let count = chunk.withUnsafeMutableBytes {
                     read(socket.fd, $0.baseAddress, $0.count)
                 }
                 if count > 0 {
-                    for line in buffer.append(Data(chunk[0..<count])) { continuation.yield(line) }
+                    do {
+                        for line in try buffer.append(Data(chunk[0..<count])) {
+                            continuation.yield(line)
+                        }
+                    } catch {
+                        failure = error
+                        socket.shutDown()
+                        break
+                    }
                 } else if count < 0 && errno == EINTR {
                     continue
                 } else {
                     break
                 }
             }
-            continuation.finish()
+            continuation.finish(throwing: failure)
             socket.release()
         }
         reader.start()

@@ -29,6 +29,7 @@ public final class ProcessTransport: MCPTransport, @unchecked Sendable {
         let (stream, continuation) = AsyncThrowingStream<String, any Error>.makeStream()
         lines = stream
         let buffer = LineBuffer()
+        let process = process
         output.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
             if data.isEmpty {
@@ -36,7 +37,13 @@ public final class ProcessTransport: MCPTransport, @unchecked Sendable {
                 continuation.finish()
                 return
             }
-            for line in buffer.append(data) { continuation.yield(line) }
+            do {
+                for line in try buffer.append(data) { continuation.yield(line) }
+            } catch {
+                handle.readabilityHandler = nil
+                continuation.finish(throwing: error)
+                if process.isRunning { process.terminate() }
+            }
         }
         process.terminationHandler = { _ in continuation.finish() }
         try process.run()
@@ -50,21 +57,43 @@ public final class ProcessTransport: MCPTransport, @unchecked Sendable {
         try? input.fileHandleForWriting.close()
         if process.isRunning { process.terminate() }
     }
+
+    /// Whether the server process is still running.
+    var isRunning: Bool { process.isRunning }
 }
 
 /// Splits incoming data into lines.
 final class LineBuffer: @unchecked Sendable {
+    /// The longest unfinished line kept, matching ``MCPSocketServer``'s limit.
+    static let defaultLimit = 16 * 1024 * 1024
+
     private var data = Data()
     private let lock = NSLock()
+    private let limit: Int
 
-    func append(_ chunk: Data) -> [String] {
+    init(limit: Int = LineBuffer.defaultLimit) {
+        self.limit = limit
+    }
+
+    /// Returns the complete lines received so far. Throws
+    /// ``MCPClient/ClientError/messageTooLarge`` once an unfinished line grows past the limit.
+    func append(_ chunk: Data) throws -> [String] {
         lock.lock()
         defer { lock.unlock() }
+        // Only the new bytes can hold a newline, so a long line isn't searched again and again.
+        var searchStart = data.endIndex
         data.append(chunk)
+        var lineStart = data.startIndex
         var lines: [String] = []
-        while let newline = data.firstIndex(of: UInt8(ascii: "\n")) {
-            lines.append(String(decoding: data[data.startIndex..<newline], as: UTF8.self))
-            data.removeSubrange(data.startIndex...newline)
+        while let newline = data[searchStart...].firstIndex(of: UInt8(ascii: "\n")) {
+            lines.append(String(decoding: data[lineStart..<newline], as: UTF8.self))
+            lineStart = data.index(after: newline)
+            searchStart = lineStart
+        }
+        data.removeSubrange(data.startIndex..<lineStart)
+        if data.count > limit {
+            data = Data()
+            throw MCPClient.ClientError.messageTooLarge
         }
         return lines
     }
@@ -82,42 +111,60 @@ public actor MCPClient {
         case server(String)
         case closed
         case timedOut
+        case messageTooLarge
 
         public var errorDescription: String? {
             switch self {
             case .server(let message): "The MCP server reported an error: \(message)"
             case .closed: "The MCP server stopped."
             case .timedOut: "The MCP server did not answer in time."
+            case .messageTooLarge: "The MCP server sent a message larger than 16 MB."
             }
         }
     }
 
     private let transport: any MCPTransport
+    private let initializeTimeout: Duration
+    private let requestTimeout: Duration
     private var nextID = 1
     private var pending: [Int: CheckedContinuation<JSONValue, any Error>] = [:]
     private var reader: Task<Void, Never>?
     public private(set) var serverName = ""
 
-    public init(transport: any MCPTransport) {
+    /// - Parameters:
+    ///   - initializeTimeout: How long the handshake may take. Longer than other requests
+    ///     because a server started with `npx -y` may first have to be downloaded.
+    ///   - requestTimeout: How long any other request may take.
+    public init(
+        transport: any MCPTransport, initializeTimeout: Duration = .seconds(120),
+        requestTimeout: Duration = .seconds(30)
+    ) {
         self.transport = transport
+        self.initializeTimeout = initializeTimeout
+        self.requestTimeout = requestTimeout
     }
 
-    /// Performs the MCP handshake.
+    /// Performs the MCP handshake. Closes the transport when the handshake fails.
     public func connect(clientName: String = "momo", version: String = "0.1.0") async throws {
         startReading()
-        let result = try await request(
-            "initialize",
-            params: [
-                "protocolVersion": .string(MCPServer.supportedProtocolVersions[0]),
-                "capabilities": .object([:]),
-                "clientInfo": ["name": .string(clientName), "version": .string(version)],
-            ])
-        serverName = result["serverInfo"]?["name"]?.stringValue ?? ""
-        try await notify("notifications/initialized")
+        do {
+            let result = try await request(
+                "initialize",
+                params: [
+                    "protocolVersion": .string(MCPServer.supportedProtocolVersions[0]),
+                    "capabilities": .object([:]),
+                    "clientInfo": ["name": .string(clientName), "version": .string(version)],
+                ], timeout: initializeTimeout)
+            serverName = result["serverInfo"]?["name"]?.stringValue ?? ""
+            try await notify("notifications/initialized")
+        } catch {
+            await close()
+            throw error
+        }
     }
 
     public func listTools() async throws -> [RemoteTool] {
-        let result = try await request("tools/list", params: .object([:]))
+        let result = try await request("tools/list", params: .object([:]), timeout: requestTimeout)
         return (result["tools"]?.arrayValue ?? []).compactMap { tool in
             guard let name = tool["name"]?.stringValue else { return nil }
             return RemoteTool(
@@ -129,7 +176,8 @@ public actor MCPClient {
     /// Calls a tool and returns its text output. Throws when the tool reports an error.
     public func callTool(_ name: String, arguments: JSONValue) async throws -> String {
         let result = try await request(
-            "tools/call", params: ["name": .string(name), "arguments": arguments])
+            "tools/call", params: ["name": .string(name), "arguments": arguments],
+            timeout: requestTimeout)
         let text = (result["content"]?.arrayValue ?? []).compactMap { item -> String? in
             item["type"]?.stringValue == "text" ? item["text"]?.stringValue : nil
         }.joined(separator: "\n")
@@ -146,7 +194,7 @@ public actor MCPClient {
     // MARK: - JSON-RPC
 
     private func request(
-        _ method: String, params: JSONValue, timeout: Duration = .seconds(30)
+        _ method: String, params: JSONValue, timeout: Duration
     )
         async throws -> JSONValue
     {
@@ -187,7 +235,9 @@ public actor MCPClient {
                     guard let message = try? JSONValue.parse(line) else { continue }
                     await self?.receive(message)
                 }
-            } catch {}
+            } catch {
+                await self?.failAll(error)
+            }
             await self?.failAll(ClientError.closed)
         }
     }

@@ -122,3 +122,58 @@ struct MCPClientTests {
         #expect(output.contains("From MCP"))
     }
 }
+
+@Suite("MCP client robustness")
+struct MCPClientRobustnessTests {
+    private func isTooLarge(_ error: any Error) -> Bool {
+        if case .messageTooLarge = error as? MCPClient.ClientError { return true }
+        return false
+    }
+
+    @Test("line buffer stops at its limit")
+    func lineBufferLimit() throws {
+        let buffer = LineBuffer(limit: 8)
+        #expect(try buffer.append(Data("a".utf8)).isEmpty)
+        #expect(try buffer.append(Data("b\nc\n\nd".utf8)) == ["ab", "c", ""])
+        #expect(try buffer.append(Data("\nshort\nrest".utf8)) == ["d", "short"])
+        #expect(throws: MCPClient.ClientError.self) {
+            _ = try buffer.append(Data("of a line far too long".utf8))
+        }
+        // The oversized data is dropped rather than kept growing.
+        #expect(try buffer.append(Data("ok\n".utf8)) == ["ok"])
+    }
+
+    @Test("process transport ends with an error when a line grows too large")
+    func processOverflow() async throws {
+        // `cat /dev/zero` writes endlessly without a newline.
+        let transport = try ProcessTransport(command: "/bin/cat", arguments: ["/dev/zero"])
+        var failure: (any Error)?
+        do {
+            for try await _ in transport.lines {}
+        } catch {
+            failure = error
+        }
+        let error = try #require(failure)
+        #expect(isTooLarge(error))
+        #expect(await waitUntilStopped(transport))
+    }
+
+    @Test("a failed handshake stops the server process")
+    func failedConnectCloses() async throws {
+        // `sleep` never answers the handshake.
+        let transport = try ProcessTransport(command: "/bin/sleep", arguments: ["60"])
+        let client = MCPClient(transport: transport, initializeTimeout: .milliseconds(200))
+        await #expect(throws: MCPClient.ClientError.self) {
+            try await client.connect()
+        }
+        #expect(await waitUntilStopped(transport))
+    }
+
+    private func waitUntilStopped(_ transport: ProcessTransport) async -> Bool {
+        for _ in 0..<50 {
+            if !transport.isRunning { return true }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        return !transport.isRunning
+    }
+}
