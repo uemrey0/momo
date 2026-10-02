@@ -733,6 +733,16 @@
         }
       }
     },
+    "An update is available." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeni bir sürüm var."
+          }
+        }
+      }
+    },
     "Anthropic doesn't let other apps use Claude plans, but Claude can use Momo: connect them and Claude can read and update your tasks, notes and memories." : {
       "localizations" : {
         "tr" : {
@@ -1834,6 +1844,16 @@
         }
       }
     },
+    "Couldn't check: %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrol edilemedi: %@"
+          }
+        }
+      }
+    },
     "Couldn't connect" : {
       "localizations" : {
         "tr" : {
@@ -2732,6 +2752,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Modeller ilk kullanım için hazırlanıyor…"
+          }
+        }
+      }
+    },
+    "GitHub answered with error %d." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub %d hatasıyla yanıt verdi."
+          }
+        }
+      }
+    },
+    "GitHub's answer couldn't be read." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub'ın yanıtı okunamadı."
           }
         }
       }
@@ -7761,6 +7801,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Konuştuğun dil"
+          }
+        }
+      }
+    },
+    "You're up to date." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En son sürümü kullanıyorsun."
           }
         }
       }
