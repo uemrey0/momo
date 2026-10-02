@@ -8,6 +8,13 @@ struct PrivacySettingsView: View {
     @Bindable var settings: AppSettings
     var model: AppModel
     @State private var confirmingErase = false
+    @State private var erasing = false
+    @State private var eraseResult: EraseResult?
+
+    private enum EraseResult: Equatable {
+        case erased
+        case failed(String)
+    }
 
     init(model: AppModel) {
         self.model = model
@@ -101,23 +108,31 @@ struct PrivacySettingsView: View {
 
             Section {
                 Button(L("Erase all of Momo's data…"), role: .destructive) {
+                    eraseResult = nil
                     confirmingErase = true
                 }
+                .disabled(erasing)
                 .confirmationDialog(
-                    L("Erase all tasks, notes, habits, memories and conversations?"),
+                    L("Erase all tasks, notes, habits, memories, meetings and conversations?"),
                     isPresented: $confirmingErase
                 ) {
-                    Button(L("Erase everything"), role: .destructive) {
-                        Task {
-                            try? await model.store.eraseAll()
-                            model.assistant.clearOutboundLog()
-                            model.assistant.eraseConversations()
-                        }
-                    }
+                    Button(L("Erase everything"), role: .destructive) { eraseEverything() }
                 } message: {
-                    Text(verbatim: L("This can't be undone."))
+                    Text(
+                        verbatim: L(
+                            "Meeting recordings and images Momo made are deleted too. This can't be undone."
+                        ))
                 }
                 .settingsAnchor("privacy.erase")
+                switch eraseResult {
+                case .erased:
+                    Label(L("Momo's data was erased."), systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                case .failed(let message):
+                    Text(verbatim: message).foregroundStyle(.red).font(.caption)
+                case nil:
+                    EmptyView()
+                }
             } footer: {
                 Text(
                     verbatim: String(
@@ -126,6 +141,43 @@ struct PrivacySettingsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    /// Erases the store, the outbound log, conversations and the files in Momo's folders. Every
+    /// step runs even when an earlier one fails, so as much as possible is gone.
+    private func eraseEverything() {
+        let meetings = model.meetings
+        guard meetings.phase == .idle, meetings.summarizing.isEmpty else {
+            eraseResult = .failed(
+                L(
+                    "Momo is recording or summarising a meeting. Stop it and wait for the summary, then try again."
+                ))
+            return
+        }
+        erasing = true
+        Task {
+            var failures: [String] = []
+            do {
+                try await model.store.eraseAll()
+            } catch {
+                failures.append(error.localizedDescription)
+            }
+            model.assistant.clearOutboundLog()
+            model.assistant.eraseConversations()
+            do {
+                try FolderEraser.removeContents(of: FolderEraser.momoFolders)
+            } catch {
+                failures.append(error.localizedDescription)
+            }
+            erasing = false
+            eraseResult =
+                failures.isEmpty
+                ? .erased
+                : .failed(
+                    String(
+                        format: L("Some of Momo's data couldn't be erased: %@"),
+                        failures.joined(separator: " ")))
+        }
     }
 }
 
