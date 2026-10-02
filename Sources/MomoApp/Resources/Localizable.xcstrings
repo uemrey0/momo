@@ -4089,6 +4089,24 @@
     },
     "Momo left out %d damaged items. A copy of the original file is at %@." : {
       "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Momo left out %d damaged item. A copy of the original file is at %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Momo left out %d damaged items. A copy of the original file is at %@."
+                }
+              }
+            }
+          }
+        },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",

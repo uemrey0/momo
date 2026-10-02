@@ -19,6 +19,18 @@ struct PluralTests {
         #expect(String(format: L("Starts in %lld minutes."), 5) == "Starts in 5 minutes.")
     }
 
+    @Test("a count next to a text argument still picks its form")
+    func mixedArguments() {
+        let key: String.LocalizationValue =
+            "Momo left out %d damaged items. A copy of the original file is at %@."
+        #expect(
+            String(format: L(key), 1, "/tmp/a")
+                == "Momo left out 1 damaged item. A copy of the original file is at /tmp/a.")
+        #expect(
+            String(format: L(key), 2, "/tmp/a")
+                == "Momo left out 2 damaged items. A copy of the original file is at /tmp/a.")
+    }
+
     @Test("each count in a sentence picks its own form")
     func substitutions() {
         let key: String.LocalizationValue =
