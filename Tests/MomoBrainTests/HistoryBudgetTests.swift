@@ -72,7 +72,8 @@ struct HistoryBudgetTests {
     func anthropicImages() async throws {
         let (session, host) = MockURLProtocol.session(responses: [.init(body: anthropicReply)])
         let provider = AnthropicProvider(
-            apiKey: "k", session: session, endpoint: URL(string: "https://\(host)/v1/messages")!)
+            apiKey: "k", session: session,
+            endpoint: try #require(URL(string: "https://\(host)/v1/messages")))
         let body = try await sentBody(provider, host: host, turns: screenshotChat)
         let messages = try #require(body["messages"]?.arrayValue)
         #expect(
@@ -96,7 +97,8 @@ struct HistoryBudgetTests {
         let (session, host) = MockURLProtocol.session(responses: [.init(body: openAIReply)])
         let provider = OpenAICompatibleProvider(
             info: ProviderInfo(id: "test", name: "Test", kind: .apiKey, supportsImages: true),
-            baseURL: URL(string: "https://\(host)/v1")!, model: "m", apiKey: "k", session: session)
+            baseURL: try #require(URL(string: "https://\(host)/v1")), model: "m", apiKey: "k",
+            session: session)
         let body = try await sentBody(provider, host: host, turns: screenshotChat)
         let messages = try #require(body["messages"]?.arrayValue)
         #expect(messages.count == 6)
@@ -124,7 +126,8 @@ struct HistoryBudgetTests {
     func localBudget() async throws {
         let (session, host) = MockURLProtocol.session(responses: [.init(body: openAIReply)])
         let provider = OpenAICompatibleProvider.ollama(
-            model: "llama3.2", baseURL: URL(string: "http://\(host)/v1")!, session: session)
+            model: "llama3.2", baseURL: try #require(URL(string: "http://\(host)/v1")),
+            session: session)
         #expect(provider.historyBudget == provider.info.comfortableLength)
         let turns: [ChatTurn] =
             (0..<40).flatMap { index in
