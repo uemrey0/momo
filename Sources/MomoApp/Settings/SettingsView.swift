@@ -271,6 +271,10 @@ struct SettingsView: View {
 
     /// A reminder in the sidebar when something needs attention.
     private func badge(for pane: SettingsPane) -> String? {
+        let takenShortcut = model.shortcuts.failedActions.contains {
+            ($0 == .openPanel && pane == .general) || ($0 == .talk && pane == .voice)
+        }
+        if takenShortcut { return L("Shortcut taken", comment: "Sidebar badge") }
         guard pane == .ai, !model.assistant.providerStatuses.isEmpty,
             !model.assistant.providerStatuses.contains(where: { $0.availability.isReady })
         else { return nil }
@@ -359,10 +363,8 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                LabeledContent(L("Open Momo")) {
-                    Text(verbatim: "⌥ Space").font(.system(.body, design: .monospaced))
-                }
-                .settingsAnchor("general.shortcut")
+                ShortcutRecorderRow(action: .openPanel, center: model.shortcuts)
+                    .settingsAnchor("general.shortcut")
                 Toggle(L("Open at login"), isOn: $launchesAtLogin)
                     .onChange(of: launchesAtLogin) { _, enabled in
                         do {

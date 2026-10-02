@@ -44,6 +44,7 @@ NOT_COUNTS = {
     "Female %d",
     "Gaps in the transcript: %ld. These notes may miss part of the meeting.",
     "GitHub answered with error %d.",
+    "Key %lld",
     "Male %d",
     "Participants (%ld)",
 }
