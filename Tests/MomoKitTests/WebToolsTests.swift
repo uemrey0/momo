@@ -231,6 +231,52 @@ struct WebPageTests {
         #expect(WebPageReader.isPublic(host: "172.32.0.1"))
     }
 
+    @Test("refuses private addresses in every spelling")
+    func addressSpellings() {
+        for refused in [
+            "127.1", "0177.0.0.1", "0x7f.0.0.1", "0x7f000001", "2130706433", "0.0.0.0",
+            "[0:0:0:0:0:0:0:1]", "::", "::ffff:127.0.0.1", "::ffff:7f00:1", "::ffff:192.168.1.1",
+            "64:ff9b::a00:1", "2002:c0a8:101::1", "fe80::1%en0", "FD12:3456::1", "fec0::1",
+            "ff02::1", "100.64.0.1", "198.18.0.1", "224.0.0.1", "255.255.255.255",
+        ] {
+            #expect(!WebPageReader.isPublic(host: refused), "\(refused) should be refused")
+        }
+        for allowed in ["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946", "8.8.8.8"] {
+            #expect(WebPageReader.isPublic(host: allowed), "\(allowed) should be allowed")
+        }
+        #expect(NetworkAddress.literal("example.com") == nil)
+        #expect(NetworkAddress.literal("1.2.3.4.nip.io") == nil)
+        #expect(NetworkAddress.literal("127.1") == .v4(0x7F00_0001))
+    }
+
+    @Test("refuses names that resolve to a private address, before connecting")
+    func resolvedAddresses() async throws {
+        let resolver: WebPageReader.Resolver = { host in
+            switch host {
+            case "127.0.0.1.nip.io": [.v4(0x7F00_0001)]
+            case "mixed.example": [.v4(0x5DB8_D822), .v4(0xC0A8_0101)]
+            case "public.example": [.v4(0x5DB8_D822)]
+            default: []
+            }
+        }
+        for refused in ["http://127.0.0.1.nip.io/admin", "https://mixed.example/"] {
+            await #expect(throws: ToolError.self, "\(refused) should be refused") {
+                try await WebPageReader.checkResolved(URL(string: refused)!, resolver: resolver)
+            }
+        }
+        await #expect(throws: ToolError.self) {
+            try await WebPageReader.checkResolved(
+                URL(string: "https://missing.example")!, resolver: resolver)
+        }
+        try await WebPageReader.checkResolved(
+            URL(string: "https://public.example/a")!, resolver: resolver)
+
+        let reader = WebPageReader(resolver: resolver)
+        await #expect(throws: ToolError.self) {
+            try await reader.read("http://127.0.0.1.nip.io/admin")
+        }
+    }
+
     @Test("offers both tools with the labels the app gives them")
     func tools() async {
         let tools = WebTools.all(labels: .init(search: "Searching", read: "Reading"))

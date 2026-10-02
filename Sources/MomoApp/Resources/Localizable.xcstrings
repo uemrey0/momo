@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@\n\nMomo read a web page, file or other outside text during this reply. Check that you asked for this, since that text may be trying to steer Momo." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@\n\nMomo bu yanıt sırasında bir web sayfası, dosya ya da başka bir dış kaynaktan metin okudu. Bunu senin istediğinden emin ol; o metin Momo’yu yönlendirmeye çalışıyor olabilir."
+          }
+        }
+      }
+    },
     "%@ at %@" : {
       "localizations" : {
         "tr" : {

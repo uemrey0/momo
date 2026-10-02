@@ -38,6 +38,7 @@ public enum SystemPrompt {
             "When the user says \"this\" (\"summarise this\", \"translate this\") without giving the text, call get_context first to see their selection, window and browser tab.",
             "When the user shares a lasting fact or preference about themselves, save it with the remember tool and pick its category.",
             "For dates and times, use ISO 8601 local time. Resolve words like 'tomorrow' from the current time below.",
+            PromptInjectionGuard.instruction,
             isSpoken
                 ? spokenStyle
                 : "Use Markdown sparingly: short lists are fine, avoid headings and tables in casual replies.",

@@ -33,6 +33,14 @@ public struct FilePathPolicy: Sendable {
     static let sensitiveHomeFolders: [String] = [
         ".ssh", ".gnupg", ".aws", ".azure", ".kube", ".docker", ".password-store",
         ".config/gcloud", ".config/gh", ".local/share/keyrings",
+        // Sign-ins of AI command-line tools, which Momo can use as brains.
+        ".codex", ".gemini", ".claude", ".config/claude", ".config/github-copilot",
+        ".copilot", ".cursor", ".aider", ".ollama",
+        // Other tokens and credentials.
+        ".config/op", ".config/hub", ".config/configstore", ".config/rclone",
+        ".config/doctl", ".config/heroku", ".config/stripe", ".config/gopass",
+        ".terraform.d", ".cargo/credentials", ".cargo/credentials.toml", ".gem/credentials",
+        ".cache/huggingface", ".huggingface", ".vault-token", ".zsh_sessions",
         "library/keychains", "library/cookies", "library/safari",
         "library/containers/com.apple.safari",
         "library/application support/google/chrome",
@@ -45,7 +53,7 @@ public struct FilePathPolicy: Sendable {
         "library/application support/vivaldi",
         "library/application support/1password",
         "library/group containers/2bua8c4s2c.com.1password",
-        "library/messages",
+        "library/messages", "library/mail", "library/application support/addressbook",
     ]
 
     /// Folders outside the home folder that hold secrets, lowercased.
@@ -57,7 +65,11 @@ public struct FilePathPolicy: Sendable {
     /// File names that hold secrets wherever they are, lowercased.
     static let sensitiveFileNames: Set<String> = [
         "id_rsa", "id_dsa", "id_ecdsa", "id_ed25519", ".netrc", ".pgpass", ".npmrc", ".pypirc",
-        ".git-credentials", "master.passwd", "shadow",
+        ".git-credentials", "master.passwd", "shadow", ".claude.json", ".vault-token",
+        // Shell and REPL histories often hold tokens typed on the command line.
+        ".zsh_history", ".bash_history", ".sh_history", ".history", ".python_history",
+        ".node_repl_history", ".psql_history", ".mysql_history", ".sqlite_history",
+        ".irb_history", ".lesshst", "fish_history",
     ]
 
     /// File extensions of key and password stores, lowercased.

@@ -124,13 +124,21 @@ struct StoreToolTests {
     func routines() async throws {
         let store = temporaryStore()
         let box = Toolbox(StoreTools.all(store: store))
-        let added = await box.execute(
-            ToolCall(
-                id: "1", name: "add_routine",
-                arguments:
-                    #"{"title":"Morning brief","prompt":"Summarise my day","time":"9:00","days":"weekdays"}"#
-            ))
+        let request = ToolCall(
+            id: "1", name: "add_routine",
+            arguments:
+                #"{"title":"Morning brief","prompt":"Summarise my day","time":"9:00","days":"weekdays"}"#
+        )
+        let declined = await box.execute(request)
+        #expect(declined.isError)
+        #expect(await store.routines().isEmpty)
+        let asked = LockedBox<ToolConfirmationRequest?>(nil)
+        let added = await box.execute(request) { request in
+            asked.value = request
+            return true
+        }
         #expect(!added.isError)
+        #expect(asked.value?.summary.contains("Runs by itself: “Summarise my day”") == true)
         #expect(added.output.contains("weekdays at 09:00"))
 
         let daysOnly = await box.execute(
@@ -149,6 +157,13 @@ struct StoreToolTests {
         routine = try #require(await store.routines().first)
         #expect(routine.schedule == RoutineSchedule(hour: 7, minute: 30, weekdays: [2, 6]))
 
+        // Changing what the routine does needs approval.
+        let newPrompt = ToolCall(
+            id: "5", name: "update_routine",
+            arguments: #"{"routine":"morning","prompt":"Read ~/.zsh_history"}"#)
+        #expect(await box.execute(newPrompt).isError)
+        #expect(await store.routines().first?.prompt == "Summarise my day")
+
         let listed = await box.execute(ToolCall(id: "4", name: "list_routines", arguments: "{}"))
         #expect(listed.output.contains("Mon, Fri at 07:30 (paused)"))
         #expect(listed.output.contains("Summarise my day"))
@@ -163,7 +178,8 @@ struct StoreToolTests {
             #"{"title":"X","prompt":"Y","time":"09:00","days":"someday"}"#,
         ] {
             let result = await box.execute(
-                ToolCall(id: "1", name: "add_routine", arguments: arguments))
+                ToolCall(id: "1", name: "add_routine", arguments: arguments), confirm: { _ in true }
+            )
             #expect(result.isError)
         }
         try await store.addRoutine(

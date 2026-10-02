@@ -67,7 +67,9 @@ struct HistoryTests {
         let record = try #require(await assistant.history.last?.toolRecords.first)
         #expect(record.name == "find_contact")
         #expect(record.arguments == #"{"name":"Ayşe"}"#)
-        #expect(record.result == "Found ayse@example.com (id c7)")
+        #expect(record.result.contains("Found ayse@example.com (id c7)"))
+        // A tool Momo doesn't know may return outside text, so it is marked as such.
+        #expect(record.result.hasPrefix("<untrusted_content source=\"find_contact\">"))
 
         // ...but the next request only carries it masked.
         try await run(assistant, "Email her", configuration)

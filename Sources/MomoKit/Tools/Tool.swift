@@ -112,6 +112,11 @@ public protocol MomoTool: Sendable {
     /// A short, human-readable description of what a call will do, shown when asking the
     /// user for confirmation.
     func summary(for arguments: JSONValue) -> String
+
+    /// Whether this call needs the user's approval. Tools that only need it for some
+    /// arguments, such as changing a routine's prompt, decide here; the default follows
+    /// ``ToolDefinition/requiresConfirmation``.
+    func requiresConfirmation(for arguments: JSONValue) -> Bool
 }
 
 /// What a tool returns: text for the model and the files it made.
@@ -133,16 +138,30 @@ extension MomoTool {
     public func summary(for arguments: JSONValue) -> String {
         "\(definition.name) \(arguments.jsonString)"
     }
+
+    public func requiresConfirmation(for arguments: JSONValue) -> Bool {
+        definition.requiresConfirmation
+    }
 }
 
 /// A request shown to the user before a tool that needs confirmation runs.
 public struct ToolConfirmationRequest: Sendable, Hashable {
+    /// Why Momo asks about a call it would otherwise run by itself.
+    public enum Reason: Sendable, Hashable {
+        /// The conversation holds text from outside, such as a web page, that may be trying
+        /// to steer Momo. See ``PromptInjectionGuard``.
+        case untrustedContent
+    }
+
     public var toolName: String
     public var summary: String
+    /// Set when the tool doesn't normally need confirmation.
+    public var reason: Reason?
 
-    public init(toolName: String, summary: String) {
+    public init(toolName: String, summary: String, reason: Reason? = nil) {
         self.toolName = toolName
         self.summary = summary
+        self.reason = reason
     }
 }
 
@@ -185,10 +204,11 @@ public struct Toolbox: Sendable {
         tools[name]
     }
 
-    /// Runs a call, asking for confirmation when the tool requires it. Never throws: failures
-    /// become error results the model can read.
+    /// Runs a call, asking for confirmation when the tool requires it, or always when
+    /// `reason` is given. Never throws: failures become error results the model can read.
     public func execute(
-        _ call: ToolCall, confirm: ToolConfirmationHandler? = nil
+        _ call: ToolCall, confirm: ToolConfirmationHandler? = nil,
+        reason: ToolConfirmationRequest.Reason? = nil
     ) async -> ToolResult {
         guard let tool = tools[call.name] else {
             return ToolResult(
@@ -205,9 +225,11 @@ public struct Toolbox: Sendable {
                 callID: call.id, name: call.name,
                 output: "The arguments were not valid JSON: \(call.arguments)", isError: true)
         }
-        if tool.definition.requiresConfirmation {
+        let asksAnyway = tool.requiresConfirmation(for: arguments)
+        if asksAnyway || reason != nil {
             let request = ToolConfirmationRequest(
-                toolName: call.name, summary: tool.summary(for: arguments))
+                toolName: call.name, summary: tool.summary(for: arguments),
+                reason: asksAnyway ? nil : reason)
             let approved = await confirm?(request) ?? false
             guard approved else {
                 return ToolResult(
@@ -239,15 +261,20 @@ public struct ClosureTool: MomoTool {
     public let definition: ToolDefinition
     private let action: @Sendable (JSONValue) async throws -> ToolReply
     private let describe: @Sendable (JSONValue) -> String
+    private var confirmsWhen: (@Sendable (JSONValue) -> Bool)?
 
+    /// - Parameter confirmsWhen: Asks for confirmation only for calls it returns `true` for,
+    ///   for tools whose ``ToolDefinition/requiresConfirmation`` is `false`.
     public init(
         _ definition: ToolDefinition,
         summary: @escaping @Sendable (JSONValue) -> String = { $0.jsonString },
+        confirmsWhen: (@Sendable (JSONValue) -> Bool)? = nil,
         run: @escaping @Sendable (JSONValue) async throws -> String
     ) {
         self.definition = definition
         self.action = { ToolReply(text: try await run($0)) }
         self.describe = summary
+        self.confirmsWhen = confirmsWhen
     }
 
     private init(
@@ -279,6 +306,10 @@ public struct ClosureTool: MomoTool {
     public func summary(for arguments: JSONValue) -> String {
         describe(arguments)
     }
+
+    public func requiresConfirmation(for arguments: JSONValue) -> Bool {
+        definition.requiresConfirmation || confirmsWhen?(arguments) == true
+    }
 }
 
 /// Wraps a tool so that every call needs the user's approval first.
@@ -304,6 +335,8 @@ public struct ConfirmingTool: MomoTool {
     public func reply(arguments: JSONValue) async throws -> ToolReply {
         try await base.reply(arguments: arguments)
     }
+
+    public func requiresConfirmation(for arguments: JSONValue) -> Bool { true }
 
     public func summary(for arguments: JSONValue) -> String {
         let details = base.summary(for: arguments)
