@@ -1,20 +1,36 @@
 name: CI
 
+# Pull requests run CI only once a maintainer approves them by adding the "ci: run" label
+# (only people with triage access can add labels), so every push to every branch doesn't
+# spend macOS runner time. Pushes to main always run; any branch can also be run by hand
+# from the Actions tab. After approval, later pushes to the pull request run again.
 on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  # Adding another label must not cancel a run in progress, so those events get their own
+  # group (their jobs are skipped anyway).
+  group: >-
+    ci-${{ github.ref }}-${{
+      github.event.action == 'labeled' && github.event.label.name != 'ci: run'
+      && github.run_id || 'run' }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     name: Build and test
+    if: >-
+      github.event_name != 'pull_request'
+      || (github.event.action == 'labeled' && github.event.label.name == 'ci: run')
+      || (github.event.action != 'labeled'
+          && contains(github.event.pull_request.labels.*.name, 'ci: run'))
     runs-on: macos-15
     timeout-minutes: 30
     steps:
@@ -44,6 +60,11 @@ jobs:
   voice-helper:
     name: Build and test the voice helper
     # The helper needs the macOS 15 SDK (Xcode 16 or later) and Apple Silicon for MLX.
+    if: >-
+      github.event_name != 'pull_request'
+      || (github.event.action == 'labeled' && github.event.label.name == 'ci: run')
+      || (github.event.action != 'labeled'
+          && contains(github.event.pull_request.labels.*.name, 'ci: run'))
     runs-on: macos-15
     timeout-minutes: 45
     steps:
