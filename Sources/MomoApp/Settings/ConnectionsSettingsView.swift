@@ -114,6 +114,7 @@ struct WebSearchSection: View {
     var settings: AppSettings
     @State private var key = ""
     @State private var saved = false
+    @State private var problem: String?
 
     private var storedKey: String { settings.keys.key(for: WebSearcher.braveKeyID) ?? "" }
 
@@ -122,12 +123,21 @@ struct WebSearchSection: View {
             HStack {
                 SecureField(L("Brave Search API key"), text: $key)
                 Button(saved ? L("Saved") : L("Save")) {
-                    settings.keys.setKey(key, for: WebSearcher.braveKeyID)
+                    do {
+                        try settings.keys.setKey(key, for: WebSearcher.braveKeyID)
+                    } catch {
+                        problem = error.localizedDescription
+                        return
+                    }
+                    problem = nil
                     saved = true
                 }
                 .disabled(key == storedKey)
             }
             .settingsAnchor("connections.webSearch")
+            if let problem {
+                Text(verbatim: problem).foregroundStyle(.red).font(.caption)
+            }
             if let url = URL(string: "https://api-dashboard.search.brave.com/") {
                 Link(L("Get a Brave Search API key"), destination: url).font(.caption)
             }

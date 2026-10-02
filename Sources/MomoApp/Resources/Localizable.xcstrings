@@ -1874,6 +1874,16 @@
         }
       }
     },
+    "Couldn't update your Keychain: %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anahtar Zinciri güncellenemedi: %@"
+          }
+        }
+      }
+    },
     "Create a key" : {
       "localizations" : {
         "tr" : {

@@ -182,6 +182,7 @@ private struct BrainConfiguration: View {
     @Bindable var settings: AppSettings
     @State private var key = ""
     @State private var savedKey = false
+    @State private var keyProblem: String?
     @State private var serverModels: [String] = []
     @State private var isLoadingModels = false
 
@@ -279,7 +280,13 @@ private struct BrainConfiguration: View {
             SecureField(L("API key"), text: $key)
                 .onAppear { key = settings.keys.key(for: id) ?? "" }
             Button(savedKey ? L("Saved") : L("Save")) {
-                settings.keys.setKey(key, for: id)
+                do {
+                    try settings.keys.setKey(key, for: id)
+                } catch {
+                    keyProblem = error.localizedDescription
+                    return
+                }
+                keyProblem = nil
                 savedKey = true
                 // Rebuild the provider list so the new key is picked up.
                 settings.preferences.brains.order = settings.preferences.brains.order
@@ -287,6 +294,9 @@ private struct BrainConfiguration: View {
             .disabled(key == (settings.keys.key(for: id) ?? ""))
         }
         .onChange(of: key) { savedKey = false }
+        if let keyProblem {
+            Text(verbatim: keyProblem).foregroundStyle(.red).font(.caption)
+        }
         if let url = URL(string: link) {
             Link(L("Get an API key"), destination: url).font(.caption)
         }

@@ -184,10 +184,11 @@ extension AppModel {
         Task { await assistant.refreshProviders() }
     }
 
-    /// Stops using `option`: removes its key or turns its providers off.
-    func disconnect(_ option: BrainOption) {
+    /// Stops using `option`: removes its key or turns its providers off. Changes nothing when
+    /// the key can't be removed.
+    func disconnect(_ option: BrainOption) throws(KeychainError) {
         if let keyID = option.keyProviderID {
-            settings.keys.setKey("", for: keyID)
+            try settings.keys.setKey("", for: keyID)
         }
         for id in option.providerIDs where id != option.keyProviderID {
             settings.preferences.brains.disabled.insert(id)
