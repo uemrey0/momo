@@ -178,4 +178,43 @@ struct ToolRecordTests {
         #expect(text.contains("- list_tasks {} → a1: Milk"))
         #expect(text.contains(#"- delete_task {"id":"zz"} → error: No task"#))
     }
+
+    @Test("moves an unreadable file aside instead of writing over it")
+    func corruptFile() async throws {
+        let store = temporaryConversationStore()
+        let folder = store.fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let garbage = Data(#"[{"id": "a1", "title": "Keep me""#.utf8)
+        try garbage.write(to: store.fileURL)
+
+        #expect(await store.all().isEmpty)
+        let backup = try #require(await store.problem()?.backup)
+        #expect(backup.lastPathComponent.hasPrefix("conversations.corrupt-"))
+        #expect(try Data(contentsOf: backup) == garbage)
+
+        try await store.save(conversation(["Hello"]))
+        #expect(try Data(contentsOf: backup) == garbage)
+        #expect(await ConversationStore(fileURL: store.fileURL).all().count == 1)
+    }
+
+    @Test("skips a damaged conversation and keeps the rest")
+    func damagedConversation() async throws {
+        let first = temporaryConversationStore()
+        try await first.save(conversation(["Plan my day", "Sure"]))
+        try await first.save(conversation(["Find my keys", "Check the door"]))
+        var list = try #require(
+            try JSONSerialization.jsonObject(with: Data(contentsOf: first.fileURL)) as? [Any])
+        list.append(["id": "broken"])
+        let damaged = try JSONSerialization.data(withJSONObject: list)
+        try damaged.write(to: first.fileURL)
+
+        let store = ConversationStore(fileURL: first.fileURL)
+        #expect(await store.all().count == 2)
+        let problem = try #require(await store.problem())
+        guard case .skippedItems(1, let backup?) = problem else {
+            Issue.record("Unexpected problem: \(problem)")
+            return
+        }
+        #expect(try Data(contentsOf: backup) == damaged)
+    }
 }

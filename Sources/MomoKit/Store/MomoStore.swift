@@ -3,11 +3,13 @@ import Foundation
 /// Stores tasks, notes, habits, memories, routines and meetings in a single JSON file.
 ///
 /// The file may be shared with other processes (the MCP server), so the store reloads it
-/// whenever it changed on disk and writes atomically.
+/// whenever it changed on disk and writes atomically. It never writes over data it couldn't
+/// read: an unreadable file is moved aside first, and a file from a newer Momo is left alone.
 public actor MomoStore {
     public nonisolated let fileURL: URL
     private var data = MomoData()
     private var loadedModificationDate: Date?
+    private var loadProblem: StoreProblem?
     private var observers: [UUID: AsyncStream<MomoData>.Continuation] = [:]
 
     public init(fileURL: URL) {
@@ -46,6 +48,12 @@ public actor MomoStore {
     public func snapshot() -> MomoData {
         reloadIfNeeded()
         return data
+    }
+
+    /// What went wrong reading the file, for the app to tell the user. `nil` when nothing did.
+    public func problem() -> StoreProblem? {
+        reloadIfNeeded()
+        return loadProblem
     }
 
     // MARK: - Tasks
@@ -511,6 +519,7 @@ public actor MomoStore {
 
     private func mutate(_ change: (inout MomoData) -> Void) throws {
         reloadIfNeeded()
+        if let error = loadProblem?.writeError(for: fileURL) { throw error }
         var updated = data
         change(&updated)
         try write(updated)
@@ -532,16 +541,36 @@ public actor MomoStore {
         let modified = modificationDate()
         guard modified != loadedModificationDate else { return }
         loadedModificationDate = modified
-        guard modified != nil, let contents = try? Data(contentsOf: fileURL) else {
+        guard modified != nil else {
             data = MomoData()
             return
         }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        if let decoded = try? decoder.decode(MomoData.self, from: contents) {
-            data = decoded
-            for observer in observers.values { observer.yield(decoded) }
+        let skipped = SkippedElements()
+        let decoded: MomoData
+        do {
+            let contents = try Data(contentsOf: fileURL)
+            decoded = try StoreFile.decoder(counting: skipped).decode(MomoData.self, from: contents)
+        } catch {
+            // Writing would replace everything in the file, so it is moved aside first.
+            let backup = try? StoreFile.backUp(fileURL, label: "corrupt", keepingOriginal: false)
+            if backup != nil { loadedModificationDate = nil }
+            loadProblem = .unreadable(backup: backup)
+            data = MomoData()
+            for observer in observers.values { observer.yield(data) }
+            return
         }
+        if decoded.version > MomoData.currentVersion {
+            loadProblem = .newerVersion(decoded.version)
+        } else if skipped.count > 0 {
+            // The next write drops the skipped items, so the file is kept as it is.
+            let backup = try? StoreFile.backUp(fileURL, label: "backup", keepingOriginal: true)
+            loadProblem = .skippedItems(count: skipped.count, backup: backup)
+        } else if loadProblem?.writeError(for: fileURL) != nil {
+            // The file was fixed. A problem that left a backup stays, so the app can still tell.
+            loadProblem = nil
+        }
+        data = decoded
+        for observer in observers.values { observer.yield(decoded) }
     }
 
     private func modificationDate() -> Date? {
