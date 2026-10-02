@@ -129,7 +129,8 @@ public actor VoiceEngine: LiveVoiceBackend {
     /// through its own Nemotron session, as the listener does for a turn.
     ///
     /// It runs off the actor, so a running session keeps speaking and listening meanwhile.
-    /// Its VAD is a separate instance, because the listener's carries streaming state.
+    /// Its VAD comes from a pool of its own, because the listener's carries streaming state
+    /// and transcriptions can run at the same time.
     public nonisolated func transcribe(
         path: String, locale: String
     ) async throws -> [LiveTranscriptSegment] {
@@ -144,14 +145,13 @@ public actor VoiceEngine: LiveVoiceBackend {
 
         let audio = try RecordingReader.samples(of: URL(fileURLWithPath: path))
         try Task.checkCancellation()
-        let vad = try await SileroVADModel.fromPretrained(
-            modelId: ModelCatalog.sileroVAD.repository, engine: .coreml,
-            cacheDir: store.directory(for: ModelCatalog.sileroVAD), offlineMode: true)
         let recognizer = try await loaded.recognizer(store: store)
-        let transcriber = RecordingTranscriber(
-            vad: vad, recognizer: recognizer,
-            recognitionLanguage: ModelSelection.recognitionTag(for: locale))
-        let segments = try await transcriber.transcribe(audio)
+        let segments = try await loaded.withTranscriptionVAD(store: store) { vad in
+            let transcriber = RecordingTranscriber(
+                vad: vad, recognizer: recognizer,
+                recognitionLanguage: ModelSelection.recognitionTag(for: locale))
+            return try await transcriber.transcribe(audio)
+        }
         let seconds = Double(audio.count) / RecordingTranscriber.sampleRate
         Log.info(
             String(
@@ -407,12 +407,18 @@ private final class LoadedModels: @unchecked Sendable {
     private let lock = NSLock()
     private var models: [String: AnyObject] = [:]
     private var warmed: Set<String> = []
+    /// VAD instances for transcriptions, apart from the listener's. Meeting notes transcribe
+    /// two tracks at once, so two are kept.
+    private let transcriptionVADs = ObjectPool<SileroVADModel>(capacity: 2) {
+        $0.resetState()
+    }
 
     func forget(_ id: String) {
         lock.withLock {
             models[id] = nil
             warmed.removeAll()
         }
+        if id == ModelCatalog.sileroVAD.id { transcriptionVADs.removeAll() }
     }
 
     private func cached<Model: AnyObject>(
@@ -433,6 +439,25 @@ private final class LoadedModels: @unchecked Sendable {
                 modelId: model.repository, engine: .coreml, cacheDir: store.directory(for: model),
                 offlineMode: true)
         }
+    }
+
+    /// Runs `body` with a VAD instance no other transcription uses meanwhile, loading one
+    /// only when none is free. Finding speech resets its state, and so does handing it back.
+    func withTranscriptionVAD<Result>(
+        store: ModelStore, _ body: (SileroVADModel) async throws -> Result
+    ) async throws -> Result {
+        let model = ModelCatalog.sileroVAD
+        return try await transcriptionVADs.use(
+            making: {
+                let start = Date()
+                let vad = try await SileroVADModel.fromPretrained(
+                    modelId: model.repository, engine: .coreml,
+                    cacheDir: store.directory(for: model), offlineMode: true)
+                Log.info(
+                    "Loaded \(model.id) for transcription in \(Int(Date().timeIntervalSince(start) * 1000)) ms"
+                )
+                return vad
+            }, body)
     }
 
     func turnDetector(store: ModelStore) async throws -> SmartTurnModel {
