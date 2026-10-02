@@ -16,7 +16,11 @@ before you invest time.
 
 ## Development setup
 
-1. Install Xcode 16 or later.
+1. Install Xcode 26.6 or later. CI builds, tests and lints with Xcode 26.6 on GitHub's
+   `macos-26` runners (pinned in `.github/workflows/ci.yml` and `release.yml`). Newer Xcode
+   versions are fine for development, but their Swift compiler can report concurrency
+   diagnostics that Xcode 26.6 doesn't, and the other way round, so if CI fails on something
+   that builds locally, check the "Show toolchain" step first.
 2. Clone the repository and run:
 
    ```bash
@@ -89,7 +93,12 @@ review.
 ## Pull requests
 
 1. Rebase on the latest `main`.
-2. Run `make lint` and `make test`.
+2. Run `make lint` and `make test`. `make lint` uses the `swift format` that comes with your
+   Xcode, and the committed `.swift-format` files list every rule explicitly, so it gives the
+   same result as CI's. `Tests/.swift-format` and `Helpers/momo-voice/Tests/.swift-format`
+   are copies of the root config that turn off `NeverForceUnwrap` and `NeverUseForceTry`,
+   because older `swift format` versions only exempt `@Test` functions, not test helpers.
+   If you change the root config, change those two the same way.
 3. Fill in the pull request template, including screenshots or a short screen recording for
    anything visual.
 4. Keep pull requests focused. Two small PRs are easier to review than one large one.

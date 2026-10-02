@@ -17,10 +17,14 @@ on:
 permissions:
   contents: write
 
+env:
+  # The same pinned Xcode as ci.yml, so a release is built with the toolchain CI checked.
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
 jobs:
   release:
     name: Build and publish
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
     env:
       HAS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE != '' }}
