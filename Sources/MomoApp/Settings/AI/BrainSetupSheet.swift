@@ -6,6 +6,7 @@ import SwiftUI
 struct BrainSetupSheet: View {
     var option: BrainOption
     var model: AppModel
+    @State private var disconnectProblem: String?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -38,10 +39,18 @@ struct BrainSetupSheet: View {
             HStack {
                 if model.isConnected(option) {
                     Button(String(format: L("Stop using %@"), option.title), role: .destructive) {
-                        model.disconnect(option)
+                        do {
+                            try model.disconnect(option)
+                            disconnectProblem = nil
+                        } catch {
+                            disconnectProblem = error.localizedDescription
+                        }
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.red)
+                }
+                if let disconnectProblem {
+                    Text(verbatim: disconnectProblem).foregroundStyle(.red).font(.caption)
                 }
                 Spacer()
                 Button(L("Done")) { dismiss() }

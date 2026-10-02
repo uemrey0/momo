@@ -10,6 +10,7 @@ struct APIKeySetupView: View {
     @State private var key = ""
     @State private var result: KeyCheck?
     @State private var isChecking = false
+    @State private var keychainProblem: String?
     @State private var spottedInClipboard = false
     @State private var openedKeyPage = false
     @State private var lastClipboardChange = NSPasteboard.general.changeCount
@@ -37,12 +38,19 @@ struct APIKeySetupView: View {
                 ConnectedBanner(
                     text: String(format: L("%@ is connected with your key."), option.title))
                 Button(L("Use a different key")) {
-                    model.settings.keys.setKey("", for: providerID)
+                    do {
+                        try model.settings.keys.setKey("", for: providerID)
+                    } catch {
+                        keychainProblem = error.localizedDescription
+                        return
+                    }
+                    keychainProblem = nil
                     key = ""
                     result = nil
                     refresh()
                 }
             }
+            if let keychainProblem { ProblemBanner(text: keychainProblem) }
             switch result {
             case .valid:
                 ConnectedBanner(
@@ -136,6 +144,7 @@ struct APIKeySetupView: View {
         guard !candidate.isEmpty, !isChecking else { return }
         isChecking = true
         result = nil
+        keychainProblem = nil
         Task {
             let check = await APIKeySetup.validate(candidate, for: providerID)
             isChecking = false
@@ -145,7 +154,14 @@ struct APIKeySetupView: View {
     }
 
     private func save() {
-        model.settings.keys.setKey(key, for: providerID)
+        do {
+            try model.settings.keys.setKey(key, for: providerID)
+        } catch {
+            result = nil
+            keychainProblem = error.localizedDescription
+            return
+        }
+        keychainProblem = nil
         if result != .valid { result = .valid }
         refresh()
     }
