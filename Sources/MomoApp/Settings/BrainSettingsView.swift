@@ -141,15 +141,15 @@ private struct BrainRow: View {
                     Image(systemName: "chevron.up")
                 }
                 .buttonStyle(.borderless)
-                .accessibilityLabel(L("Move up"))
+                .accessibilityLabel(String(format: L("Move %@ up"), BrainDescriptor.name(id)))
                 Button {
                     move(1)
                 } label: {
                     Image(systemName: "chevron.down")
                 }
                 .buttonStyle(.borderless)
-                .accessibilityLabel(L("Move down"))
-                Toggle(isOn: isEnabled) { EmptyView() }
+                .accessibilityLabel(String(format: L("Move %@ down"), BrainDescriptor.name(id)))
+                Toggle(isOn: isEnabled) { Text(verbatim: BrainDescriptor.name(id)) }
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.small)

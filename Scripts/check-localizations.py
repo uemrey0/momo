@@ -4,7 +4,9 @@
 Finds string keys used through L("..."), Text("...", bundle: .module) and
 String(localized: "...", bundle: .module), then verifies that each key exists in
 Localizable.xcstrings with a translated value for every language listed in
-Scripts/Info.plist. Exits with status 1 when something is missing.
+Scripts/Info.plist. Keys with an integer argument (a count) must also have English
+plural variations, unless they are listed in NOT_COUNTS. Exits with status 1 when
+something is missing.
 
 Usage:
     Scripts/check-localizations.py            # report problems
@@ -29,6 +31,21 @@ PATTERNS = [
     re.compile(r"String\(\s*localized:\s*" + STRING + r"\s*,\s*bundle:\s*\.module"),
 ]
 
+# Integer arguments usually count something, so their English text needs plural variations
+# ("1 minute", "2 minutes"). Keys whose number is not a count are listed here.
+INTEGER = re.compile(r"%(?:\d+\$)?(?:lld|ld|d|i|u|llu|lu)")
+NOT_COUNTS = {
+    "%lld min",
+    "%lld s of audio",
+    "%lld-day streak",
+    "Done today (%lld)",
+    "Download for Me (%lld MB)",
+    "Downloading… %lld%%",
+    "Female %d",
+    "Male %d",
+    "Participants (%ld)",
+}
+
 
 def unescape(key: str) -> str:
     return key.encode("utf-8").decode("unicode_escape").encode("latin-1").decode("utf-8")
@@ -51,6 +68,14 @@ def used_keys() -> dict:
                 line = text.count("\n", 0, match.start()) + 1
                 keys.setdefault(key, f"{path.relative_to(ROOT)}:{line}")
     return keys
+
+
+def has_english_plural(entry: dict) -> bool:
+    english = entry.get("localizations", {}).get("en", {})
+    if "plural" in english.get("variations", {}):
+        return True
+    return any("plural" in substitution.get("variations", {})
+               for substitution in english.get("substitutions", {}).values())
 
 
 def main() -> int:
@@ -79,6 +104,12 @@ def main() -> int:
         if absent:
             missing[key] = {"location": location, "languages": absent}
 
+    singular_only = sorted(
+        key for key in used
+        if key in strings and INTEGER.search(key) and key not in NOT_COUNTS
+        and not has_english_plural(strings[key])
+    )
+
     if "--missing" in sys.argv:
         print(json.dumps(missing, ensure_ascii=False, indent=2))
         return 0
@@ -89,8 +120,14 @@ def main() -> int:
     for key, info in missing.items():
         print(f"{info['location']}: missing {', '.join(info['languages'])} "
               f"translation for {key!r}", file=sys.stderr)
-    if missing or invalid:
-        print(f"{len(missing)} string(s) need translation.", file=sys.stderr)
+    for key in singular_only:
+        print(f"{used[key]}: {key!r} counts something but has no English plural variations; "
+              "add them, or list the key in NOT_COUNTS", file=sys.stderr)
+    if missing or invalid or singular_only:
+        if missing:
+            print(f"{len(missing)} string(s) need translation.", file=sys.stderr)
+        if singular_only:
+            print(f"{len(singular_only)} string(s) need plural variations.", file=sys.stderr)
         return 1
     print(f"All {len(used)} strings are translated into {', '.join(languages)}.")
     return 0
