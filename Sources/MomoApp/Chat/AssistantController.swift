@@ -325,6 +325,8 @@ final class AssistantController {
     private(set) var outboundLog: [OutboundRecord] = []
     /// Files and images waiting to be sent with the next message.
     var pendingAttachments: [ChatAttachment] = []
+    /// Attachments still being read, shown as placeholders until they are ready.
+    var loadingAttachments: [LoadingAttachment] = []
     /// A short note about attachments, such as a file that couldn't be read.
     var attachmentNotice: String?
     /// Whether the user is choosing files, so the panel stays open meanwhile.

@@ -1,3 +1,4 @@
+import AppKit
 import MomoBrain
 import SwiftUI
 
@@ -103,6 +104,20 @@ enum BrainOption: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The provider's own logo, bundled as an SVG, if it has one. Apple Intelligence uses
+    /// the Apple logo from SF Symbols instead.
+    var logo: String? {
+        switch self {
+        case .appleIntelligence: nil
+        case .ollama: "logo-ollama"
+        case .lmStudio: "logo-lmstudio"
+        case .chatGPT, .openAI: "logo-openai"
+        case .gemini, .geminiAPI: "logo-gemini"
+        case .claude: "logo-claude"
+        case .openRouter: "logo-openrouter"
+        }
+    }
+
     var tint: Color {
         switch self {
         case .appleIntelligence: Color(red: 0.62, green: 0.4, blue: 0.95)
@@ -178,5 +193,46 @@ extension AppModel {
             settings.preferences.brains.disabled.insert(id)
         }
         Task { await assistant.refreshProviders() }
+    }
+}
+
+/// An option's logo in white on its colour, as a rounded square.
+struct BrainIcon: View {
+    var option: BrainOption
+    var size: CGFloat
+
+    var body: some View {
+        Group {
+            if let image = option.logoImage {
+                Image(nsImage: image)
+                    .resizable()
+                    .renderingMode(.template)
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: size * 0.56, height: size * 0.56)
+            } else {
+                Image(systemName: option.systemImage)
+                    .font(.system(size: size * 0.47, weight: .semibold))
+            }
+        }
+        .foregroundStyle(.white)
+        .frame(width: size, height: size)
+        .background(option.tint.gradient, in: RoundedRectangle(cornerRadius: size * 0.25))
+    }
+}
+
+extension BrainOption {
+    @MainActor private static var logoCache: [String: NSImage] = [:]
+
+    /// The bundled logo as a template image, so it takes the foreground colour.
+    @MainActor var logoImage: NSImage? {
+        guard let logo else { return nil }
+        if let cached = Self.logoCache[logo] { return cached }
+        guard let url = Bundle.module.url(forResource: logo, withExtension: "svg"),
+            let image = NSImage(contentsOf: url)
+        else { return nil }
+        image.isTemplate = true
+        Self.logoCache[logo] = image
+        return image
     }
 }

@@ -109,13 +109,17 @@ struct ChatView: View {
         panel.canChooseDirectories = false
         panel.message = L("Choose files or images to send to Momo")
         panel.prompt = L("Attach")
-        // Above the chat panel, which floats above normal windows.
-        panel.level = NSWindow.Level(rawValue: NSWindow.Level.mainMenu.rawValue + 3)
+        // The chat panel floats above everything, and the picker runs in its own process,
+        // so it can't be raised above the panel; lower the panel while the picker shows.
+        let chatWindow = NSApp.windows.first { $0 is ChatWindow }
+        let chatLevel = chatWindow?.level
+        chatWindow?.level = .normal
         assistant.isChoosingFiles = true
         NSApp.activate()
         let response = panel.runModal()
         assistant.isChoosingFiles = false
-        NSApp.windows.first { $0 is ChatWindow }?.makeKey()
+        if let chatLevel { chatWindow?.level = chatLevel }
+        chatWindow?.makeKey()
         if response == .OK { assistant.attach(fileURLs: panel.urls) }
         state.focusRequest += 1
     }
@@ -169,14 +173,18 @@ struct ChatView: View {
     }
 
     private var canSend: Bool {
-        !assistant.draft.trimmingCharacters(in: .whitespaces).isEmpty
-            || !assistant.pendingAttachments.isEmpty
+        assistant.loadingAttachments.isEmpty
+            && (!assistant.draft.trimmingCharacters(in: .whitespaces).isEmpty
+                || !assistant.pendingAttachments.isEmpty)
     }
 
     private var composer: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !assistant.pendingAttachments.isEmpty {
-                AttachmentStrip(attachments: assistant.pendingAttachments) { id in
+            if !assistant.pendingAttachments.isEmpty || !assistant.loadingAttachments.isEmpty {
+                AttachmentStrip(
+                    attachments: assistant.pendingAttachments,
+                    loading: assistant.loadingAttachments
+                ) { id in
                     withAnimation(Theme.quickSpring) { assistant.removeAttachment(id: id) }
                 }
                 .padding(.horizontal, 8)
@@ -194,16 +202,16 @@ struct ChatView: View {
         .animation(Theme.quickSpring, value: isComposerFocused)
         .animation(Theme.quickSpring, value: assistant.isBusy)
         .animation(Theme.spring, value: assistant.pendingAttachments)
+        .animation(Theme.spring, value: assistant.loadingAttachments)
     }
 
     private var composerRow: some View {
         HStack(alignment: .bottom, spacing: 6) {
             if !snapshotMode {
                 AttachMenu(chooseFiles: chooseFiles) {
-                    assistant.attachScreenshot()
+                    withAnimation(Theme.spring) { assistant.attachScreenshot() }
                 }
-                .padding(.leading, 4)
-                .padding(.bottom, 3)
+                .padding(4)
             }
             Group {
                 if snapshotMode {

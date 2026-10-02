@@ -97,11 +97,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach([BrainOption.chatGPT, .gemini, .ollama, .appleIntelligence]) { option in
                     HStack(spacing: 10) {
-                        Image(systemName: option.systemImage)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 26, height: 26)
-                            .background(option.tint.gradient, in: RoundedRectangle(cornerRadius: 7))
+                        BrainIcon(option: option, size: 26)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(verbatim: option.title).font(.system(size: 13, weight: .medium))
                             Text(verbatim: option.subtitle)
