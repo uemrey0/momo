@@ -168,6 +168,12 @@ enum CommandRunner {
                     return String(decoding: data, as: UTF8.self)
                 }
                 for line in rest.split(separator: "\n") { continuation.yield(String(line)) }
+                // The readability handler may not have seen the last of standard error yet, so
+                // read it to the end before a failure reports it.
+                let errorRest = stderr.fileHandleForReading.readDataToEndOfFile()
+                errors.withLock { data in
+                    if data.count < 32_000 { data.append(errorRest) }
+                }
                 let status = process.terminationStatus
                 let killed = process.terminationReason == .uncaughtSignal
                 // The input writer fails soon after the command exits; wait for it so a failed
