@@ -41,6 +41,18 @@ jobs:
         run: |
           xcodebuild -version
           swift --version
+          echo "XCODE_VERSION=$(xcodebuild -version | tr -cs 'A-Za-z0-9.' '-')" >> "$GITHUB_ENV"
+
+      - name: Cache build products
+        # Keyed on the Xcode version too, since products from another compiler don't mix.
+        uses: actions/cache@v6
+        with:
+          path: .build
+          key: >-
+            build-${{ env.XCODE_VERSION }}-${{ hashFiles('Package.swift', 'Package.resolved') }}-${{
+            hashFiles('Sources/**', 'Tests/**') }}
+          restore-keys: |
+            build-${{ env.XCODE_VERSION }}-${{ hashFiles('Package.swift', 'Package.resolved') }}-
 
       - name: Check formatting
         run: make lint
@@ -55,6 +67,9 @@ jobs:
         run: swift test
 
       - name: Build app bundle
+        # The voice-helper job below builds and tests the helper, so it isn't built twice.
+        env:
+          VOICE_HELPER: 0
         run: make app
 
   voice-helper:
