@@ -219,6 +219,9 @@ public actor VoiceEngine: LiveVoiceBackend {
         Log.info("Models ready in \(Int(Date().timeIntervalSince(startedAt) * 1000)) ms")
 
         let audio = AudioIO()
+        audio.onFailure = { [weak self, weak audio] error in
+            Task { await self?.audioFailed(audio, error: error) }
+        }
         let listenerBox = ListenerBox()
         var speaker: Speaker?
         if let synthesizer, let output = plan.output {
@@ -274,6 +277,16 @@ public actor VoiceEngine: LiveVoiceBackend {
         session.audio.stop()
         session.listener?.drain()
         if reportStopped { emit(.stopped) }
+    }
+
+    /// The session's audio couldn't restart after the devices changed, so it ends.
+    private func audioFailed(_ audio: AudioIO?, error: any Error) async {
+        guard let audio, session?.audio === audio else { return }
+        emit(
+            .error(
+                message: "The audio stopped after the audio devices changed: \(error)",
+                isFatal: true))
+        await stop(reportStopped: true)
     }
 
     public func speak(id: String, text: String, isFinal: Bool) async {

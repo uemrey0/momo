@@ -267,6 +267,16 @@ final class MeetingController {
                     error.localizedDescription)
             }
         }
+        capture.onMicrophoneStopped = { [weak self] error in
+            Task { @MainActor in
+                self?.levels[.microphone] = 0
+                self?.notice = String(
+                    format: L(
+                        "Momo can't hear your microphone any more after the audio device changed. %@"
+                    ),
+                    error.localizedDescription)
+            }
+        }
         character?.isRecordingMeeting = true
         onRecordingChanged?()
         do {
