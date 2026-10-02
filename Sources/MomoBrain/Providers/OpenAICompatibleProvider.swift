@@ -146,8 +146,14 @@ public struct OpenAICompatibleProvider: ChatProvider {
         continuation: AsyncThrowingStream<ChatEvent, any Error>.Continuation
     ) async throws {
         var messages: [JSONValue] = [["role": "system", "content": .string(request.systemPrompt)]]
-        messages += request.turns.map {
-            ["role": .string($0.role.rawValue), "content": content(of: $0)]
+        let turns = ChatTurn.recent(request.turns, budget: historyBudget)
+        let withImages = ChatTurn.indicesSendingImages(in: turns)
+        messages += turns.indices.map { index in
+            let turn = turns[index]
+            return [
+                "role": .string(turn.role.rawValue),
+                "content": content(of: turn, includingImages: withImages.contains(index)),
+            ]
         }
         var tools = request.tools
         for _ in 0..<maximumToolRounds {
@@ -192,13 +198,21 @@ public struct OpenAICompatibleProvider: ChatProvider {
         continuation.yield(.text(toolRoundLimitNotice))
     }
 
+    /// How many characters of history to send. Local models get what they handle well, so
+    /// the server doesn't silently cut off the system prompt and tools at the start of its
+    /// context; hosted ones get the same budget as Claude.
+    var historyBudget: Int { isLocalServer ? info.comfortableLength : remoteHistoryBudget }
+
     // MARK: - Images
 
     /// A turn's message content: plain text, or text and `image_url` parts with data URIs
-    /// when the turn has images and the model can see them.
-    func content(of turn: ChatTurn) -> JSONValue {
+    /// when the turn has images and the model can see them. Without `includingImages`,
+    /// images are noted as shared earlier instead, so old screenshots aren't uploaded again
+    /// with every message.
+    func content(of turn: ChatTurn, includingImages: Bool = true) -> JSONValue {
         let images = turn.images
         guard info.supportsImages, !images.isEmpty else { return .string(turn.contextText) }
+        guard includingImages else { return .string(turn.context(images: .sharedEarlier)) }
         var parts: [JSONValue] = []
         let text = turn.context(imagesVisible: true)
         if !text.isEmpty { parts.append(["type": "text", "text": .string(text)]) }

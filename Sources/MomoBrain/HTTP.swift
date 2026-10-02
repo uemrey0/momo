@@ -70,6 +70,11 @@ enum HTTP {
         let detail =
             parsed?["error"]?["message"]?.stringValue ?? parsed?["error"]?.stringValue
             ?? parsed?["message"]?.stringValue ?? String(text.prefix(300))
+        if status == 413 || (status != 429 && isContextOverflow(text)) {
+            return ProviderError(
+                "This conversation has grown too large for the brain (\(status)). "
+                    + "Start a new conversation, or send fewer or smaller attachments. \(detail)")
+        }
         switch status {
         case 401, 403:
             return ProviderError(
@@ -83,6 +88,20 @@ enum HTTP {
         default:
             return ProviderError("Request failed (\(status)). \(detail)")
         }
+    }
+}
+
+extension HTTP {
+    /// Error fragments providers use when a request doesn't fit the model's context.
+    static let contextOverflowHints = [
+        "prompt is too long", "context_length_exceeded", "maximum context length",
+        "context window", "request too large",
+    ]
+
+    /// Whether an error body says the request was larger than the model can take.
+    static func isContextOverflow(_ body: String) -> Bool {
+        let body = body.lowercased()
+        return contextOverflowHints.contains { body.contains($0) }
     }
 }
 

@@ -173,6 +173,12 @@ public struct ProviderError: LocalizedError, Sendable, Equatable {
 /// or two; the headroom lets longer multi-step jobs complete.
 let maximumToolRounds = 24
 
+/// How many characters of conversation history hosted API brains receive, about 50,000
+/// tokens. It leaves plenty of room in every current model's context for the system prompt,
+/// tool definitions and the results of a long tool loop, and keeps a long chat from
+/// growing the cost of every message without limit.
+let remoteHistoryBudget = 200_000
+
 /// What a provider appends when a request used up `maximumToolRounds`, so the answer never
 /// just stops.
 let toolRoundLimitNotice =

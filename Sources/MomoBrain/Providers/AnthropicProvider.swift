@@ -58,8 +58,14 @@ public struct AnthropicProvider: ChatProvider {
         _ request: ChatRequest, runTool: ToolRunner,
         continuation: AsyncThrowingStream<ChatEvent, any Error>.Continuation
     ) async throws {
-        var messages: [JSONValue] = ChatTurn.alternating(request.turns).map {
-            ["role": .string($0.role.rawValue), "content": Self.content(of: $0)]
+        let turns = ChatTurn.recent(request.turns, budget: remoteHistoryBudget)
+        let withImages = ChatTurn.indicesSendingImages(in: turns)
+        var messages: [JSONValue] = turns.indices.map { index in
+            let turn = turns[index]
+            return [
+                "role": .string(turn.role.rawValue),
+                "content": Self.content(of: turn, includingImages: withImages.contains(index)),
+            ]
         }
         for _ in 0..<maximumToolRounds {
             try Task.checkCancellation()
@@ -166,10 +172,12 @@ public struct AnthropicProvider: ChatProvider {
     }
 
     /// A turn's message content: plain text, or image blocks followed by the text when the
-    /// turn has images.
-    static func content(of turn: ChatTurn) -> JSONValue {
+    /// turn has images. Without `includingImages`, images are noted as shared earlier instead,
+    /// so old screenshots aren't uploaded again with every message.
+    static func content(of turn: ChatTurn, includingImages: Bool = true) -> JSONValue {
         let images = turn.images
         guard !images.isEmpty else { return .string(turn.contextText) }
+        guard includingImages else { return .string(turn.context(images: .sharedEarlier)) }
         var blocks: [JSONValue] = images.map { image in
             [
                 "type": "image",
@@ -279,5 +287,35 @@ extension ChatTurn {
             }
         }
         return result
+    }
+
+    /// The newest turns that fit in `budget` characters, merged with `alternating(_:)`.
+    ///
+    /// Like `PromptFlattener`, older turns are dropped first. The latest turn is always kept,
+    /// even when it alone is over budget, and the result never starts with an assistant turn.
+    /// Images aren't counted: providers send them only with the newest user turns.
+    public static func recent(_ turns: [ChatTurn], budget: Int) -> [ChatTurn] {
+        let turns = alternating(turns)
+        guard let latest = turns.last else { return [] }
+        var start = turns.count - 1
+        var used = latest.contextText.count
+        while start > 0 {
+            let size = turns[start - 1].contextText.count
+            if used + size > budget { break }
+            used += size
+            start -= 1
+        }
+        while start < turns.count - 1, turns[start].role == .assistant { start += 1 }
+        return Array(turns[start...])
+    }
+
+    /// How many of the newest user turns keep sending their images, so a follow-up question
+    /// about a screenshot can still look at it.
+    static let imageTurnLimit = 2
+
+    /// The indices of the turns whose images are sent as images: the last `imageTurnLimit`
+    /// user turns. Older images are only described.
+    static func indicesSendingImages(in turns: [ChatTurn]) -> Set<Int> {
+        Set(turns.indices.filter { turns[$0].role == .user }.suffix(imageTurnLimit))
     }
 }
