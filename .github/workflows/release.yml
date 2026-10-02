@@ -21,7 +21,7 @@ jobs:
   release:
     name: Build and publish
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       HAS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE != '' }}
       HAS_NOTARY: ${{ secrets.NOTARY_APPLE_ID != '' }}
@@ -31,6 +31,25 @@ jobs:
 
       - name: Work out the version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      # The same checks as CI, so a tag on a broken commit doesn't produce a release.
+      - name: Check formatting
+        run: make lint
+
+      - name: Check translations
+        run: make l10n
+
+      - name: Test
+        run: swift test
+
+      - name: Install the Metal toolchain
+        # MLX compiles its Metal shaders at build time.
+        run: xcodebuild -downloadComponent MetalToolchain || true
 
       - name: Import the signing certificate
         if: env.HAS_CERTIFICATE == 'true'
@@ -51,7 +70,14 @@ jobs:
       - name: Build the app
         env:
           SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY || '-' }}
+          # Voice features don't work without the helper, so a release must include it.
+          VOICE_HELPER: 1
         run: make app
+
+      - name: Check the voice helper is bundled
+        run: |
+          test -x dist/Momo.app/Contents/MacOS/momo-voice \
+            || { echo "error: dist/Momo.app has no momo-voice" >&2; exit 1; }
 
       - name: Pack the DMG
         env:
