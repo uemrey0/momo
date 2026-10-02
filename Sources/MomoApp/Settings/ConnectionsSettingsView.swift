@@ -38,7 +38,7 @@ struct ConnectionsSettingsView: View {
                                 Image(systemName: "trash")
                             }
                             .buttonStyle(.borderless)
-                            .accessibilityLabel(L("Remove"))
+                            .accessibilityLabel(String(format: L("Remove %@"), server.name))
                         }
                         Text(verbatim: ([server.command] + server.arguments).joined(separator: " "))
                             .font(.system(.caption, design: .monospaced))

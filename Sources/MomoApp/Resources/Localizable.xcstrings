@@ -4220,22 +4220,22 @@
         }
       }
     },
-    "Move down" : {
+    "Move %@ down" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aşağı taşı"
+            "value" : "%@ aşağı taşı"
           }
         }
       }
     },
-    "Move up" : {
+    "Move %@ up" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Yukarı taşı"
+            "value" : "%@ yukarı taşı"
           }
         }
       }
