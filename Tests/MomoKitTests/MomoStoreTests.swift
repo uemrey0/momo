@@ -232,4 +232,65 @@ struct MomoStoreTests {
         await #expect(throws: ToolError.self) { try await store.eraseAll() }
         #expect(try Data(contentsOf: first.fileURL) == newer)
     }
+
+    @Test("keeps every change when two stores write the same file at once")
+    func concurrentWriters() async throws {
+        // Two stores on one file stand in for the app and momo-mcp.
+        let first = temporaryStore()
+        let second = MomoStore(fileURL: first.fileURL)
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for index in 0..<100 {
+                group.addTask { try await first.addTask(title: "First \(index)") }
+                group.addTask { try await second.addNote(title: "Second \(index)", body: "") }
+            }
+            try await group.waitForAll()
+        }
+        let fresh = MomoStore(fileURL: first.fileURL)
+        #expect(await fresh.tasks().count == 100)
+        #expect(await fresh.notes().count == 100)
+        #expect(await first.tasks().count == 100)
+        #expect(await second.notes().count == 100)
+    }
+
+    @Test("releases the file lock when a change fails")
+    func lockReleasedAfterError() async throws {
+        let store = temporaryStore()
+        try await store.addTask(title: "Buy milk")
+        await #expect(throws: ToolError.self) { try await store.deleteTask("missing") }
+        let lock = try StoreFileLock.acquire(for: store.fileURL, timeout: 0)
+        lock.release()
+
+        var json = try #require(
+            try JSONSerialization.jsonObject(with: Data(contentsOf: store.fileURL))
+                as? [String: Any])
+        json["version"] = MomoData.currentVersion + 1
+        try JSONSerialization.data(withJSONObject: json).write(to: store.fileURL)
+        await #expect(throws: ToolError.self) { try await store.addTask(title: "Call Ayşe") }
+        try StoreFileLock.acquire(for: store.fileURL, timeout: 0).release()
+    }
+
+    @Test("gives up waiting for a lock another process holds")
+    func lockTimeout() throws {
+        let url = temporaryStore().fileURL
+        let held = try StoreFileLock.acquire(for: url)
+        defer { held.release() }
+        #expect(throws: ToolError.self) { try StoreFileLock.acquire(for: url, timeout: 0.05) }
+    }
+
+    @Test("lists the backups made of the data file, also by another process")
+    func backups() async throws {
+        let url = temporaryStore().fileURL
+        let folder = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data("not json".utf8).write(to: url)
+        // Another process finds the damage and moves the file aside.
+        let other = MomoStore(fileURL: url)
+        let backup = try #require(await other.problem()?.backup)
+        try Data("{}".utf8).write(to: folder.appendingPathComponent("notes.corrupt-1.json"))
+        try Data("{}".utf8).write(to: folder.appendingPathComponent("data.json.lock.json"))
+
+        let store = MomoStore(fileURL: url)
+        #expect(await store.problem() == nil)
+        #expect(store.backups().map(\.lastPathComponent) == [backup.lastPathComponent])
+    }
 }

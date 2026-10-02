@@ -5,15 +5,30 @@ import Foundation
 /// The file may be shared with other processes (the MCP server), so the store reloads it
 /// whenever it changed on disk and writes atomically. It never writes over data it couldn't
 /// read: an unreadable file is moved aside first, and a file from a newer Momo is left alone.
+/// Every change holds a lock on `data.json.lock` from reload to write, so changes made by
+/// several processes at once are all kept.
 public actor MomoStore {
     public nonisolated let fileURL: URL
     private var data = MomoData()
     private var loadedModificationDate: Date?
     private var loadProblem: StoreProblem?
     private var observers: [UUID: AsyncStream<MomoData>.Continuation] = [:]
+    private var isLocked = false
+    /// The store waits for the file lock on its own queue, never on the concurrency pool.
+    private let queue = DispatchSerialQueue(label: "momo.store")
+
+    public nonisolated var unownedExecutor: UnownedSerialExecutor {
+        queue.asUnownedSerialExecutor()
+    }
 
     public init(fileURL: URL) {
         self.fileURL = fileURL
+    }
+
+    /// Copies of the data file that were made because it couldn't be read as it was, by this
+    /// process or another one, oldest first.
+    public nonisolated func backups() -> [URL] {
+        StoreFile.backups(of: fileURL)
     }
 
     /// `~/Library/Application Support/Momo/data.json`
@@ -88,9 +103,11 @@ public actor MomoStore {
     public func completeTask(
         _ reference: String, at now: Date = Date(), calendar: Calendar = .current
     ) throws -> TaskItem {
-        let index = try taskIndex(for: reference, includeDone: false)
-        try markDone(at: index, now: now, calendar: calendar)
-        return data.tasks[index]
+        return try locked {
+            let index = try taskIndex(for: reference, includeDone: false)
+            try markDone(at: index, now: now, calendar: calendar)
+            return data.tasks[index]
+        }
     }
 
     /// The task with exactly this ID, done or not.
@@ -105,47 +122,53 @@ public actor MomoStore {
         remindAt: Date?? = nil, recurrence: Recurrence?? = nil, priority: TaskPriority? = nil,
         tags: [String]? = nil
     ) throws -> TaskItem {
-        // Overwriting text can't be undone, so it needs an exact ID or title.
-        let index = try taskIndex(
-            for: reference, includeDone: true, exactOnly: title != nil || notes != nil)
-        try mutate {
-            if let title { $0.tasks[index].title = title }
-            if let notes { $0.tasks[index].notes = notes }
-            if let dueDate { $0.tasks[index].dueDate = dueDate }
-            if let remindAt { $0.tasks[index].remindAt = remindAt }
-            if let recurrence { $0.tasks[index].recurrence = recurrence }
-            if let priority { $0.tasks[index].priority = priority }
-            if let tags { $0.tasks[index].tags = Self.normalizedTags(tags) }
+        return try locked {
+            // Overwriting text can't be undone, so it needs an exact ID or title.
+            let index = try taskIndex(
+                for: reference, includeDone: true, exactOnly: title != nil || notes != nil)
+            try mutate {
+                if let title { $0.tasks[index].title = title }
+                if let notes { $0.tasks[index].notes = notes }
+                if let dueDate { $0.tasks[index].dueDate = dueDate }
+                if let remindAt { $0.tasks[index].remindAt = remindAt }
+                if let recurrence { $0.tasks[index].recurrence = recurrence }
+                if let priority { $0.tasks[index].priority = priority }
+                if let tags { $0.tasks[index].tags = Self.normalizedTags(tags) }
+            }
+            return data.tasks[index]
         }
-        return data.tasks[index]
     }
 
     @discardableResult
     public func deleteTask(_ reference: String) throws -> TaskItem {
-        let index = try taskIndex(for: reference, includeDone: true, exactOnly: true)
-        let task = data.tasks[index]
-        try mutate { $0.tasks.remove(at: index) }
-        return task
+        return try locked {
+            let index = try taskIndex(for: reference, includeDone: true, exactOnly: true)
+            let task = data.tasks[index]
+            try mutate { $0.tasks.remove(at: index) }
+            return task
+        }
     }
 
     /// Ticks or unticks a task from the UI. Unticking a repeating task removes the occurrence
     /// its completion created, as long as that one is still open.
     public func setTaskDone(id: String, _ done: Bool, at now: Date = Date()) throws {
-        let index = try taskIndex(for: id, includeDone: true)
-        guard data.tasks[index].isDone != done else { return }
-        if done {
-            try markDone(at: index, now: now, calendar: .current)
-            return
-        }
-        let nextID = data.tasks[index].nextOccurrenceID
-        try mutate {
-            $0.tasks[index].isDone = false
-            $0.tasks[index].completedAt = nil
-            $0.tasks[index].nextOccurrenceID = nil
-            if let nextID, let next = $0.tasks.firstIndex(where: { $0.id == nextID }),
-                !$0.tasks[next].isDone
-            {
-                $0.tasks.remove(at: next)
+        try locked {
+            let index = try taskIndex(for: id, includeDone: true)
+            guard data.tasks[index].isDone != done else { return }
+            if done {
+                try markDone(at: index, now: now, calendar: .current)
+                return
+            }
+            let nextID = data.tasks[index].nextOccurrenceID
+            try mutate {
+                $0.tasks[index].isDone = false
+                $0.tasks[index].completedAt = nil
+                $0.tasks[index].nextOccurrenceID = nil
+                if let nextID, let next = $0.tasks.firstIndex(where: { $0.id == nextID }),
+                    !$0.tasks[next].isDone
+                {
+                    $0.tasks.remove(at: next)
+                }
             }
         }
     }
@@ -209,34 +232,40 @@ public actor MomoStore {
 
     @discardableResult
     public func appendToNote(_ reference: String, text: String) throws -> Note {
-        let index = try noteIndex(for: reference)
-        try mutate {
-            $0.notes[index].body += ($0.notes[index].body.isEmpty ? "" : "\n") + text
-            $0.notes[index].updatedAt = Date()
+        return try locked {
+            let index = try noteIndex(for: reference)
+            try mutate {
+                $0.notes[index].body += ($0.notes[index].body.isEmpty ? "" : "\n") + text
+                $0.notes[index].updatedAt = Date()
+            }
+            return data.notes[index]
         }
-        return data.notes[index]
     }
 
     /// Replaces a note's title and body, or adds it when no note has its ID.
     @discardableResult
     public func saveNote(_ note: Note) throws -> Note {
-        reloadIfNeeded()
-        var saved = note
-        saved.updatedAt = Date()
-        if let index = data.notes.firstIndex(where: { $0.id == note.id }) {
-            try mutate { $0.notes[index] = saved }
-        } else {
-            try mutate { $0.notes.append(saved) }
+        return try locked {
+            reloadIfNeeded()
+            var saved = note
+            saved.updatedAt = Date()
+            if let index = data.notes.firstIndex(where: { $0.id == note.id }) {
+                try mutate { $0.notes[index] = saved }
+            } else {
+                try mutate { $0.notes.append(saved) }
+            }
+            return saved
         }
-        return saved
     }
 
     @discardableResult
     public func deleteNote(_ reference: String) throws -> Note {
-        let index = try noteIndex(for: reference, exactOnly: true)
-        let note = data.notes[index]
-        try mutate { $0.notes.remove(at: index) }
-        return note
+        return try locked {
+            let index = try noteIndex(for: reference, exactOnly: true)
+            let note = data.notes[index]
+            try mutate { $0.notes.remove(at: index) }
+            return note
+        }
     }
 
     private func noteIndex(for reference: String, exactOnly: Bool = false) throws -> Int {
@@ -255,15 +284,17 @@ public actor MomoStore {
 
     @discardableResult
     public func addHabit(name: String) throws -> Habit {
-        reloadIfNeeded()
-        if let existing = data.habits.first(where: {
-            $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame
-        }) {
-            return existing
+        return try locked {
+            reloadIfNeeded()
+            if let existing = data.habits.first(where: {
+                $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame
+            }) {
+                return existing
+            }
+            let habit = Habit(name: name)
+            try mutate { $0.habits.append(habit) }
+            return habit
         }
-        let habit = Habit(name: name)
-        try mutate { $0.habits.append(habit) }
-        return habit
     }
 
     /// Marks a habit done (or not) for a day, creating the habit if needed.
@@ -273,37 +304,41 @@ public actor MomoStore {
     ) throws
         -> Habit
     {
-        reloadIfNeeded()
-        let index: Int
-        if let found = try? Self.index(
-            in: data.habits, reference: reference, kind: "habit", id: \.id, title: \.name,
-            isEligible: { _ in true })
-        {
-            index = found
-        } else {
-            try addHabit(name: reference)
-            index = data.habits.count - 1
-        }
-        let key = DayKey.string(for: date)
-        try mutate {
-            if done {
-                $0.habits[index].completedDays.insert(key)
+        return try locked {
+            reloadIfNeeded()
+            let index: Int
+            if let found = try? Self.index(
+                in: data.habits, reference: reference, kind: "habit", id: \.id, title: \.name,
+                isEligible: { _ in true })
+            {
+                index = found
             } else {
-                $0.habits[index].completedDays.remove(key)
+                try addHabit(name: reference)
+                index = data.habits.count - 1
             }
+            let key = DayKey.string(for: date)
+            try mutate {
+                if done {
+                    $0.habits[index].completedDays.insert(key)
+                } else {
+                    $0.habits[index].completedDays.remove(key)
+                }
+            }
+            return data.habits[index]
         }
-        return data.habits[index]
     }
 
     @discardableResult
     public func deleteHabit(_ reference: String) throws -> Habit {
-        reloadIfNeeded()
-        let index = try Self.index(
-            in: data.habits, reference: reference, kind: "habit", id: \.id, title: \.name,
-            isEligible: { _ in true })
-        let habit = data.habits[index]
-        try mutate { $0.habits.remove(at: index) }
-        return habit
+        return try locked {
+            reloadIfNeeded()
+            let index = try Self.index(
+                in: data.habits, reference: reference, kind: "habit", id: \.id, title: \.name,
+                isEligible: { _ in true })
+            let habit = data.habits[index]
+            try mutate { $0.habits.remove(at: index) }
+            return habit
+        }
     }
 
     // MARK: - Memories
@@ -319,29 +354,33 @@ public actor MomoStore {
     /// is given.
     @discardableResult
     public func remember(_ text: String, category: MemoryCategory? = nil) throws -> Memory {
-        reloadIfNeeded()
-        if let index = data.memories.firstIndex(where: {
-            $0.text.localizedCaseInsensitiveCompare(text) == .orderedSame
-        }) {
-            if let category, data.memories[index].category != category {
-                try mutate { $0.memories[index].category = category }
+        return try locked {
+            reloadIfNeeded()
+            if let index = data.memories.firstIndex(where: {
+                $0.text.localizedCaseInsensitiveCompare(text) == .orderedSame
+            }) {
+                if let category, data.memories[index].category != category {
+                    try mutate { $0.memories[index].category = category }
+                }
+                return data.memories[index]
             }
-            return data.memories[index]
+            let memory = Memory(text: text, category: category ?? .fact)
+            try mutate { $0.memories.append(memory) }
+            return memory
         }
-        let memory = Memory(text: text, category: category ?? .fact)
-        try mutate { $0.memories.append(memory) }
-        return memory
     }
 
     @discardableResult
     public func forget(_ reference: String) throws -> Memory {
-        reloadIfNeeded()
-        let index = try Self.index(
-            in: data.memories, reference: reference, kind: "memory", id: \.id, title: \.text,
-            isEligible: { _ in true }, exactOnly: true)
-        let memory = data.memories[index]
-        try mutate { $0.memories.remove(at: index) }
-        return memory
+        return try locked {
+            reloadIfNeeded()
+            let index = try Self.index(
+                in: data.memories, reference: reference, kind: "memory", id: \.id, title: \.text,
+                isEligible: { _ in true }, exactOnly: true)
+            let memory = data.memories[index]
+            try mutate { $0.memories.remove(at: index) }
+            return memory
+        }
     }
 
     // MARK: - Routines
@@ -369,48 +408,56 @@ public actor MomoStore {
         _ reference: String, title: String? = nil, prompt: String? = nil,
         time: (hour: Int, minute: Int)? = nil, weekdays: Set<Int>? = nil, isEnabled: Bool? = nil
     ) throws -> Routine {
-        let index = try routineIndex(for: reference)
-        let previous = data.routines[index]
-        var routine = previous
-        if let title { routine.title = title }
-        if let prompt { routine.prompt = prompt }
-        routine.schedule = RoutineSchedule(
-            hour: time?.hour ?? previous.schedule.hour,
-            minute: time?.minute ?? previous.schedule.minute,
-            weekdays: weekdays ?? previous.schedule.weekdays)
-        if let isEnabled { routine.isEnabled = isEnabled }
-        let saved = routine.edited(from: previous)
-        try mutate { $0.routines[index] = saved }
-        return saved
+        return try locked {
+            let index = try routineIndex(for: reference)
+            let previous = data.routines[index]
+            var routine = previous
+            if let title { routine.title = title }
+            if let prompt { routine.prompt = prompt }
+            routine.schedule = RoutineSchedule(
+                hour: time?.hour ?? previous.schedule.hour,
+                minute: time?.minute ?? previous.schedule.minute,
+                weekdays: weekdays ?? previous.schedule.weekdays)
+            if let isEnabled { routine.isEnabled = isEnabled }
+            let saved = routine.edited(from: previous)
+            try mutate { $0.routines[index] = saved }
+            return saved
+        }
     }
 
     /// Replaces a routine, or adds it when no routine has its ID.
     @discardableResult
     public func saveRoutine(_ routine: Routine) throws -> Routine {
-        reloadIfNeeded()
-        if let index = data.routines.firstIndex(where: { $0.id == routine.id }) {
-            let saved = routine.edited(from: data.routines[index])
-            try mutate { $0.routines[index] = saved }
-            return saved
-        } else {
-            try mutate { $0.routines.append(routine) }
+        return try locked {
+            reloadIfNeeded()
+            if let index = data.routines.firstIndex(where: { $0.id == routine.id }) {
+                let saved = routine.edited(from: data.routines[index])
+                try mutate { $0.routines[index] = saved }
+                return saved
+            } else {
+                try mutate { $0.routines.append(routine) }
+            }
+            return routine
         }
-        return routine
     }
 
     /// Records that a routine ran, so it does not run again for the same scheduled time.
     public func markRoutineRun(id: String, at date: Date = Date()) throws {
-        reloadIfNeeded()
-        guard let index = data.routines.firstIndex(where: { $0.id == id }) else { return }
-        try mutate { $0.routines[index].lastRun = date }
+        try locked {
+            reloadIfNeeded()
+            guard let index = data.routines.firstIndex(where: { $0.id == id }) else { return }
+            try mutate { $0.routines[index].lastRun = date }
+        }
     }
 
     @discardableResult
     public func deleteRoutine(_ reference: String) throws -> Routine {
-        let index = try routineIndex(for: reference, exactOnly: true)
-        let routine = data.routines[index]
-        try mutate { $0.routines.remove(at: index) }
-        return routine
+        return try locked {
+            let index = try routineIndex(for: reference, exactOnly: true)
+            let routine = data.routines[index]
+            try mutate { $0.routines.remove(at: index) }
+            return routine
+        }
     }
 
     private func routineIndex(for reference: String, exactOnly: Bool = false) throws -> Int {
@@ -459,20 +506,24 @@ public actor MomoStore {
     /// Replaces a meeting, or adds it when no meeting has its ID.
     @discardableResult
     public func saveMeeting(_ meeting: Meeting) throws -> Meeting {
-        reloadIfNeeded()
-        if let index = data.meetings.firstIndex(where: { $0.id == meeting.id }) {
-            try mutate { $0.meetings[index] = meeting }
-        } else {
-            try mutate { $0.meetings.append(meeting) }
+        return try locked {
+            reloadIfNeeded()
+            if let index = data.meetings.firstIndex(where: { $0.id == meeting.id }) {
+                try mutate { $0.meetings[index] = meeting }
+            } else {
+                try mutate { $0.meetings.append(meeting) }
+            }
+            return meeting
         }
-        return meeting
     }
 
     @discardableResult
     public func deleteMeeting(_ reference: String) throws -> Meeting {
-        let meeting = try findMeeting(reference)
-        try mutate { $0.meetings.removeAll { $0.id == meeting.id } }
-        return meeting
+        return try locked {
+            let meeting = try findMeeting(reference)
+            try mutate { $0.meetings.removeAll { $0.id == meeting.id } }
+            return meeting
+        }
     }
 
     /// Adds a meeting's action items to the task list, once each: items that already became
@@ -484,35 +535,38 @@ public actor MomoStore {
     public func addActionItemsAsTasks(
         meetingID: String, itemIDs: Set<String>? = nil
     ) throws -> [TaskItem] {
-        reloadIfNeeded()
-        guard let index = data.meetings.firstIndex(where: { $0.id == meetingID }) else {
-            throw ToolError("No meeting has the ID '\(meetingID)'.")
-        }
-        let meeting = data.meetings[index]
-        var items = meeting.actionItems
-        var added: [TaskItem] = []
-        for position in items.indices {
-            let item = items[position]
-            guard item.taskID == nil, itemIDs?.contains(item.id) ?? true else { continue }
-            var details: [String] = []
-            if let owner = item.owner, !owner.isEmpty { details.append("Owner: \(owner)") }
-            if item.dueDate == nil, let due = item.dueText, !due.isEmpty {
-                details.append("Due: \(due)")
+        return try locked {
+            reloadIfNeeded()
+            guard let index = data.meetings.firstIndex(where: { $0.id == meetingID }) else {
+                throw ToolError("No meeting has the ID '\(meetingID)'.")
             }
-            details.append(
-                "From the meeting “\(meeting.title)” on \(DayKey.string(for: meeting.startedAt))")
-            let task = TaskItem(
-                title: item.text, notes: details.joined(separator: "\n"), dueDate: item.dueDate,
-                tags: ["meeting"])
-            items[position].taskID = task.id
-            added.append(task)
+            let meeting = data.meetings[index]
+            var items = meeting.actionItems
+            var added: [TaskItem] = []
+            for position in items.indices {
+                let item = items[position]
+                guard item.taskID == nil, itemIDs?.contains(item.id) ?? true else { continue }
+                var details: [String] = []
+                if let owner = item.owner, !owner.isEmpty { details.append("Owner: \(owner)") }
+                if item.dueDate == nil, let due = item.dueText, !due.isEmpty {
+                    details.append("Due: \(due)")
+                }
+                details.append(
+                    "From the meeting “\(meeting.title)” on \(DayKey.string(for: meeting.startedAt))"
+                )
+                let task = TaskItem(
+                    title: item.text, notes: details.joined(separator: "\n"), dueDate: item.dueDate,
+                    tags: ["meeting"])
+                items[position].taskID = task.id
+                added.append(task)
+            }
+            guard !added.isEmpty else { return [] }
+            try mutate {
+                $0.tasks.append(contentsOf: added)
+                $0.meetings[index].actionItems = items
+            }
+            return added
         }
-        guard !added.isEmpty else { return [] }
-        try mutate {
-            $0.tasks.append(contentsOf: added)
-            $0.meetings[index].actionItems = items
-        }
-        return added
     }
 
     /// Deletes everything.
@@ -523,13 +577,29 @@ public actor MomoStore {
     // MARK: - Persistence
 
     private func mutate(_ change: (inout MomoData) -> Void) throws {
-        reloadIfNeeded()
-        if let error = loadProblem?.writeError(for: fileURL) { throw error }
-        var updated = data
-        change(&updated)
-        try write(updated)
-        data = updated
-        for observer in observers.values { observer.yield(updated) }
+        try locked {
+            reloadIfNeeded()
+            if let error = loadProblem?.writeError(for: fileURL) { throw error }
+            var updated = data
+            change(&updated)
+            try write(updated)
+            data = updated
+            for observer in observers.values { observer.yield(updated) }
+        }
+    }
+
+    /// Runs `body` holding the lock every process takes to write the file, so what it reads
+    /// can't change on disk before it writes. Nested calls share the outer lock. Methods that
+    /// find an item before changing it hold it throughout, so the index they found stays valid.
+    private func locked<T>(_ body: () throws -> T) throws -> T {
+        guard !isLocked else { return try body() }
+        let lock = try StoreFileLock.acquire(for: fileURL)
+        isLocked = true
+        defer {
+            isLocked = false
+            lock.release()
+        }
+        return try body()
     }
 
     private func write(_ value: MomoData) throws {
@@ -556,8 +626,19 @@ public actor MomoStore {
             let contents = try Data(contentsOf: fileURL)
             decoded = try StoreFile.decoder(counting: skipped).decode(MomoData.self, from: contents)
         } catch {
-            // Writing would replace everything in the file, so it is moved aside first.
-            let backup = try? StoreFile.backUp(fileURL, label: "corrupt", keepingOriginal: false)
+            // Writing would replace everything in the file, so it is moved aside first. That
+            // happens under the lock, so a file another process just wrote is never moved.
+            var backup: URL?
+            let replaced = try? locked {
+                guard modificationDate() == modified else { return true }
+                backup = try StoreFile.backUp(fileURL, label: "corrupt", keepingOriginal: false)
+                return false
+            }
+            if replaced == true {
+                loadedModificationDate = nil
+                reloadIfNeeded()
+                return
+            }
             if backup != nil { loadedModificationDate = nil }
             loadProblem = .unreadable(backup: backup)
             data = MomoData()

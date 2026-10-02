@@ -3999,6 +3999,16 @@
         }
       }
     },
+    "Momo left out some damaged items. A copy of the original file is at %@." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo bozuk bazı öğeleri dışarıda bıraktı. Orijinal dosyanın bir kopyası %@ konumunda."
+          }
+        }
+      }
+    },
     "Momo listens, recognises speech, knows when you finish and speaks entirely on this Mac with these models. Without them, voice mode stays off. Models are downloaded once, only when you press Download." : {
       "localizations" : {
         "tr" : {

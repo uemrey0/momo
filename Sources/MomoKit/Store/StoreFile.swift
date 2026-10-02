@@ -97,6 +97,80 @@ enum StoreFile {
         }
         return backup
     }
+
+    /// The backups ``backUp(_:label:keepingOriginal:)`` made of `url`: files named
+    /// `<name>.corrupt-*.<extension>` or `<name>.backup-*.<extension>` in its folder, oldest
+    /// first.
+    static func backups(of url: URL) -> [URL] {
+        let name = url.deletingPathExtension().lastPathComponent
+        let suffix = url.pathExtension.isEmpty ? "" : ".\(url.pathExtension)"
+        let folder = url.deletingLastPathComponent()
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        return files.filter { file in
+            file.hasSuffix(suffix)
+                && ["corrupt", "backup"].contains { file.hasPrefix("\(name).\($0)-") }
+        }
+        .sorted()
+        .map { folder.appendingPathComponent($0) }
+    }
+}
+
+/// An exclusive `flock` on `<file>.lock` next to a store file, shared by every process that
+/// writes the file (the app and `momo-mcp`), so their reload, change and write never overlap.
+///
+/// Waiting blocks the calling thread, so callers should not run on the Swift concurrency pool.
+struct StoreFileLock {
+    /// How long ``acquire(for:timeout:)`` waits for another process before giving up.
+    static let defaultTimeout: TimeInterval = 10
+
+    private let descriptor: Int32
+
+    /// The lock file for `fileURL`.
+    static func lockURL(for fileURL: URL) -> URL {
+        fileURL.deletingLastPathComponent()
+            .appendingPathComponent(fileURL.lastPathComponent + ".lock")
+    }
+
+    /// Takes the lock for `fileURL`, creating the lock file if needed. Throws when another
+    /// process still holds it after `timeout`.
+    static func acquire(
+        for fileURL: URL, timeout: TimeInterval = defaultTimeout
+    ) throws -> StoreFileLock {
+        let lockURL = lockURL(for: fileURL)
+        try FileManager.default.createDirectory(
+            at: lockURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let descriptor = open(lockURL.path, O_RDWR | O_CREAT | O_CLOEXEC, 0o644)
+        guard descriptor >= 0 else {
+            throw ToolError(
+                "Momo can't open \(lockURL.path) to save its data: "
+                    + String(cString: strerror(errno)))
+        }
+        let deadline = Date().addingTimeInterval(timeout)
+        while flock(descriptor, LOCK_EX | LOCK_NB) != 0 {
+            let error = errno
+            guard error == EWOULDBLOCK || error == EINTR else {
+                close(descriptor)
+                throw ToolError(
+                    "Momo can't lock \(lockURL.path) to save its data: "
+                        + String(cString: strerror(error)))
+            }
+            guard Date() < deadline else {
+                close(descriptor)
+                throw ToolError(
+                    "Another Momo process has been saving \(fileURL.lastPathComponent) for too "
+                        + "long. Try again in a moment.")
+            }
+            usleep(2_000)
+        }
+        return StoreFileLock(descriptor: descriptor)
+    }
+
+    /// Releases the lock. Closing the descriptor would release it too, as would the process
+    /// ending.
+    func release() {
+        flock(descriptor, LOCK_UN)
+        close(descriptor)
+    }
 }
 
 /// One element of a lossy list: `nil` when it couldn't be decoded.
