@@ -2355,12 +2355,12 @@
         }
       }
     },
-    "Erase all tasks, notes, habits, memories and conversations?" : {
+    "Erase all tasks, notes, habits, memories, meetings and conversations?" : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tüm görevler, notlar, alışkanlıklar, anılar ve sohbetler silinsin mi?"
+            "value" : "Tüm görevler, notlar, alışkanlıklar, anılar, toplantılar ve sohbetler silinsin mi?"
           }
         }
       }
@@ -3705,6 +3705,16 @@
         }
       }
     },
+    "Meeting recordings and images Momo made are deleted too. This can't be undone." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplantı kayıtları ve Momo'nun yaptığı görseller de silinir. Bu işlem geri alınamaz."
+          }
+        }
+      }
+    },
     "Meetings" : {
       "localizations" : {
         "tr" : {
@@ -3949,6 +3959,16 @@
         }
       }
     },
+    "Momo is recording or summarising a meeting. Stop it and wait for the summary, then try again." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo bir toplantıyı kaydediyor ya da özetliyor. Toplantıyı durdurun, özetin hazır olmasını bekleyin ve yeniden deneyin."
+          }
+        }
+      }
+    },
     "Momo is still answering. Try again in a moment." : {
       "localizations" : {
         "tr" : {
@@ -4145,6 +4165,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ konumundaki dosya düzeltilene ya da taşınana kadar Momo değişiklikleri kaydetmeyecek."
+          }
+        }
+      }
+    },
+    "Momo's data was erased." : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun verileri silindi."
           }
         }
       }
@@ -6489,6 +6519,16 @@
         }
       }
     },
+    "Some of Momo's data couldn't be erased: %@" : {
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momo'nun verilerinin bir kısmı silinemedi: %@"
+          }
+        }
+      }
+    },
     "Some saved items couldn't be read" : {
       "localizations" : {
         "tr" : {
@@ -7180,16 +7220,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Düşünüyorum…"
-          }
-        }
-      }
-    },
-    "This can't be undone." : {
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bu işlem geri alınamaz."
           }
         }
       }
