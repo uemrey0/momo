@@ -24,6 +24,9 @@ public final class CloudDictationEngine: DictationEngine {
     public var onUpload: ((String, TimeInterval) -> Void)?
     /// Called when the cloud request failed and the on-device fallback was used.
     public var onCloudFailure: ((any Error) -> Void)?
+    /// Called when the microphone can't be opened again after the audio devices changed.
+    /// Listening has stopped then, and what was recorded is transcribed.
+    public var onMicrophoneFailure: ((any Error) -> Void)?
 
     public private(set) var isListening = false
     /// The recording format sent to the service: 16 kHz mono is plenty for speech and keeps
@@ -35,6 +38,7 @@ public final class CloudDictationEngine: DictationEngine {
     private var detector: VoiceActivityDetector
     private let audioEngine = AVAudioEngine()
     private var recorder: PCMRecorder?
+    private var microphone: MicrophoneTap?
     private var locale = Locale.current
     private var startDate = Date()
     private var transcription: Task<Void, Never>?
@@ -59,26 +63,22 @@ public final class CloudDictationEngine: DictationEngine {
         guard microphone else { throw DictationError.microphoneDenied }
         self.locale = locale
 
-        let input = audioEngine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0,
+        guard
             let recorder = PCMRecorder(
-                inputFormat: format, sampleRate: Double(Self.sampleRate),
+                sampleRate: Double(Self.sampleRate),
                 onLevel: { [weak self] level in
                     Task { @MainActor in self?.heard(level: level) }
                 })
         else { throw DictationError.unavailable }
+        // After a device change the tap restarts in the new format and the recorder goes on.
+        let tap = MicrophoneTap(
+            engine: audioEngine, bufferSize: 1024, block: Self.makeTap(recorder: recorder),
+            onFailure: { [weak self] error in
+                Task { @MainActor in self?.microphoneFailed(error) }
+            })
+        try tap.start()
         self.recorder = recorder
-        input.installTap(
-            onBus: 0, bufferSize: 1024, format: format, block: Self.makeTap(recorder: recorder))
-        audioEngine.prepare()
-        do {
-            try audioEngine.start()
-        } catch {
-            input.removeTap(onBus: 0)
-            self.recorder = nil
-            throw error
-        }
+        self.microphone = tap
         detector.reset()
         detector.endsOnSilence = !isContinuous
         startDate = Date()
@@ -96,10 +96,8 @@ public final class CloudDictationEngine: DictationEngine {
         }
         guard isListening else { return }
         isListening = false
-        if audioEngine.isRunning {
-            audioEngine.stop()
-            audioEngine.inputNode.removeTap(onBus: 0)
-        }
+        microphone?.stop()
+        microphone = nil
         onLevel?(0)
         let samples = recorder?.takeSamples() ?? []
         recorder = nil
@@ -123,6 +121,13 @@ public final class CloudDictationEngine: DictationEngine {
         case .none, .speechStarted:
             break
         }
+    }
+
+    /// The microphone couldn't restart after a device change: keep what was said so far.
+    private func microphoneFailed(_ error: any Error) {
+        guard isListening else { return }
+        onMicrophoneFailure?(error)
+        stop(deliver: true)
     }
 
     private func transcribe(_ samples: [Float]) {
@@ -156,32 +161,32 @@ public final class CloudDictationEngine: DictationEngine {
 }
 
 /// Converts microphone buffers to mono Float samples at a fixed rate and keeps them, on the
-/// audio thread.
+/// audio thread. The converter follows the buffers' format, which changes with the device.
 final class PCMRecorder: @unchecked Sendable {
-    private let converter: AVAudioConverter
+    private var converter: AVAudioConverter?
+    private var inputFormat: AVAudioFormat?
     private let outputFormat: AVAudioFormat
     private let levels: LevelReporter
     private let lock = NSLock()
     private var samples: [Float] = []
 
-    init?(
-        inputFormat: AVAudioFormat, sampleRate: Double,
-        onLevel: @escaping @Sendable (Double) -> Void
-    ) {
+    init?(sampleRate: Double, onLevel: @escaping @Sendable (Double) -> Void) {
         guard
             let outputFormat = AVAudioFormat(
                 commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1,
-                interleaved: false),
-            let converter = AVAudioConverter(from: inputFormat, to: outputFormat)
+                interleaved: false)
         else { return nil }
-        self.converter = converter
         self.outputFormat = outputFormat
         self.levels = LevelReporter(onLevel)
     }
 
     func append(_ buffer: AVAudioPCMBuffer) {
         levels.report(buffer)
-        guard let converted = converter.convertBuffer(buffer, to: outputFormat),
+        if buffer.format != inputFormat {
+            inputFormat = buffer.format
+            converter = AVAudioConverter(from: buffer.format, to: outputFormat)
+        }
+        guard let converted = converter?.convertBuffer(buffer, to: outputFormat),
             let channel = converted.floatChannelData?[0]
         else { return }
         let chunk = UnsafeBufferPointer(start: channel, count: Int(converted.frameLength))

@@ -441,6 +441,13 @@ final class VoiceController {
                     "Cloud transcription failed, so Momo used its own voice models instead. %@"),
                 error.localizedDescription)
         }
+        engine.onMicrophoneFailure = { [weak self] error in
+            self?.errorMessage = String(
+                format: L(
+                    "The microphone stopped after the audio device changed, so Momo stopped listening. %@"
+                ),
+                error.localizedDescription)
+        }
         return engine
     }
 

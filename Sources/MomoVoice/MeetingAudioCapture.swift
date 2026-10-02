@@ -43,6 +43,9 @@ public final class MeetingAudioCapture: NSObject, @unchecked Sendable {
     /// Called when system audio capture stops on its own (for example when the permission is
     /// revoked). The microphone keeps recording.
     public var onSystemAudioStopped: (@Sendable (any Error) -> Void)?
+    /// Called when the microphone can't be opened again after the audio devices changed (for
+    /// example when headphones switch to their call profile). System audio keeps recording.
+    public var onMicrophoneStopped: (@Sendable (any Error) -> Void)?
 
     public let capturesSystemAudio: Bool
     private let chunking: AudioChunker.Configuration
@@ -51,6 +54,7 @@ public final class MeetingAudioCapture: NSObject, @unchecked Sendable {
     private let lock = NSLock()
     private var recorders: [MeetingTrack: TrackRecorder] = [:]
     private let engine = AVAudioEngine()
+    private var microphone: MicrophoneTap?
     private var stream: SCStream?
     private let audioQueue = DispatchQueue(label: "momo.meeting.system-audio")
     private let screenQueue = DispatchQueue(label: "momo.meeting.screen")
@@ -143,26 +147,20 @@ public final class MeetingAudioCapture: NSObject, @unchecked Sendable {
 
     // MARK: - Microphone
 
+    /// After a device change the same recorder takes the audio, converting from the new
+    /// format, so the chunks' timestamps continue.
     private func startMicrophone() throws {
-        let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0 else { throw DictationError.unavailable }
         let recorder = makeRecorder(.microphone)
-        input.installTap(
-            onBus: 0, bufferSize: 4096, format: format, block: Self.makeTap(recorder: recorder))
-        engine.prepare()
-        do {
-            try engine.start()
-        } catch {
-            input.removeTap(onBus: 0)
-            throw error
-        }
+        let microphone = MicrophoneTap(
+            engine: engine, bufferSize: 4096, block: Self.makeTap(recorder: recorder),
+            onFailure: { [weak self] error in self?.onMicrophoneStopped?(error) })
+        try microphone.start()
+        self.microphone = microphone
     }
 
     private func stopMicrophone() {
-        guard engine.isRunning else { return }
-        engine.stop()
-        engine.inputNode.removeTap(onBus: 0)
+        microphone?.stop()
+        microphone = nil
     }
 
     private nonisolated static func makeTap(recorder: TrackRecorder) -> AVAudioNodeTapBlock {
