@@ -40,6 +40,16 @@ Targets are computed in five layers. Later layers override earlier ones.
 5. **Particles.** `z`, notes, hearts, sparkles, sweat drops, `!` and `?` are simple particles
    with velocity, gravity and a lifetime.
 
+## Frame rate
+
+`FaceView` draws at the display's full rate while Momo moves. Once the engine reports
+`isResting` (no action, reaction or quick particle, the cursor isn't being followed, no blink is
+due and every spring moves slower than its channel's `restingSpeed`) for a moment, it drops to
+15 frames a second, which covers breathing, drifting and sleeping. Low Power Mode caps the rate
+at 30 frames a second, and the notch character stops drawing entirely while the screens sleep,
+another user session is active or its panel is covered. `advance(to:)` clamps frame gaps to
+`FaceEngine.maximumFrameStep`, so Momo doesn't jump after a pause.
+
 ## Adding a mood
 
 1. Add a case to `Mood`.

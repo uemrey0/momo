@@ -45,6 +45,17 @@ public final class FaceEngine {
     public private(set) var isTucked = false
     /// The most recent frame.
     public private(set) var state = FaceState.resting
+    /// Whether the most recent frame was calm enough to draw at a low frame rate: no action,
+    /// reaction or quick particle is playing, the cursor is not being followed, no blink is
+    /// due and every spring moves slowly. Breathing, drifting and sleeping count as resting.
+    public private(set) var isResting = false
+
+    /// The longest step ``advance(to:input:)`` takes, in seconds. Longer gaps, such as after
+    /// drawing was paused, are clamped so Momo doesn't jump.
+    public static let maximumFrameStep = 0.1
+    /// How long before a blink starts that the engine stops resting, so the blink plays at
+    /// the full frame rate.
+    static let blinkLead = 0.2
 
     private enum ScheduledStep {
         case flash(Mood, duration: Double)
@@ -69,6 +80,7 @@ public final class FaceEngine {
     private var microSaccade = SIMD2<Double>(0, 0)
     private var lastPointer: SIMD2<Double>?
     private var pointerStillTime = 0.0
+    private var isFollowingPointer = false
     private var thinkingCountdown = 0.0
     private var thinkingGaze = SIMD2<Double>(0.7, -0.8)
     private var readingLine = 0
@@ -188,10 +200,11 @@ public final class FaceEngine {
     // MARK: - Simulation
 
     /// Advances the simulation to an absolute timestamp in seconds. The first call only
-    /// establishes the timeline; gaps longer than 50 ms are clamped.
+    /// establishes the timeline; gaps longer than ``maximumFrameStep`` are clamped.
     @discardableResult
     public func advance(to timestamp: Double, input: Input) -> FaceState {
-        let dt = lastTimestamp.map { min(0.05, max(0, timestamp - $0)) } ?? 1.0 / 60.0
+        let dt =
+            lastTimestamp.map { min(Self.maximumFrameStep, max(0, timestamp - $0)) } ?? 1.0 / 60.0
         lastTimestamp = timestamp
         return advance(by: dt, input: input)
     }
@@ -255,7 +268,17 @@ public final class FaceEngine {
         state = FaceState(
             pose: current, eyeOpenness: openness, particles: particles, time: clock,
             activity: activity(curious: curious))
+        isResting = computeResting(curious: curious)
         return state
+    }
+
+    private func computeResting(curious: Bool) -> Bool {
+        guard action == nil, temporaryMoodRemaining == nil, scheduled.isEmpty, !curious,
+            !isFollowingPointer, mood.isCalm || isTucked
+        else { return false }
+        let blinkDue = blinkPhase != nil || (mood.allowsBlinking && blinkCountdown < Self.blinkLead)
+        guard !blinkDue, particles.allSatisfy({ $0.kind == .snooze }) else { return false }
+        return springs.allSatisfy { channel, spring in abs(spring.velocity) < channel.restingSpeed }
     }
 
     // MARK: - Layers
@@ -381,12 +404,14 @@ public final class FaceEngine {
     /// wander. Returns whether Momo is curious (cursor very close).
     private func applyAttention(to pose: inout FacePose, input: Input, dt: Double) -> Bool {
         updateMicroSaccades(dt)
+        isFollowingPointer = false
         let attentive = mood.tracksPointer && (action?.kind.tracksPointer ?? true) && !isTucked
         if attentive, let pointer = input.pointer {
             let distance = max(0.001, (pointer * pointer).sum().squareRoot())
             // A cursor that sits still for a while stops being interesting, unless it is close.
             let interesting = pointerStillTime < 6 || distance < 130
             if distance < 440 && interesting {
+                isFollowingPointer = pointerStillTime < 0.3
                 let strength = min(1, distance / 150)
                 pose[.gazeX] = pointer.x / distance * strength + microSaccade.x
                 pose[.gazeY] = min(1, max(-0.6, pointer.y / distance * strength)) + microSaccade.y

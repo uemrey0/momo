@@ -56,6 +56,15 @@ public enum Mood: String, CaseIterable, Sendable, Codable, Identifiable {
         }
     }
 
+    /// Whether the mood has no quick procedural motion of its own, so Momo can rest in it at
+    /// a low frame rate.
+    var isCalm: Bool {
+        switch self {
+        case .idle, .sleepy, .focused: true
+        default: false
+        }
+    }
+
     /// Whether spontaneous blinks happen in this mood.
     var allowsBlinking: Bool {
         self != .sleepy && self != .dizzy
