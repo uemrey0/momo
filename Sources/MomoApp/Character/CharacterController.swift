@@ -66,6 +66,10 @@ final class CharacterController {
 
     @ObservationIgnored let engine = FaceEngine()
     @ObservationIgnored private let recordingIndicator = RecordingIndicatorState()
+    @ObservationIgnored private let playback = FacePlaybackState()
+    @ObservationIgnored private var idleTime = IdleTimeSampler()
+    @ObservationIgnored private var screensAreAsleep = false
+    @ObservationIgnored private var sessionIsActive = true
     /// The ambient mood the meeting replaced, restored when it ends. `.some(nil)` means none.
     @ObservationIgnored private var moodBeforeMeeting: Mood??
     /// Called when the user clicks the character.
@@ -116,6 +120,32 @@ final class CharacterController {
                         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
                 }
             })
+        // Nobody sees Momo while the screens sleep or another user is logged in, so it stops
+        // drawing until they come back.
+        let workspaceEvents: [Notification.Name] = [
+            NSWorkspace.screensDidSleepNotification, NSWorkspace.screensDidWakeNotification,
+            NSWorkspace.sessionDidResignActiveNotification,
+            NSWorkspace.sessionDidBecomeActiveNotification,
+        ]
+        for name in workspaceEvents {
+            observers.append(
+                NSWorkspace.shared.notificationCenter.addObserver(
+                    forName: name, object: nil, queue: .main
+                ) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.handleWorkspaceEvent(name) }
+                })
+        }
+    }
+
+    private func handleWorkspaceEvent(_ name: Notification.Name) {
+        switch name {
+        case NSWorkspace.screensDidSleepNotification: screensAreAsleep = true
+        case NSWorkspace.screensDidWakeNotification: screensAreAsleep = false
+        case NSWorkspace.sessionDidResignActiveNotification: sessionIsActive = false
+        case NSWorkspace.sessionDidBecomeActiveNotification: sessionIsActive = true
+        default: return
+        }
+        updatePlayback()
     }
 
     /// Plays Momo's reaction to an event.
@@ -217,7 +247,7 @@ final class CharacterController {
         self.geometry = geometry
 
         let layout = geometry.layout
-        let panel = self.panel ?? NotchPanel()
+        let panel = self.panel ?? makePanel()
         let hostingView = ClickThroughHostingView(rootView: makeFace(layout: layout))
         hostingView.sizingOptions = []
         panel.contentView = hostingView
@@ -227,13 +257,37 @@ final class CharacterController {
         updateVisibility()
     }
 
+    /// Creates the panel and pauses the character whenever the panel is covered or hidden.
+    private func makePanel() -> NotchPanel {
+        let panel = NotchPanel()
+        observers.append(
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didChangeOcclusionStateNotification, object: panel, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.updatePlayback() }
+            })
+        return panel
+    }
+
+    private func updatePlayback() {
+        let isOnScreen = panel?.occlusionState.contains(.visible) ?? false
+        let isPaused = screensAreAsleep || !sessionIsActive || !isOnScreen
+        if playback.isPaused != isPaused { playback.isPaused = isPaused }
+    }
+
     private func makeFace(layout: FaceLayout) -> AnyView {
-        AnyView(
-            FaceView(
-                engine: engine, layout: layout, appearance: appearance,
-                input: { [weak self] in self?.makeInput(layout: layout) ?? FaceEngine.Input() },
-                onTap: { [weak self] in self?.onClick?() }
-            )
+        let engine = engine
+        let appearance = appearance
+        let input: @MainActor () -> FaceEngine.Input = { [weak self] in
+            self?.makeInput(layout: layout) ?? FaceEngine.Input()
+        }
+        let onTap: @MainActor () -> Void = { [weak self] in self?.onClick?() }
+        return AnyView(
+            PausableFace(playback: playback) { isPaused in
+                FaceView(
+                    engine: engine, layout: layout, appearance: appearance, input: input,
+                    onTap: onTap, isPaused: isPaused)
+            }
             .accessibilityLabel(Text("Momo", bundle: .module))
             .contextMenu { contextMenu }
             .overlay(alignment: .topLeading) {
@@ -271,6 +325,7 @@ final class CharacterController {
         } else {
             panel.orderOut(nil)
         }
+        updatePlayback()
     }
 
     /// Reads the cursor position relative to the anchor and lets clicks through everywhere
@@ -287,7 +342,27 @@ final class CharacterController {
         if panel.ignoresMouseEvents == wantsClicks {
             panel.ignoresMouseEvents = !wantsClicks
         }
-        return FaceEngine.Input(pointer: pointer, systemIdleTime: SystemActivity.idleSeconds())
+        let idleSeconds = idleTime.idleSeconds(
+            now: ProcessInfo.processInfo.systemUptime, read: SystemActivity.idleSeconds)
+        return FaceEngine.Input(pointer: pointer, systemIdleTime: idleSeconds)
+    }
+}
+
+/// Whether the notch character draws. Separate from the controller so the face's view
+/// doesn't hold on to it.
+@MainActor
+@Observable
+final class FacePlaybackState {
+    var isPaused = false
+}
+
+/// Shows a face that stops drawing while `playback` is paused.
+private struct PausableFace<Face: View>: View {
+    var playback: FacePlaybackState
+    @ViewBuilder var face: (_ isPaused: Bool) -> Face
+
+    var body: some View {
+        face(playback.isPaused)
     }
 }
 

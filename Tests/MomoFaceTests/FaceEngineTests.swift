@@ -299,7 +299,8 @@ struct FaceEngineTests {
     func clampsLongGaps() {
         let engine = makeEngine()
         engine.advance(to: 100, input: .init())
+        let before = engine.state.time
         let state = engine.advance(to: 200, input: .init())
-        #expect(state.time < 0.1)
+        #expect(abs(state.time - before - FaceEngine.maximumFrameStep) < 1e-9)
     }
 }

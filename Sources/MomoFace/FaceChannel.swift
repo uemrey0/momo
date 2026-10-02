@@ -77,6 +77,21 @@ public enum FaceChannel: CaseIterable, Sendable, Hashable {
         default: (140, 16)
         }
     }
+
+    /// The fastest this channel may change, in units per second, while still looking smooth
+    /// at the resting frame rate. Roughly a few points per second on screen, so breathing,
+    /// drifting and tiny eye movements count as resting while saccades and swings do not.
+    var restingSpeed: Double {
+        switch self {
+        case .gazeX: 0.8
+        case .gazeY: 1
+        case .lift, .mouthWidth: 6
+        case .rotation: 0.08
+        case .squash, .eyeScale: 0.1
+        case .eyeRed, .eyeGreen, .eyeBlue: 60
+        default: 0.3
+        }
+    }
 }
 
 /// A set of channel values. Channels that are not set report their resting value.
