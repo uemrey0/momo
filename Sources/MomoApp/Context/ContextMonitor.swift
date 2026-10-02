@@ -26,7 +26,6 @@ final class ContextMonitor: NSObject {
     private var lowBatteryAnnounced = false
     private var lateNightDay: String?
     private var greetingDay: String?
-    private var notificationsReady = false
 
     init(
         settings: AppSettings, store: MomoStore, calendar: CalendarService,
@@ -43,6 +42,7 @@ final class ContextMonitor: NSObject {
     func start() {
         observeMusic()
         prepareNotifications()
+        observeActivation()
         tick = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.check()
@@ -208,26 +208,60 @@ final class ContextMonitor: NSObject {
                 identifier: Self.meetingCategory, actions: [takeNotes], intentIdentifiers: [])
         ])
         Task {
-            let granted =
-                (try? await UNUserNotificationCenter.current().requestAuthorization(
-                    options: [.alert, .sound])) ?? false
-            notificationsReady = granted
+            _ = try? await UNUserNotificationCenter.current().requestAuthorization(
+                options: [.alert, .sound])
         }
+    }
+
+    /// The user may allow notifications in System Settings while Momo runs, so reminders that
+    /// were skipped are scheduled as soon as Momo comes back rather than on the next check.
+    private func observeActivation() {
+        observers.append(
+            NotificationCenter.default.addObserver(
+                forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    Task { self.scheduleReminderNotifications(for: await self.store.tasks()) }
+                }
+            })
+    }
+
+    /// Whether macOS currently lets Momo post notifications.
+    nonisolated static func mayNotify(_ status: UNAuthorizationStatus) -> Bool {
+        switch status {
+        case .authorized, .provisional: true
+        default: false
+        }
+    }
+
+    /// Reads the permission each time, because the user can change it in System Settings at any
+    /// moment. The center is looked up here rather than passed in, so it never crosses actors.
+    private nonisolated static func notificationsAllowed() async -> Bool {
+        let status = await withCheckedContinuation { continuation in
+            UNUserNotificationCenter.current().getNotificationSettings {
+                continuation.resume(returning: $0.authorizationStatus)
+            }
+        }
+        return mayNotify(status)
     }
 
     private func notify(
         id: String, title: String, body: String, action: NotificationAction? = nil,
         category: String? = nil
     ) {
-        guard canNotify, notificationsReady else { return }
+        guard canNotify else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
         if let action { content.userInfo = ["action": action.rawValue] }
         if let category { content.categoryIdentifier = category }
-        UNUserNotificationCenter.current().add(
-            UNNotificationRequest(identifier: id, content: content, trigger: nil))
+        Task {
+            guard await Self.notificationsAllowed() else { return }
+            try? await UNUserNotificationCenter.current().add(
+                UNNotificationRequest(identifier: id, content: content, trigger: nil))
+        }
     }
 
     /// Identifiers of scheduled task reminders. Only the identifiers leave the callback,
@@ -244,13 +278,16 @@ final class ContextMonitor: NSObject {
 
     /// Keeps one scheduled notification per open task with a future reminder.
     private func scheduleReminderNotifications(for tasks: [TaskItem]) {
-        guard canNotify, notificationsReady else { return }
+        guard canNotify else { return }
         let center = UNUserNotificationCenter.current()
         let now = Date()
         let wanted = tasks.filter { ($0.remindAt ?? .distantPast) > now }
         let wantedIDs = Set(
             wanted.map { "task-\($0.id)-\($0.remindAt?.timeIntervalSince1970 ?? 0)" })
         Task {
+            // Checked every time, so reminders skipped while notifications were off are
+            // scheduled once the user allows them.
+            guard await Self.notificationsAllowed() else { return }
             let pending = await Self.pendingTaskNotificationIDs()
             let stale = pending.filter { !wantedIDs.contains($0) }
             center.removePendingNotificationRequests(withIdentifiers: stale)
