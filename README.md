@@ -151,11 +151,6 @@ make l10n       # check translations
 make snapshots  # regenerate the README images
 ```
 
-## Acknowledgements
-
-Momo is inspired by [Taby](https://www.heytaby.com/). It is an independent project and is not
-affiliated with Taby, Apple, OpenAI, Google or Anthropic.
-
 ## License
 
 [Apache License 2.0](LICENSE)

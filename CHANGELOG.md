@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0-beta.1] - 2026-10-02
+
 ### Added
 
 - Momo's own voice models everywhere: dictation, "Hey Momo", replies read aloud, spoken
@@ -94,6 +96,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Settings did not open from the menu or the panel on macOS 14 and later. Settings now has
   its own window, and Momo shows a Dock icon while Settings or the welcome tour is open so
   they always come to the front.
+- Attached files show in the chat while they load, the paperclip lines up with the text
+  field, and the file picker stays in front of the panel. Brains are shown with their logos.
 
 ## [0.1.0] - 2026-09-26
 
@@ -121,5 +125,6 @@ The first release: a living companion in the notch that works with the brain you
   MCP servers.
 - English and Turkish, onboarding, settings, launch at login and update checks.
 
-[Unreleased]: https://github.com/uemrey0/momo/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/uemrey0/momo/compare/v0.2.0-beta.1...HEAD
+[0.2.0-beta.1]: https://github.com/uemrey0/momo/compare/v0.1.0...v0.2.0-beta.1
 [0.1.0]: https://github.com/uemrey0/momo/releases/tag/v0.1.0

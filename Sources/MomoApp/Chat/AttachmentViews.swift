@@ -3,37 +3,57 @@ import MomoBrain
 import MomoKit
 import SwiftUI
 
-/// The paperclip in the composer: attach files or a screenshot.
+/// The paperclip in the composer: attach files or a screenshot. A plain button that opens
+/// a native menu, so it lines up with the composer's other buttons exactly.
 struct AttachMenu: View {
     var chooseFiles: () -> Void
     var attachScreenshot: () -> Void
 
     var body: some View {
-        Menu {
-            Button(action: chooseFiles) {
-                Label(L("Attach files…"), systemImage: "doc")
-            }
-            Button(action: attachScreenshot) {
-                Label(L("Attach screenshot"), systemImage: "camera.viewfinder")
-            }
-        } label: {
+        Button(action: showMenu) {
             Image(systemName: "paperclip")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.secondaryText)
-                .frame(width: 28, height: 28)
+                .frame(width: 30, height: 30)
                 .contentShape(Circle())
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
+        .buttonStyle(.plain)
         .help(L("Attach files or a screenshot"))
         .accessibilityLabel(L("Attach"))
     }
+
+    private func showMenu() {
+        let menu = NSMenu()
+        menu.addItem(ClosureMenuItem(L("Attach files…"), systemImage: "doc", action: chooseFiles))
+        menu.addItem(
+            ClosureMenuItem(
+                L("Attach screenshot"), systemImage: "camera.viewfinder", action: attachScreenshot))
+        // Opens just above the pointer, like a menu button's would.
+        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
 }
 
-/// Attachments waiting to be sent, each with a remove button.
+/// A menu item that runs a closure.
+private final class ClosureMenuItem: NSMenuItem {
+    private let handler: () -> Void
+
+    init(_ title: String, systemImage: String, action handler: @escaping () -> Void) {
+        self.handler = handler
+        super.init(title: title, action: #selector(run), keyEquivalent: "")
+        target = self
+        image = NSImage(systemSymbolName: systemImage, accessibilityDescription: nil)
+    }
+
+    required init(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    @objc private func run() { handler() }
+}
+
+/// Attachments waiting to be sent, each with a remove button. Ones still being read show
+/// as placeholders with a spinner.
 struct AttachmentStrip: View {
     var attachments: [ChatAttachment]
+    var loading: [LoadingAttachment]
     var remove: (String) -> Void
 
     var body: some View {
@@ -42,19 +62,14 @@ struct AttachmentStrip: View {
                 ForEach(attachments) { attachment in
                     AttachmentChip(attachment: attachment)
                         .overlay(alignment: .topTrailing) {
-                            Button {
-                                remove(attachment.id)
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 13))
-                                    .symbolRenderingMode(.palette)
-                                    .foregroundStyle(.white, Color.black.opacity(0.7))
-                            }
-                            .buttonStyle(.plain)
-                            .offset(x: 4, y: -4)
-                            .help(L("Remove"))
-                            .accessibilityLabel(
-                                String(format: L("Remove %@"), attachment.name))
+                            removeButton(id: attachment.id, name: attachment.name)
+                        }
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                }
+                ForEach(loading) { placeholder in
+                    LoadingChip(attachment: placeholder)
+                        .overlay(alignment: .topTrailing) {
+                            removeButton(id: placeholder.id, name: placeholder.name)
                         }
                         .transition(.scale(scale: 0.8).combined(with: .opacity))
                 }
@@ -63,6 +78,52 @@ struct AttachmentStrip: View {
             .padding(.trailing, 4)
         }
         .scrollIndicators(.never)
+    }
+
+    private func removeButton(id: String, name: String) -> some View {
+        Button {
+            remove(id)
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 13))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, Color.black.opacity(0.7))
+        }
+        .buttonStyle(.plain)
+        .offset(x: 4, y: -4)
+        .help(L("Remove"))
+        .accessibilityLabel(String(format: L("Remove %@"), name))
+    }
+}
+
+/// An attachment still being read: a spinner, with the name for documents.
+struct LoadingChip: View {
+    var attachment: LoadingAttachment
+    var size: CGFloat = 44
+
+    var body: some View {
+        Group {
+            if attachment.isImage {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: size, height: size)
+            } else {
+                HStack(spacing: 7) {
+                    ProgressView().controlSize(.mini)
+                    Text(verbatim: attachment.name)
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundStyle(Theme.secondaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: 140, alignment: .leading)
+                }
+                .padding(.horizontal, 10)
+                .frame(height: size)
+            }
+        }
+        .background(Theme.cardStrong, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .help(attachment.name)
+        .accessibilityLabel(String(format: L("Loading %@"), attachment.name))
     }
 }
 

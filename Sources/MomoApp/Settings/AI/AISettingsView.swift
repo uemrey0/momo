@@ -106,11 +106,7 @@ private struct BrainOptionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: option.systemImage)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(option.tint.gradient, in: RoundedRectangle(cornerRadius: 8))
+            BrainIcon(option: option, size: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: option.title).font(.body.weight(.medium))
                 Text(

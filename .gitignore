@@ -28,3 +28,7 @@ DerivedData/
 .idea/
 *.swp
 __pycache__/
+
+# Coverage and profiling output
+*.profraw
+*.profdata
