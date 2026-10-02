@@ -47,6 +47,14 @@ public struct AudioClip: Sendable, Equatable {
         self.duration = duration
     }
 
+    /// How long to wait for a service to transcribe this clip: a little longer than the clip
+    /// itself, between 30 seconds and 5 minutes, so a stalled connection fails in time for the
+    /// next clip rather than minutes later.
+    public var requestTimeout: TimeInterval {
+        guard let duration else { return 300 }
+        return min(300, max(30, 20 + duration))
+    }
+
     /// Mono samples from -1 to 1, encoded as 16-bit WAV.
     public static func wav(samples: [Float], sampleRate: Int) -> AudioClip {
         AudioClip(

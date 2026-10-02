@@ -68,7 +68,7 @@ public struct GeminiTranscriptionService: AudioTranscriptionService {
         let url = baseURL.appendingPathComponent("models/\(model):generateContent")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 300
+        request.timeoutInterval = audio.requestTimeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
