@@ -27,7 +27,7 @@ jobs:
       HAS_NOTARY: ${{ secrets.NOTARY_APPLE_ID != '' }}
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Work out the version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
