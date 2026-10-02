@@ -12,7 +12,7 @@ struct RoutineSchedulerTests {
 
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "UTC")!
+        calendar.timeZone = .gmt
         return calendar
     }
 
