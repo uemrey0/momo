@@ -97,7 +97,9 @@ public actor MomoStore {
         remindAt: Date?? = nil, recurrence: Recurrence?? = nil, priority: TaskPriority? = nil,
         tags: [String]? = nil
     ) throws -> TaskItem {
-        let index = try taskIndex(for: reference, includeDone: true)
+        // Overwriting text can't be undone, so it needs an exact ID or title.
+        let index = try taskIndex(
+            for: reference, includeDone: true, exactOnly: title != nil || notes != nil)
         try mutate {
             if let title { $0.tasks[index].title = title }
             if let notes { $0.tasks[index].notes = notes }
@@ -112,7 +114,7 @@ public actor MomoStore {
 
     @discardableResult
     public func deleteTask(_ reference: String) throws -> TaskItem {
-        let index = try taskIndex(for: reference, includeDone: true)
+        let index = try taskIndex(for: reference, includeDone: true, exactOnly: true)
         let task = data.tasks[index]
         try mutate { $0.tasks.remove(at: index) }
         return task
@@ -164,11 +166,14 @@ public actor MomoStore {
         }
     }
 
-    private func taskIndex(for reference: String, includeDone: Bool) throws -> Int {
+    private func taskIndex(
+        for reference: String, includeDone: Bool, exactOnly: Bool = false
+    ) throws -> Int {
         reloadIfNeeded()
         return try Self.index(
             in: data.tasks, reference: reference, kind: "task",
-            id: \.id, title: \.title, isEligible: { includeDone || !$0.isDone })
+            id: \.id, title: \.title, isEligible: { includeDone || !$0.isDone },
+            exactOnly: exactOnly)
     }
 
     // MARK: - Notes
@@ -220,17 +225,17 @@ public actor MomoStore {
 
     @discardableResult
     public func deleteNote(_ reference: String) throws -> Note {
-        let index = try noteIndex(for: reference)
+        let index = try noteIndex(for: reference, exactOnly: true)
         let note = data.notes[index]
         try mutate { $0.notes.remove(at: index) }
         return note
     }
 
-    private func noteIndex(for reference: String) throws -> Int {
+    private func noteIndex(for reference: String, exactOnly: Bool = false) throws -> Int {
         reloadIfNeeded()
         return try Self.index(
             in: data.notes, reference: reference, kind: "note", id: \.id, title: \.title,
-            isEligible: { _ in true })
+            isEligible: { _ in true }, exactOnly: exactOnly)
     }
 
     // MARK: - Habits
@@ -325,7 +330,7 @@ public actor MomoStore {
         reloadIfNeeded()
         let index = try Self.index(
             in: data.memories, reference: reference, kind: "memory", id: \.id, title: \.text,
-            isEligible: { _ in true })
+            isEligible: { _ in true }, exactOnly: true)
         let memory = data.memories[index]
         try mutate { $0.memories.remove(at: index) }
         return memory
@@ -394,17 +399,17 @@ public actor MomoStore {
 
     @discardableResult
     public func deleteRoutine(_ reference: String) throws -> Routine {
-        let index = try routineIndex(for: reference)
+        let index = try routineIndex(for: reference, exactOnly: true)
         let routine = data.routines[index]
         try mutate { $0.routines.remove(at: index) }
         return routine
     }
 
-    private func routineIndex(for reference: String) throws -> Int {
+    private func routineIndex(for reference: String, exactOnly: Bool = false) throws -> Int {
         reloadIfNeeded()
         return try Self.index(
             in: data.routines, reference: reference, kind: "routine", id: \.id, title: \.title,
-            isEligible: { _ in true })
+            isEligible: { _ in true }, exactOnly: exactOnly)
     }
 
     // MARK: - Meetings
@@ -550,9 +555,12 @@ public actor MomoStore {
     }
 
     /// Finds an item by exact ID, then exact title, then a unique partial title match.
+    ///
+    /// - Parameter exactOnly: Skips the partial match, for changes that can't be undone, so a
+    ///   vague reference can't hit the wrong item. Partial matches are listed in the error.
     static func index<Item>(
         in items: [Item], reference: String, kind: String, id: KeyPath<Item, String>,
-        title: KeyPath<Item, String>, isEligible: (Item) -> Bool
+        title: KeyPath<Item, String>, isEligible: (Item) -> Bool, exactOnly: Bool = false
     ) throws -> Int {
         let needle = reference.trimmingCharacters(in: .whitespacesAndNewlines)
         if let index = items.firstIndex(where: { $0[keyPath: id] == needle.lowercased() }) {
@@ -567,12 +575,17 @@ public actor MomoStore {
         let partial = eligible.filter {
             items[$0][keyPath: title].localizedCaseInsensitiveContains(needle)
         }
-        if partial.count == 1 { return partial[0] }
+        if partial.count == 1, !exactOnly { return partial[0] }
         if partial.isEmpty {
             throw ToolError("No \(kind) matches '\(reference)'.")
         }
         let names = partial.prefix(5).map {
             "\(items[$0][keyPath: id]): \(items[$0][keyPath: title])"
+        }
+        if exactOnly {
+            throw ToolError(
+                "No \(kind) is exactly '\(reference)'. Close matches: "
+                    + "\(names.joined(separator: "; ")). Use the ID.")
         }
         throw ToolError(
             "Several \(kind)s match '\(reference)': \(names.joined(separator: "; ")). Use the ID.")
