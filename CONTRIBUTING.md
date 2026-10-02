@@ -97,6 +97,11 @@ review.
 A maintainer will review within a few days. We may ask for changes; that is a normal part of the
 process.
 
+CI doesn't start on its own for pull requests, because its macOS runners are expensive. Once a
+maintainer has looked at the changes, they add the `ci: run` label, and CI then runs on that
+push and every later one. Until then, the local `make lint` and `make test` runs are what
+counts.
+
 ## Code style
 
 - Swift 6 language mode with strict concurrency. UI and engine types are `@MainActor`.
