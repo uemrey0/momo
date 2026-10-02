@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0-beta.2] - 2026-10-02
+
 ### Security
 
 - A web page, file or other outside text that Momo reads can no longer make it send your
@@ -146,6 +148,7 @@ The first release: a living companion in the notch that works with the brain you
   MCP servers.
 - English and Turkish, onboarding, settings, launch at login and update checks.
 
-[Unreleased]: https://github.com/uemrey0/momo/compare/v0.2.0-beta.1...HEAD
+[Unreleased]: https://github.com/uemrey0/momo/compare/v0.2.0-beta.2...HEAD
+[0.2.0-beta.2]: https://github.com/uemrey0/momo/compare/v0.2.0-beta.1...v0.2.0-beta.2
 [0.2.0-beta.1]: https://github.com/uemrey0/momo/compare/v0.1.0...v0.2.0-beta.1
 [0.1.0]: https://github.com/uemrey0/momo/releases/tag/v0.1.0
