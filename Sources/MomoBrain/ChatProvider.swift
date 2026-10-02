@@ -183,3 +183,9 @@ let remoteHistoryBudget = 200_000
 /// just stops.
 let toolRoundLimitNotice =
     "\n\n(I stopped after \(maximumToolRounds) tool steps without finishing. Say “continue” and I'll pick up where I left off.)"
+
+/// The error when a streamed answer stops before the provider said it was complete.
+let streamEndedEarlyMessage = "The connection ended before the answer finished."
+
+/// What a provider appends when the answer hit the output limit.
+let answerTooLongNotice = "\n\n(The answer was cut off because it got too long.)"
