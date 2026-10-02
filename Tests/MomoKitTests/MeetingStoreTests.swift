@@ -80,6 +80,23 @@ struct MeetingStoreTests {
         #expect(meeting.participants.isEmpty)
     }
 
+    @Test("gaps in the transcript default to none and round-trip")
+    func untranscribedChunks() throws {
+        let older = try decode(#"{ "meetings" : [ { "id" : "m1", "title" : "Retro" } ] }"#)
+        #expect(older.meetings.first?.untranscribedChunks == 0)
+
+        var meeting = sampleMeeting()
+        meeting.untranscribedChunks = 3
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(Meeting.self, from: try encoder.encode(meeting))
+        #expect(decoded.untranscribedChunks == 3)
+        #expect(meeting.noteBody().hasPrefix("_Gaps in the transcript: 3."))
+        #expect(!sampleMeeting().noteBody().contains("Gaps"))
+    }
+
     @Test("meetings persist and round-trip through the file")
     func persistence() async throws {
         let store = temporaryStore()

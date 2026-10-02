@@ -391,6 +391,9 @@ extension Meeting {
     /// passed in so the app can localise them.
     public func noteBody(headings: MeetingNoteHeadings = MeetingNoteHeadings()) -> String {
         var sections: [String] = []
+        if untranscribedChunks > 0 {
+            sections.append("_" + String(format: headings.gapsFormat, untranscribedChunks) + "_")
+        }
         if !summary.isEmpty { sections.append(summary) }
         func list(_ title: String, _ items: [String]) {
             guard !items.isEmpty else { return }
@@ -424,14 +427,19 @@ public struct MeetingNoteHeadings: Sendable {
     public var openQuestions: String
     /// A format with one integer, the number of participants.
     public var participantsFormat: String
+    /// A format with one integer, the number of parts that could not be transcribed.
+    public var gapsFormat: String
 
     public init(
         decisions: String = "Decisions", actionItems: String = "Action items",
-        openQuestions: String = "Open questions", participantsFormat: String = "Participants (%ld)"
+        openQuestions: String = "Open questions", participantsFormat: String = "Participants (%ld)",
+        gapsFormat: String =
+            "Gaps in the transcript: %ld. These notes may miss part of the meeting."
     ) {
         self.decisions = decisions
         self.actionItems = actionItems
         self.openQuestions = openQuestions
         self.participantsFormat = participantsFormat
+        self.gapsFormat = gapsFormat
     }
 }

@@ -34,6 +34,8 @@ public struct Meeting: Codable, Sendable, Hashable, Identifiable {
     public var audioFiles: [String]
     /// Why the meeting has no summary, when summarising failed.
     public var failureReason: String?
+    /// How many chunks of audio could not be transcribed, so the transcript has gaps.
+    public var untranscribedChunks: Int
 
     public init(
         id: String = ShortID.make(), title: String, startedAt: Date = Date(),
@@ -42,7 +44,7 @@ public struct Meeting: Codable, Sendable, Hashable, Identifiable {
         participantCount: Int = 0, segments: [MeetingSegment] = [], summary: String = "",
         decisions: [String] = [], actionItems: [MeetingActionItem] = [],
         openQuestions: [String] = [], noteID: String? = nil, audioFiles: [String] = [],
-        failureReason: String? = nil
+        failureReason: String? = nil, untranscribedChunks: Int = 0
     ) {
         self.id = id
         self.title = title
@@ -61,6 +63,7 @@ public struct Meeting: Codable, Sendable, Hashable, Identifiable {
         self.noteID = noteID
         self.audioFiles = audioFiles
         self.failureReason = failureReason
+        self.untranscribedChunks = untranscribedChunks
     }
 
     public init(from decoder: any Decoder) throws {
@@ -82,6 +85,7 @@ public struct Meeting: Codable, Sendable, Hashable, Identifiable {
         noteID = container.lenient(String.self, .noteID)
         audioFiles = container.lenient([String].self, .audioFiles) ?? []
         failureReason = container.lenient(String.self, .failureReason)
+        untranscribedChunks = container.lenient(Int.self, .untranscribedChunks) ?? 0
     }
 
     /// How long the meeting lasted, or has lasted until `now` while recording.
