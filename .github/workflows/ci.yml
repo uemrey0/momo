@@ -60,7 +60,7 @@ jobs:
         run: xcodebuild -downloadComponent MetalToolchain || true
 
       - name: Cache Swift packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .build/voice-helper/SourcePackages
           key: voice-helper-${{ hashFiles('Helpers/momo-voice/Package.resolved') }}
