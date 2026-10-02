@@ -7,6 +7,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- A web page, file or other outside text that Momo reads can no longer make it send your
+  data elsewhere on its own. Once a reply has read such text, Momo asks before:
+  - opening or fetching a link you didn't give and a web search didn't return;
+  - saving a memory.
+
+  Outside text is marked as untrusted, so the model treats it as information rather than
+  instructions. Momo also no longer reads the sign-ins of AI command-line tools (Codex,
+  Gemini, Claude), shell histories or Mail data.
+  ([GHSA-vgvc-c4j4-g6gv](https://github.com/uemrey0/momo/security/advisories/GHSA-vgvc-c4j4-g6gv))
+- Routines can no longer be created, or have their prompt changed, without your approval.
+  The approval shows the full prompt the routine will run. Other agents connected through
+  `momo-mcp` can't add routines unless it is started with `--allow-destructive`.
+  ([GHSA-7mhc-7w95-rhff](https://github.com/uemrey0/momo/security/advisories/GHSA-7mhc-7w95-rhff))
+- Reading web pages can no longer be pointed at your local network or this Mac through
+  addresses written in unusual ways, such as `127.1`, or names that point to a local address.
+  Momo now looks up each site's address and checks it before connecting, and again after
+  every redirect.
+  ([GHSA-wgf5-6w3m-x847](https://github.com/uemrey0/momo/security/advisories/GHSA-wgf5-6w3m-x847))
+
 ## [0.2.0-beta.1] - 2026-10-02
 
 ### Added
