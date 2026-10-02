@@ -68,7 +68,7 @@ struct HistoryBudgetTests {
         #expect(ChatTurn.recent([], budget: 100).isEmpty)
     }
 
-    @Test("sends Claude only the latest turn's images and describes older ones")
+    @Test("sends Claude only the last two user turns' images and notes older ones")
     func anthropicImages() async throws {
         let (session, host) = MockURLProtocol.session(responses: [.init(body: anthropicReply)])
         let provider = AnthropicProvider(
@@ -80,15 +80,18 @@ struct HistoryBudgetTests {
                 "user", "assistant", "user", "assistant", "user",
             ])
 
-        #expect(body.jsonString.components(separatedBy: pixel.base64EncodedString()).count == 2)
-        let latest = try #require(messages.last?["content"]?.arrayValue)
-        #expect(latest.first?["type"]?.stringValue == "image")
+        #expect(body.jsonString.components(separatedBy: pixel.base64EncodedString()).count == 3)
+        for index in [2, 4] {
+            let blocks = try #require(messages[index]["content"]?.arrayValue)
+            #expect(blocks.first?["type"]?.stringValue == "image")
+        }
         let first = try #require(messages.first?["content"]?.stringValue)
-        #expect(first.contains("[image attached: one.png"))
+        #expect(first.contains("[image shared earlier: one.png, no longer attached;"))
+        #expect(!first.contains("not visible"))
         #expect(first.hasSuffix("First?"))
     }
 
-    @Test("sends OpenAI-compatible models only the latest turn's images")
+    @Test("sends OpenAI-compatible models only the last two user turns' images")
     func openAIImages() async throws {
         let (session, host) = MockURLProtocol.session(responses: [.init(body: openAIReply)])
         let provider = OpenAICompatibleProvider(
@@ -99,10 +102,22 @@ struct HistoryBudgetTests {
         #expect(messages.count == 6)
         #expect(messages.first?["role"]?.stringValue == "system")
 
-        #expect(body.jsonString.components(separatedBy: pixel.base64EncodedString()).count == 2)
-        let latest = try #require(messages.last?["content"]?.arrayValue)
-        #expect(latest.last?["image_url"] != nil)
-        #expect(messages[3]["content"]?.stringValue?.contains("[image attached: two.png") == true)
+        #expect(body.jsonString.components(separatedBy: pixel.base64EncodedString()).count == 3)
+        for index in [3, 5] {
+            let parts = try #require(messages[index]["content"]?.arrayValue)
+            #expect(parts.last?["image_url"] != nil)
+        }
+        let first = try #require(messages[1]["content"]?.stringValue)
+        #expect(first.contains("[image shared earlier: one.png, no longer attached;"))
+        #expect(!first.contains("not visible"))
+    }
+
+    @Test("still tells brains that can't see that images aren't visible")
+    func blindHistory() {
+        let provider = OpenAICompatibleProvider.ollama(model: "llama3.2")
+        let old = provider.content(of: screenshotChat[0], includingImages: false)
+        #expect(old.stringValue?.contains("[image attached: one.png, not visible") == true)
+        #expect(screenshotChat[0].contextText.contains("not visible to this brain"))
     }
 
     @Test("fits a long chat into a local model's comfortable length")

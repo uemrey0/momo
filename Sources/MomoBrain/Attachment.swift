@@ -29,13 +29,32 @@ public struct ChatAttachment: Sendable, Hashable, Identifiable {
     /// How a brain reads the attachment as text: the file's contents, or a note for an image
     /// it cannot see (`nil` when the image is sent to it natively).
     func contextText(imagesVisible: Bool) -> String? {
-        switch content {
-        case .file(let text):
-            return "[Attached file: \(name)]\n\(text)\n[End of \(name)]"
-        case .image:
-            return imagesVisible ? nil : "[image attached: \(name), not visible to this brain]"
+        contextText(images: imagesVisible ? .sent : .notVisible)
+    }
+
+    func contextText(images: ImageNote) -> String? {
+        switch (content, images) {
+        case (.file(let text), _):
+            "[Attached file: \(name)]\n\(text)\n[End of \(name)]"
+        case (.image, .sent):
+            nil
+        case (.image, .notVisible):
+            "[image attached: \(name), not visible to this brain]"
+        case (.image, .sharedEarlier):
+            "[image shared earlier: \(name), no longer attached; "
+                + "ask the user to send it again if you need to look at it]"
         }
     }
+}
+
+/// How a turn's images read as text.
+public enum ImageNote: Sendable {
+    /// The provider sends the images natively, so the text doesn't mention them.
+    case sent
+    /// The brain can't see images.
+    case notVisible
+    /// The brain can see images, but this older turn's are no longer sent with each message.
+    case sharedEarlier
 }
 
 extension ChatTurn {
@@ -56,8 +75,13 @@ extension ChatTurn {
     /// Images are described in words unless `imagesVisible`, when the provider sends them
     /// natively alongside this text.
     public func context(imagesVisible: Bool) -> String {
+        context(images: imagesVisible ? .sent : .notVisible)
+    }
+
+    /// The turn as text, with its images described as `images` says.
+    public func context(images: ImageNote) -> String {
         let parts =
-            attachments.compactMap { $0.contextText(imagesVisible: imagesVisible) }
+            attachments.compactMap { $0.contextText(images: images) }
             + [text, ToolRecord.render(toolRecords)]
         return parts.filter { !$0.isEmpty }.joined(separator: "\n\n")
     }

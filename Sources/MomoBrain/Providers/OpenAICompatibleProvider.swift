@@ -147,11 +147,12 @@ public struct OpenAICompatibleProvider: ChatProvider {
     ) async throws {
         var messages: [JSONValue] = [["role": "system", "content": .string(request.systemPrompt)]]
         let turns = ChatTurn.recent(request.turns, budget: historyBudget)
+        let withImages = ChatTurn.indicesSendingImages(in: turns)
         messages += turns.indices.map { index in
             let turn = turns[index]
             return [
                 "role": .string(turn.role.rawValue),
-                "content": content(of: turn, includingImages: index == turns.count - 1),
+                "content": content(of: turn, includingImages: withImages.contains(index)),
             ]
         }
         var tools = request.tools
@@ -206,13 +207,12 @@ public struct OpenAICompatibleProvider: ChatProvider {
 
     /// A turn's message content: plain text, or text and `image_url` parts with data URIs
     /// when the turn has images and the model can see them. Without `includingImages`,
-    /// images are described in words instead, so earlier screenshots aren't uploaded again
+    /// images are noted as shared earlier instead, so old screenshots aren't uploaded again
     /// with every message.
     func content(of turn: ChatTurn, includingImages: Bool = true) -> JSONValue {
         let images = turn.images
-        guard info.supportsImages, includingImages, !images.isEmpty else {
-            return .string(turn.contextText)
-        }
+        guard info.supportsImages, !images.isEmpty else { return .string(turn.contextText) }
+        guard includingImages else { return .string(turn.context(images: .sharedEarlier)) }
         var parts: [JSONValue] = []
         let text = turn.context(imagesVisible: true)
         if !text.isEmpty { parts.append(["type": "text", "text": .string(text)]) }
