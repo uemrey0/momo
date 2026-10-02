@@ -345,7 +345,10 @@ public enum StoreTools {
                             "What Momo should do each time, written as the user's request"),
                         "time": JSONSchema.string("Local time of day, 24-hour HH:mm"),
                         "days": JSONSchema.string("Optional: \(daysDescription). Default daily"),
-                    ], required: ["title", "prompt", "time"]))
+                    ], required: ["title", "prompt", "time"]),
+                // A routine runs its prompt unattended, so the user approves every prompt.
+                requiresConfirmation: true),
+            summary: routineSummary
         ) { arguments in
             guard let time = try time(arguments) else {
                 throw ToolError("The 'time' argument is required, e.g. 09:00.")
@@ -384,7 +387,10 @@ public enum StoreTools {
                         "time": JSONSchema.string("New local time of day, HH:mm"),
                         "days": JSONSchema.string("New days: \(daysDescription)"),
                         "enabled": JSONSchema.boolean("false to pause, true to resume"),
-                    ], required: ["routine"]))
+                    ], required: ["routine"])),
+            summary: routineSummary,
+            // Changing what a routine does needs approval; changing when it runs does not.
+            confirmsWhen: { $0["prompt"]?.stringValue != nil }
         ) { arguments in
             let routine = try await store.updateRoutine(
                 try required(arguments, "routine"), title: arguments["title"]?.stringValue,
@@ -408,6 +414,19 @@ public enum StoreTools {
             let routine = try await store.deleteRoutine(try required(arguments, "routine"))
             return "Deleted routine \(routine.title)"
         }
+    }
+
+    /// What a routine call will set up, with the full prompt, for the confirmation.
+    @Sendable static func routineSummary(_ arguments: JSONValue) -> String {
+        let name = arguments["title"]?.stringValue ?? arguments["routine"]?.stringValue ?? ""
+        var lines = ["Routine “\(name)”"]
+        if let time = arguments["time"]?.stringValue {
+            lines.append("At \(time), \(arguments["days"]?.stringValue ?? "daily")")
+        }
+        if let prompt = arguments["prompt"]?.stringValue {
+            lines.append("Runs by itself: “\(prompt)”")
+        }
+        return lines.joined(separator: "\n")
     }
 
     static func describe(_ routine: Routine) -> String {

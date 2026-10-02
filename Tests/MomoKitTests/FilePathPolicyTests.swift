@@ -26,6 +26,12 @@ struct FilePathPolicyTests {
             "~/Library/Safari/History.db", "~/LIBRARY/KEYCHAINS", "~/Projects/app/.env",
             "~/Projects/app/.env.local", "~/Projects/app/production.env", "/Library/Keychains",
             "~/backup/id_rsa", "~/Downloads/cert.p12", "~/.netrc", "~/vault.kdbx",
+            "~/.codex/auth.json", "~/.gemini/oauth_creds.json", "~/.claude/.credentials.json",
+            "~/.claude.json", "~/.zsh_history", "~/.bash_history", "~/.python_history",
+            "~/.local/share/fish/fish_history", "~/.zsh_sessions/A.history",
+            "~/.config/github-copilot/hosts.json", "~/.config/op/config",
+            "~/.cargo/credentials.toml", "~/.vault-token", "~/.cache/huggingface/token",
+            "~/Library/Mail/V10/MailData/Envelope Index",
         ])
     func refusesSecrets(_ path: String) {
         #expect(!policy.verdictForReading(path).isAllowed)

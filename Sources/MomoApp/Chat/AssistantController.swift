@@ -599,7 +599,7 @@ final class AssistantController {
                     await self?.askConsent(brain: brain, reason: reason, masked: masked) ?? .cancel
                 },
                 confirm: { [weak self] request in
-                    await self?.askConfirmation(request.summary) ?? false
+                    await self?.askConfirmation(Self.confirmationText(for: request)) ?? false
                 })
             for try await event in stream {
                 guard currentRun == run else { return nil }
@@ -836,6 +836,19 @@ final class AssistantController {
         consentContinuation = nil
         if answer != .cancel { character?.showWorking() }
         if wasAsking { onPromptAnswered?() }
+    }
+
+    /// What the confirmation shows: the action, and why Momo asks when it usually wouldn't.
+    nonisolated static func confirmationText(for request: ToolConfirmationRequest) -> String {
+        switch request.reason {
+        case .untrustedContent:
+            String(
+                format: L(
+                    "%@\n\nMomo read a web page, file or other outside text during this reply. Check that you asked for this, since that text may be trying to steer Momo."
+                ), request.summary)
+        case nil:
+            request.summary
+        }
     }
 
     private func askConfirmation(_ summary: String) async -> Bool {

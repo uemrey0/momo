@@ -69,7 +69,9 @@ struct MCPServerTests {
         let names =
             list?["result"]?["tools"]?.arrayValue?.compactMap { $0["name"]?.stringValue } ?? []
         #expect(names.contains("add_task"))
-        #expect(names.contains("add_routine"))
+        #expect(names.contains("update_routine"))
+        // A routine runs its prompt unattended, so other agents can't add one by default.
+        #expect(!names.contains("add_routine"))
         #expect(!names.contains("delete_task"))
         #expect(!names.contains("delete_routine"))
 

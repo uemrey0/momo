@@ -4,7 +4,11 @@ import Foundation
 ///
 /// Only `http` and `https` addresses on the public internet are fetched: local names and
 /// private network addresses are refused, also after redirects, so a page cannot steer Momo
-/// into the user's router or intranet. Downloads stop after ``maximumBytes``.
+/// into the user's router or intranet. Host names are resolved first and refused when any of
+/// their addresses is not public, so a name pointing at `127.0.0.1` is caught too. (A name
+/// that changes its answer between that check and the connection can still slip through;
+/// closing that gap would need connecting to the checked address directly.) Downloads stop
+/// after ``maximumBytes``.
 public struct WebPageReader: Sendable {
     /// A browser-like user agent; many sites refuse unknown clients.
     public static let userAgent =
@@ -14,12 +18,20 @@ public struct WebPageReader: Sendable {
     /// The most bytes downloaded.
     public static let maximumBytes = 3 * 1024 * 1024
 
+    /// Looks up the addresses of a host name.
+    public typealias Resolver = @Sendable (String) async -> [NetworkAddress]
+
     private let session: URLSession
     private let timeout: TimeInterval
+    private let resolver: Resolver
 
-    public init(session: URLSession = .shared, timeout: TimeInterval = 20) {
+    public init(
+        session: URLSession = .shared, timeout: TimeInterval = 20,
+        resolver: @escaping Resolver = NetworkAddress.resolve
+    ) {
         self.session = session
         self.timeout = timeout
+        self.resolver = resolver
     }
 
     /// A fetched page.
@@ -32,12 +44,14 @@ public struct WebPageReader: Sendable {
     /// Fetches `address` and converts it to text.
     public func read(_ address: String) async throws -> Page {
         let url = try Self.validate(address)
+        try await Self.checkResolved(url, resolver: resolver)
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue(
             "text/html,application/xhtml+xml,text/plain,application/json;q=0.9,*/*;q=0.5",
             forHTTPHeaderField: "Accept")
-        let (bytes, response) = try await session.bytes(for: request, delegate: RedirectGuard())
+        let (bytes, response) = try await session.bytes(
+            for: request, delegate: RedirectGuard(resolver: resolver))
         guard let http = response as? HTTPURLResponse else {
             throw ToolError("The page could not be loaded.")
         }
@@ -138,43 +152,47 @@ public struct WebPageReader: Sendable {
         return url
     }
 
-    /// Whether `host` may be on the public internet. Literal private, loopback and link-local
-    /// addresses and local names are not.
+    /// Whether `host` may be on the public internet, judging by its text alone. Address
+    /// literals in any spelling are checked by value; local names are refused. See
+    /// ``checkResolved(_:resolver:)`` for names that point at private addresses.
     static func isPublic(host: String) -> Bool {
         let host = host.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[]."))
+        if let address = NetworkAddress.literal(host) { return address.isPublic }
         if host == "localhost" || host.hasSuffix(".localhost") || host.hasSuffix(".local")
             || host.hasSuffix(".internal") || host.hasSuffix(".home.arpa")
             || (!host.contains(".") && !host.contains(":"))
         {
             return false
         }
-        let parts = host.split(separator: ".").compactMap { UInt8($0) }
-        if parts.count == 4, host.split(separator: ".").count == 4 {
-            switch (parts[0], parts[1]) {
-            case (0, _), (10, _), (127, _), (169, 254), (192, 168): return false
-            case (172, 16...31), (100, 64...127): return false
-            default: return true
-            }
-        }
-        if host.contains(":") {
-            // IPv6: loopback, unspecified, unique local (fc00::/7), link-local (fe80::/10)
-            // and IPv4-mapped addresses.
-            return
-                !(host == "::1" || host == "::" || host.hasPrefix("fc") || host.hasPrefix("fd")
-                || host.hasPrefix("fe8") || host.hasPrefix("fe9") || host.hasPrefix("fea")
-                || host.hasPrefix("feb") || host.hasPrefix("::ffff:"))
-        }
         return true
+    }
+
+    /// Resolves `url`'s host and refuses it when any of its addresses is not public.
+    static func checkResolved(_ url: URL, resolver: Resolver) async throws {
+        guard let host = url.host else { throw ToolError("The address has no host.") }
+        let name = host.trimmingCharacters(in: CharacterSet(charactersIn: "[]."))
+        let addresses = await resolver(name)
+        guard !addresses.isEmpty else { throw ToolError("The site \(host) could not be found.") }
+        guard addresses.allSatisfy(\.isPublic) else {
+            throw ToolError("Momo does not read pages on the local network or this Mac.")
+        }
     }
 }
 
 /// Refuses redirects to addresses ``WebPageReader`` would not fetch.
 private final class RedirectGuard: NSObject, URLSessionTaskDelegate, Sendable {
+    private let resolver: WebPageReader.Resolver
+
+    init(resolver: @escaping WebPageReader.Resolver) {
+        self.resolver = resolver
+    }
+
     func urlSession(
         _ session: URLSession, task: URLSessionTask,
         willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest
     ) async -> URLRequest? {
-        guard let url = request.url, (try? WebPageReader.validate(url.absoluteString)) != nil
+        guard let url = request.url, let checked = try? WebPageReader.validate(url.absoluteString),
+            (try? await WebPageReader.checkResolved(checked, resolver: resolver)) != nil
         else { return nil }
         return request
     }

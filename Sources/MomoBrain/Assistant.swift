@@ -166,11 +166,15 @@ public actor Assistant {
             turns: turns.map { $0.mapText(outgoing) },
             tools: configuration.toolbox.definitions, prefersSpeed: configuration.prefersSpeed)
         let toolbox = configuration.toolbox
+        let injectionGuard = PromptInjectionGuard(
+            trustedText: turns.filter { $0.role == .user }.map(\.text),
+            earlierTools: turns.flatMap { $0.toolRecords.map(\.name) })
         let runTool: ToolRunner = { call in
             var call = call
             call.arguments = incoming(call.arguments)
-            var result = await toolbox.execute(call, confirm: confirm)
-            result.output = outgoing(result.output)
+            var result = await toolbox.execute(
+                call, confirm: confirm, reason: injectionGuard.confirmationReason(for: call))
+            result.output = outgoing(injectionGuard.record(result))
             return result
         }
 
