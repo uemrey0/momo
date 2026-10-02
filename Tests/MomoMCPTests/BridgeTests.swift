@@ -35,7 +35,12 @@ final class RelayTransport: MCPTransport, @unchecked Sendable {
                 continuation.finish()
                 return
             }
-            for line in buffer.append(data) { continuation.yield(line) }
+            do {
+                for line in try buffer.append(data) { continuation.yield(line) }
+            } catch {
+                handle.readabilityHandler = nil
+                continuation.finish(throwing: error)
+            }
         }
     }
 
